@@ -26,7 +26,7 @@
                 out('Couldn\'t load configuration', SYSTEM, false);
                 return false;
             }
-            $includes = self::get('main.include');
+            $includes = self::get('include');
             if($includes)
                 foreach($includes as $include) {
                     if(!$includeData = file_get_contents($include) || !self::$configuration = array_intelligent_merge(self::$configuration, yaml_parse($includeData)))
@@ -40,9 +40,6 @@
         * @param string $path YAML-path to requested configuration-value
         */
         static public function get($path) {
-            if(!self::$configuration)
-                self::load();
-            
             $path = explode('.', $path);
             $data = self::$configuration;
             foreach($path as $part)

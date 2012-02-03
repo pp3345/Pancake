@@ -30,9 +30,11 @@
     
         $friendlyName = (!$currentThread) ? 'Master' : $currentThread->friendlyName;
         
-        $message = '['.$friendlyName.'] '.date(Config::get('main.dateformat')).' '.$text."\n";
+        $message = '['.$friendlyName.'] '
+                    .date(Config::get('main.dateformat')).' '
+                    .$text."\n";
         
-        if($debugMode && DEBUG_MODE === false)
+        if($debugMode && DEBUG_MODE !== true)
             return $message;
         
         echo $message;
@@ -79,7 +81,7 @@
         global $currentThread;
         if($errtype == E_ERROR || $errtype == E_WARNING || $errtype == E_USER_WARNING || $errtype == E_USER_ERROR || $errtype == E_RECOVERABLE_ERROR) {
             $message = 'An error ('.$errtype.') occured: '.$errstr.' in '.$errfile.' on line '.$errline;
-            file_put_contents(Config::get('main.logging.error'), out($message, SYSTEM, false, true));
+            file_put_contents(Config::get('main.logging.error'), out($message, SYSTEM, false, true), FILE_APPEND);
         }
         return true;
     }

@@ -55,7 +55,7 @@
         /**
         * Stops the Thread with SIGTERM, may stay alive in some cases
         */
-        public function stop() {
+        public final function stop() {
             if(!posix_kill($this->pid, SIGTERM))
                 return false;
             unset($this->pipe);
@@ -65,7 +65,7 @@
         /**
         * Kills the Thread with SIGKILL, Thread can't resist being killed
         */
-        public function kill() {
+        public final function kill() {
             if(!posix_kill($this->pid, SIGKILL))
                 return false;
             unset($this->pipe);
@@ -77,7 +77,7 @@
         * 
         * @param int $signal The signal to be sent
         */
-        public function signal($signal) {
+        public final function signal($signal) {
             if($signal == SIGKILL || $signal == SIGTERM)
                 return false;
             if(!posix_kill($this->pid, $signal))
@@ -90,7 +90,7 @@
         * 
         * @param int $signal The signal to be sent
         */
-        public function parentSignal($signal) {
+        public final function parentSignal($signal) {
             if(!posix_kill($this->ppid, $signal))
                 return false;
             return true;

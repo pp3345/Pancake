@@ -16,10 +16,17 @@
     require_once 'communicationPipe.class.php';
     require_once 'configuration.class.php';
     
+    set_error_handler('errorHandler');
+     
     $startOptions = getopt('h', array('benchmark::', 'debug', 'daemon', 'live', 'help'));
+    
+    // Set DEBUG_MODE
+    if(isset($startOptions['debug']) || Config::get('main.debugmode') === true)
+        define('DEBUG_MODE', true);
     
     if(isset($startOptions['h']) || isset($startOptions['help'])) {
         out('dreamServ '.VERSION, SYSTEM, false);
+        out('2012 Yussuf "pp3345" Khalil', SYSTEM, false);
         echo "\n";
         out('dreamServ is a simple and lightweight HTTP-server. These are the start-options you may use:', SYSTEM, false);
         out('-h --help                          Displays this help', SYSTEM, false);
@@ -52,10 +59,6 @@
     
     // Load configuration
     Config::load();
-    
-    // Set DEBUG_MODE
-    if(isset($startOptions['debug']) || Config::get('main.debugmode') === true)
-        define('DEBUG_MODE', true);
     
     out('Basic configuration loaded');
     if(DEBUG_MODE === true)
