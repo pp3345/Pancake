@@ -1,0 +1,7 @@
+dreamServ is a fast, simple and lightweight HTTP-Server written in PHP with acceleration for PHP-powered websites.
+
+System requirements:
+
+POSIX-compliant operating system (should run fine on Linux, BSD, Apple Mac OS X, etc. but won't run under any version of Microsoft Windows)
+PHP 5.3.0 or newer compiled with --enable-pcntl
+PECL yaml 1.1.0 or newer
