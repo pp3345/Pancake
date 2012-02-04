@@ -37,7 +37,7 @@
         if($debugMode && DEBUG_MODE !== true)
             return $message;
         
-        if(DAEMONIZED === true)
+        if(DAEMONIZED !== true)
             echo $message;
         if($log === true && !fwrite($fileStream[$type], $message))
             out('Couldn\'t write to logfile', SYSTEM, false);
