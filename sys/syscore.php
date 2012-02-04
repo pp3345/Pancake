@@ -20,10 +20,6 @@
      
     $startOptions = getopt('h', array('benchmark::', 'debug', 'daemon', 'live', 'help'));
     
-    // Set DEBUG_MODE
-    if(isset($startOptions['debug']) || Config::get('main.debugmode') === true)
-        define('DEBUG_MODE', true);
-    
     if(isset($startOptions['h']) || isset($startOptions['help'])) {
         out('dreamServ '.VERSION, SYSTEM, false);
         out('2012 Yussuf "pp3345" Khalil', SYSTEM, false);
@@ -57,12 +53,41 @@
         abort();
     }
     
+    // Check for root-user
+    if(posix_getuid() !== 0) {
+        out('You need to run dreamServ as root.', SYSTEM, false);
+        abort();
+    }
+    
     // Load configuration
     Config::load();
+    
+    // Set DEBUG_MODE
+    if(isset($startOptions['debug']) || Config::get('main.debugmode') === true)
+        define('DEBUG_MODE', true);
     
     out('Basic configuration loaded');
     if(DEBUG_MODE === true)
         out('Running in debugmode');
+        
+    // Check if configured user exists
+    if(posix_getpwnam(Config::get('main.user')) === false || posix_getgrnam(Config::get('main.group')) === false) {
+        out('The configured user/group doesn\'t exist.', SYSTEM, false);
+        abort();
+    }
     
     pcntl_signal(SIGUSR2, 'abort');
+    
+    if(isset($startOptions['daemon'])) {
+        ignore_user_abort(true);
+        
+        if(is_resource(STDIN))  fclose(STDIN);
+        if(is_resource(STDOUT)) fclose(STDOUT);
+        if(is_resource(STDERR)) fclose(STDERR);
+        define('DAEMONIZED', true);
+    }
+    
+    while(true) {
+        sleep(1);
+    }
 ?>

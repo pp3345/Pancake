@@ -1,3 +1,4 @@
+# DO NOT EDIT THIS SKELETON-CONFIGURATION
 main:
   pipepath: /usr/local/dreamServ/pipes/
   logging:
@@ -6,3 +7,5 @@ main:
     error: /usr/local/dreamServ/log/error.log
   dateformat: 'd.m.y H:i:s'
   debugmode: false
+  user: www-data
+  group: www-data

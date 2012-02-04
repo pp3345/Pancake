@@ -11,8 +11,8 @@
     * Class for handling configuration
     */
     class Config {
-        const PATH = '/usr/local/dreamServ/conf/config.yml';            // Path to main configuration file
-        const SKELETON_PATH = '/usr/local/dreamServ/conf/skeleton.yml'; // Path to skeleton configuration
+        const PATH = '../conf/config.yml';            // Path to main configuration file
+        const SKELETON_PATH = '../conf/skeleton.yml'; // Path to skeleton configuration
         static private $configuration = array();
         
         /**
