@@ -42,7 +42,7 @@
     }
     
     // Check for available PCNTL-functions
-    if(!is_callable('pcntl_signal')) {
+    if(!extension_loaded('pcntl')) {
         out('dreamServ can\'t run on this system. You need to recompile PHP with --enable-pcntl', SYSTEM, false);
         abort();
     }
@@ -50,6 +50,12 @@
     // Check if PECL-extension for YAML-support is installed
     if(!extension_loaded('yaml')) {
         out('You need to install the PECL-extension for YAML-support in order to run dreamServ.', SYSTEM, false);
+        abort();
+    }
+    
+    // Check for Semaphore
+    if(!extension_loaded('sysvmsg') || !extension_loaded('sysvshm')) {
+        out('You need to compile PHP with --enable-sysvmsg and --enable-sysvshm in order to run dreamServ.', SYSTEM, false);
         abort();
     }
     

@@ -3,7 +3,7 @@ dreamServ is a fast, simple and lightweight HTTP-Server written in PHP with acce
 System requirements:
 
 POSIX-compliant operating system (should run fine on Linux, BSD, Apple Mac OS X, etc. but won't run under any version of Microsoft Windows)
-PHP 5.3.0 or newer compiled with --enable-pcntl
+PHP 5.3.0 or newer compiled with --enable-pcntl, --enable-sysvshm and --enable-sysvmsg
 PECL yaml 1.1.0 or newer
 
 It's licensed under the CC BY-NC-SA 3.0 of which you may obtain a copy at http://creativecommons.org/licenses/by-nc-sa/3.0/

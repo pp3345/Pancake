@@ -42,11 +42,11 @@
             if($this->pid == -1)                // On error
                 return false;
             else if($this->pid) {               // Parent 
-                $this->pipe = new CommunicationPipe($this);
+                //$this->pipe = new CommunicationPipe($this);
                 return true;
             } else {                            // Child
                 $this->pid = posix_getpid();
-                $this->pipe = new CommunicationPipe($this);
+                //$this->pipe = new CommunicationPipe($this);
                 include $this->codeFile;
                 exit;
             }

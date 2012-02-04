@@ -14,7 +14,7 @@
     * @param bool $log Whether the text may be logged or not
     * @param bool $debugMode Whether the text should only be output in debugmode
     */
-	function out($text, $type = SYSTEM, $log = true, $debugMode = false) {
+    function out($text, $type = SYSTEM, $log = true, $debugMode = false) {
         static $fileStream = array();
         global $currentThread;
         
