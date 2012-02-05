@@ -1,7 +1,7 @@
 <?php
   
     /****************************************************************/
-    /* dreamServ                                                    */
+    /* Pancake                                                    */
     /* functions.php                                                */
     /* 2012 Yussuf "pp3345" Khalil                                  */
     /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
@@ -23,7 +23,7 @@
         
         if(!$fileStream && $log === true) {
             if(!($fileStream[SYSTEM] = fopen(Config::get('main.logging.system'), 'a+')) || !($fileStream[REQUEST] = fopen(Config::get('main.logging.request'), 'a+'))) {
-                out('Couldn\'t open file for logging - Check if it exists and is accessible for dreamServ', SYSTEM, false);
+                out('Couldn\'t open file for logging - Check if it exists and is accessible for Pancake', SYSTEM, false);
                 abort();
             }
         }
@@ -45,7 +45,7 @@
     }
     
     /**
-    * Aborts execution of dreamServ
+    * Aborts execution of Pancake
     */
     function abort() {
         global $currentThread;

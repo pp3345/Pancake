@@ -1,10 +1,10 @@
 # DO NOT EDIT THIS SKELETON-CONFIGURATION
 main:
-  pipepath: /usr/local/dreamServ/pipes/
+  pipepath: /usr/local/Pancake/pipes/
   logging:
-    system: /usr/local/dreamServ/log/system.log
-    request: /usr/local/dreamServ/log/requests.log
-    error: /usr/local/dreamServ/log/error.log
+    system: /usr/local/Pancake/log/system.log
+    request: /usr/local/Pancake/log/requests.log
+    error: /usr/local/Pancake/log/error.log
   dateformat: 'd.m.y H:i:s'
   debugmode: false
   user: www-data

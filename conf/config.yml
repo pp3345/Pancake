@@ -1,6 +1,6 @@
 main:
-  pipepath: /usr/local/dreamServ/pipes/
+  pipepath: /usr/local/Pancake/pipes/
   logging:
-    system: /usr/local/dreamServ/log/system.log
-    request: /usr/local/dreamServ/log/requests.log
+    system: /usr/local/Pancake/log/system.log
+    request: /usr/local/Pancake/log/requests.log
   debugmode: true

@@ -1,7 +1,7 @@
 <?php
   
     /****************************************************************/
-    /* dreamServ                                                    */
+    /* Pancake                                                    */
     /* communicationPipe.class.php                                  */
     /* 2012 Yussuf "pp3345" Khalil                                  */
     /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
