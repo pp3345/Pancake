@@ -16,7 +16,6 @@
     // Include files necessary to run Pancake
     require_once 'functions.php';
     require_once 'thread.class.php';
-    require_once 'communicationPipe.class.php';
     require_once 'configuration.class.php';
     require_once 'threads/socketWorker.class.php';
     require_once 'threads/requestWorker.class.php';
