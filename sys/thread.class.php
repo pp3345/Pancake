@@ -1,17 +1,20 @@
 <?php
   
     /****************************************************************/
-    /* Pancake                                                    */
+    /* Pancake                                                      */
     /* thread.class.php                                             */
     /* 2012 Yussuf "pp3345" Khalil                                  */
     /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
     /****************************************************************/
   
+    if(PANCAKE_HTTP !== true)
+        exit;
+  
     /**
     * Multi-Threading in PHP.
     */
-    class Thread {
-        private $codeFile = null;
+    class Pancake_Thread {
+        protected $codeFile = null;
         public $pid = 0;
         public $ppid = 0;
         public $running = false;
@@ -34,20 +37,22 @@
         * Starts the Thread
         */
         public function start() {
-            if(!file_exists($this->codeFile))
+            if(!file_exists($this->codeFile) || !is_readable($this->codeFile)) {
+                trigger_error('Thread can\'t be created because the specified codeFile isn\'t available', E_WARNING);
                 return false;
+            }
             $this->ppid = posix_getpid();
             $this->pid = pcntl_fork();
            
             if($this->pid == -1)                // On error
                 return false;
             else if($this->pid) {               // Parent 
-                //$this->pipe = new CommunicationPipe($this);
                 return true;
             } else {                            // Child
                 $this->pid = posix_getpid();
-                //$this->pipe = new CommunicationPipe($this);
-                include $this->codeFile;
+                global $currentThread;
+                $currentThread = $this;
+                require $this->codeFile;
                 exit;
             }
         }
@@ -55,7 +60,7 @@
         /**
         * Stops the Thread with SIGTERM, may stay alive in some cases
         */
-        public final function stop() {
+        public function stop() {
             if(!posix_kill($this->pid, SIGTERM))
                 return false;
             unset($this->pipe);

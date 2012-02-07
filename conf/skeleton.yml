@@ -1,6 +1,7 @@
 # DO NOT EDIT THIS SKELETON-CONFIGURATION
 main:
   pipepath: /usr/local/Pancake/pipes/
+  sysvpath: /usr/local/Pancake/sysv/
   logging:
     system: /usr/local/Pancake/log/system.log
     request: /usr/local/Pancake/log/requests.log
@@ -9,3 +10,8 @@ main:
   debugmode: false
   user: www-data
   group: www-data
+  listenports:
+    - 90
+    - 100
+  requestworkers: 5
+  

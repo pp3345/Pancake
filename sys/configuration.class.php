@@ -7,10 +7,13 @@
     /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
     /****************************************************************/
     
+    if(PANCAKE_HTTP !== true)
+        exit;
+    
     /**
     * Class for handling configuration
     */
-    class Config {
+    class Pancake_Config {
         const PATH = '../conf/config.yml';            // Path to main configuration file
         const SKELETON_PATH = '../conf/skeleton.yml'; // Path to skeleton configuration
         static private $configuration = array();
@@ -23,14 +26,14 @@
             || !($configData = file_get_contents(self::PATH))
             || !(self::$configuration = yaml_parse($skeletonData)) 
             || !(self::$configuration = array_intelligent_merge(self::$configuration, yaml_parse($configData)))) {
-                out('Couldn\'t load configuration', SYSTEM, false);
+                Pancake_out('Couldn\'t load configuration', SYSTEM, false);
                 return false;
             }
             $includes = self::get('include');
             if($includes)
                 foreach($includes as $include) {
                     if(!$includeData = file_get_contents($include) || !self::$configuration = array_intelligent_merge(self::$configuration, yaml_parse($includeData)))
-                        out('Couldn\'t load configuration-include: '.$include);
+                        Pancake_out('Couldn\'t load configuration-include: '.$include);
                 }
         }
         
