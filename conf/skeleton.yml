@@ -1,6 +1,5 @@
 # DO NOT EDIT THIS SKELETON-CONFIGURATION
 main:
-  pipepath: /usr/local/Pancake/pipes/
   sysvpath: /usr/local/Pancake/sysv/
   logging:
     system: /usr/local/Pancake/log/system.log
@@ -13,5 +12,6 @@ main:
   listenports:
     - 90
     - 100
-  requestworkers: 5
-  
+  requestworkers: 10
+include:
+  - /usr/local/Pancake/conf/vhosts/

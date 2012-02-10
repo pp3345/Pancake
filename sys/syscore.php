@@ -12,6 +12,9 @@
     const PANCAKE_HTTP = true;
     const PANCAKE_SOCKET_WORKER_TYPE = 1;
     const PANCAKE_REQUEST_WORKER_TYPE = 2;
+    const PANCAKE_REQUEST_WORKER_CONTROLLER_TYPE = 3;
+    const PANCAKE_VHOST_WORKER_TYPE = 4;
+    const PANCAKE_VHOST_WORKER_CONTROLLER_TYPE = 5;
     
     // Include files necessary to run Pancake
     require_once 'functions.php';
@@ -19,6 +22,9 @@
     require_once 'configuration.class.php';
     require_once 'threads/socketWorker.class.php';
     require_once 'threads/requestWorker.class.php';
+    require_once 'threads/requestWorkerController.class.php';
+    require_once 'threads/vHostWorker.class.php';
+    require_once 'threads/vHostWorkerController.class.php';
     require_once 'sharedMemory.class.php';
     require_once 'IPC.class.php';
     
@@ -26,7 +32,7 @@
     set_error_handler('Pancake_errorHandler');
     
     // Get start options 
-    $startOptions = getopt('h', array('benchmark::', 'debug', 'daemon', 'live', 'help'));
+    $startOptions = getopt('-h', array('benchmark::', 'debug', 'daemon', 'live', 'help'));
     
     // Display help if requested
     if(isset($startOptions['h']) || isset($startOptions['help'])) {
@@ -47,31 +53,31 @@
     // Check for POSIX-compliance
     if(!is_callable('posix_getpid')) {
         Pancake_out('Pancake can\'t run on this system. Either your operating system isn\'t POSIX-compliant or PHP was compiled with --disable-posix', SYSTEM, false);
-        abort();
+        Pancake_abort();
     }
     
     // Check for available PCNTL-functions
     if(!extension_loaded('pcntl')) {
         Pancake_out('Pancake can\'t run on this system. You need to recompile PHP with --enable-pcntl', SYSTEM, false);
-        abort();
+        Pancake_abort();
     }
     
     // Check if PECL-extension for YAML-support is installed
     if(!extension_loaded('yaml')) {
         Pancake_out('You need to install the PECL-extension for YAML-support in order to run Pancake.', SYSTEM, false);
-        abort();
+        Pancake_abort();
     }
     
     // Check for Semaphore
     if(!extension_loaded('sysvmsg') || !extension_loaded('sysvshm')) {
         Pancake_out('You need to compile PHP with --enable-sysvmsg and --enable-sysvshm in order to run Pancake.', SYSTEM, false);
-        abort();
+        Pancake_abort();
     }
     
     // Check for root-user
     if(posix_getuid() !== 0) {
         Pancake_out('You need to run Pancake as root.', SYSTEM, false);
-        abort();
+        Pancake_abort();
     }
     
     // Load configuration
@@ -88,7 +94,7 @@
     // Check if configured user exists
     if(posix_getpwnam(Pancake_Config::get('main.user')) === false || posix_getgrnam(Pancake_Config::get('main.group')) === false) {
         Pancake_out('The configured user/group doesn\'t exist.', SYSTEM, false);
-        abort();
+        Pancake_abort();
     }
     
     // Handle signals
@@ -109,18 +115,24 @@
     // Check for ports to listen on
     if(!Pancake_Config::get('main.listenports')) {
         Pancake_out('You need to specify at least one port for Pancake to listen on. We recommend port 80.', SYSTEM, false);
-        abort();
+        Pancake_abort();
     }
     
     // Check if configured worker-amounts are OK
     if(Pancake_Config::get('main.requestworkers') < 1) {
         Pancake_out('You need to specify an amount of request-workers greater or equal to 1.', SYSTEM, false);
-        abort();
+        Pancake_abort();
+    }
+    
+    // Check for configured vhosts
+    if(!Pancake_Config::get('vhosts')) {
+        Pancake_out('You need to define at least one virtual host.', SYSTEM, false);
+        Pancake_abort();
     }
     
     // Load Shared Memory and IPC
     Pancake_SharedMemory::create();
-    Pancake_IPC::create();
+    Pancake_IPC::create();  
     
     // Create sockets
     foreach(Pancake_Config::get('main.listenports') as $port) {
@@ -149,6 +161,18 @@
         trigger_error('Failed to change user', E_USER_ERROR);
         Pancake_abort();
     }
+    
+    // Start vHostWorkerController
+    Pancake_vHostWorkerController::getInstance();
+    
+    // Create vHostWorkers
+    foreach(Pancake_Config::get('vhosts') as $name => $config) {
+        for($i = 0;$i < Pancake_Config::get('vhosts.'.$name.'.workers');$i++)
+            $vHostWorkers[] = new Pancake_vHostWorker($name);
+    }
+    
+    // Start RequestWorkerController
+    Pancake_RequestWorkerController::getInstance();
     
     // Create SocketWorkers for listening on single ports
     foreach($Pancake_sockets as $port => $socket)

@@ -1,0 +1,11 @@
+vhosts:
+  default:
+    docroot: /var/vhosts/pancake/default/
+    listen:
+      - pp3345.de:90
+      - www.pp3345.de:90
+      - 84.200.43.132:90
+      - pp3345.de:100
+      - www.pp3345.de:100
+      - 84.200.43.132:100
+    workers: 3

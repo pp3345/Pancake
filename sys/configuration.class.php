@@ -32,7 +32,17 @@
             $includes = self::get('include');
             if($includes)
                 foreach($includes as $include) {
-                    if(!$includeData = file_get_contents($include) || !self::$configuration = array_intelligent_merge(self::$configuration, yaml_parse($includeData)))
+                    if(is_dir($include)) {
+                        $directory = scandir($include);
+                        foreach($directory as $file) {
+                            if($file != '.' && $file != '..') {
+                                if(!($includeData = file_get_contents($include.'/'.$file)) || !(self::$configuration = array_intelligent_merge(self::$configuration, yaml_parse($includeData))))
+                                    Pancake_out('Couldn\'t load configuration-include: '.$file);
+                            }
+                        }
+                        continue;
+                    }
+                    if(!($includeData = file_get_contents($include)) || !(self::$configuration = array_intelligent_merge(self::$configuration, yaml_parse($includeData))))
                         Pancake_out('Couldn\'t load configuration-include: '.$include);
                 }
         }

@@ -28,25 +28,55 @@
         $currentThread->setAvailable();
         
         // Accept connection
-        $requestSocket = socket_accept($Pancake_sockets[$message]);
+        if(!($requestSocket = socket_accept($Pancake_sockets[$message]))) {
+            $currentThread->setAvailable();
+            continue;
+        }
         
         // Inform SocketWorker
         Pancake_IPC::send(PANCAKE_SOCKET_WORKER_TYPE.$message, 'OK');
         
+        // Set timeout - DoS-protection
+        socket_set_option($requestSocket, SOL_SOCKET, SO_RCVTIMEO, array('sec' => 0, 'usec' => 10000));
+        
         // Receive data from client
-        while($bytes = socket_read($requestSocket, 16)) {
+        while($bytes = socket_read($requestSocket, 16384)) {
             $data .= $bytes;
             socket_set_nonblock($requestSocket);
         }
         
+        if(!$data) {
+            $currentThread->setAvailable();
+            continue;
+        }
+        
         // Get information about client
-        socket_getpeername($requestSocket, $ip, $port);
+        socket_getPeerName($requestSocket, $ip, $port);
         
         // Output debug-information
         Pancake_out('Handling request from '.$ip.':'.$port, SYSTEM, false, true);
         
+        $x = explode("\r\n", $data);
+        foreach($x as $header) {
+            $header = explode(':', $header, 2);
+            if($header[0] == 'Host') {
+                $vHost = trim($header[1]);
+                break;
+            }
+        }
+        
+        Pancake_vHostWorker::findAvailable($vHost)->handleRequest($currentThread, $data);
+        
+        //socket_set_option($requestSocket, SOL_SOCKET, SO_KEEPALIVE, 1);
+        
+        if(!socket_write($requestSocket, Pancake_IPC::get())) {
+            $currentThread->setAvailable();
+            continue;
+        }
+        
         // Close socket
-        socket_close($requestSocket);
+        socket_shutdown($requestSocket);
+        //socket_close($requestSocket);
         
         // Set worker available
         $currentThread->setAvailable();

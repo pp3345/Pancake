@@ -2,40 +2,39 @@
   
     /****************************************************************/
     /* Pancake                                                      */
-    /* requestWorker.class.php                                      */
+    /* vHostWorker.class.php                                        */
     /* 2012 Yussuf "pp3345" Khalil                                  */
     /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
     /****************************************************************/
     
     if(PANCAKE_HTTP !== true)
         exit;
-    
-    /**
-    * RequestWorker which retrieves requests from SocketWorkers    
-    */
-    class Pancake_RequestWorker extends Pancake_Thread {
+        
+    class Pancake_vHostWorker extends Pancake_Thread {
         static private $instances = array();
         public $id = 0;
         public $IPCid = 0;
         public $isAvailable = true;
-        
+        public $name = null;
         
         /**
-        * Creates a new RequestWorker
+        * Creates a new vHostWorker
         * 
-        * @return RequestWorker
+        * @param string $name Name of the vHost
+        * @return vHostWorker
         */
-        public function __construct() {
+        public function __construct($name) {
             // Update local data from Shared Memory and add instance
             if(self::$instances) self::getSHMEM();
             self::$instances[] = $this;
             
-            // Set RequestWorker-ID and address for IPC
+            // Set vHostWorker-ID and address for IPC
             $this->id = max(array_keys(self::$instances));
-            $this->IPCid = PANCAKE_REQUEST_WORKER_TYPE.$this->id;
+            $this->IPCid = PANCAKE_VHOST_WORKER_TYPE.$this->id;
             
-            $this->codeFile = 'threads/single/requestWorker.thread.php';
-            $this->friendlyName = 'RequestWorker #'.$this->id;
+            $this->name = $name;
+            $this->codeFile = 'threads/single/vHostWorker.thread.php';
+            $this->friendlyName = 'vHostWorker #'.$this->id.' for "'.$this->name.'"';
             
             // Start worker
             $this->start();
@@ -48,21 +47,24 @@
         /**
         * Returns an available worker
         * 
-        * @return RequestWorker
+        * @param string $vHost Listen-address of the vHost
+        * @return vHostWorker
         */
-        static public function findAvailable() {
+        static public function findAvailable($listen) {
             // Search for available workers
             while(true) {
                 self::getSHMEM();
                 foreach(self::$instances as $worker) {
                     if($worker->isAvailable)
-                        return $worker;
+                        foreach($worker->listen as $address)
+                            if($address == $listen)
+                                return $worker;
                 }
             }
         }
         
         /**
-        * Sets the availability of a RequestWorker
+        * Sets the availability of a vHostWorker
         * 
         */
         protected function setAvailable() {
@@ -74,15 +76,16 @@
         }
         
         /**
-        * Let a RequestWorker handle a request
+        * Let a vHostWorker handle a request
         * 
-        * @param int $port Port with incoming request
+        * @param Pancake_RequestWorker $worker RequestWorker handling this request
+        * @param string $request Request-data
         * @return bool Whether sending the request was successful or not
         */
-        public function handleRequest($port) {
+        public function handleRequest(Pancake_RequestWorker $worker, $request) {
             if(!$this->isAvailable)
                 return false;
-            if(!Pancake_IPC::send($this->IPCid, $port))
+            if(!Pancake_IPC::send($this->IPCid, $worker->IPCid."\n".$request))
                 return false;
             return true; 
         }
@@ -92,7 +95,7 @@
         * 
         */
         static protected function getSHMEM() {
-            if(!(self::$instances = Pancake_SharedMemory::get(PANCAKE_REQUEST_WORKER_TYPE.'0001')))
+            if(!(self::$instances = Pancake_SharedMemory::get(PANCAKE_VHOST_WORKER_TYPE.'0001')))
                 return false;
             return true;
         }
@@ -104,7 +107,7 @@
         protected function updateSHMEM() {
             /*if(!Pancake_SharedMemory::put(self::$instances, PANCAKE_REQUEST_WORKER_TYPE.'0001'))
                 return false;*/
-            Pancake_IPC::send(PANCAKE_REQUEST_WORKER_CONTROLLER_TYPE, $this);
+            Pancake_IPC::send(PANCAKE_VHOST_WORKER_CONTROLLER_TYPE, $this);
             return true;
         }
     }
