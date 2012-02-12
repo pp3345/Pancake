@@ -36,8 +36,9 @@
         // Inform SocketWorker
         Pancake_IPC::send(PANCAKE_SOCKET_WORKER_TYPE.$message, 'OK');
         
+        // Firefox sends HTTP-Request in first TCP-segment while Chrome sends HTTP-request after connection was completely established
         // Set timeout - DoS-protection
-        socket_set_option($requestSocket, SOL_SOCKET, SO_RCVTIMEO, array('sec' => 0, 'usec' => 10000));
+        socket_set_option($requestSocket, SOL_SOCKET, SO_RCVTIMEO, array('sec' => 0, 'usec' => Pancake_Config::get('main.readtimeout')));
         
         // Receive data from client
         while($bytes = socket_read($requestSocket, 16384)) {
@@ -64,12 +65,21 @@
                 break;
             }
         }
+    
+        try {
+            $request = new Pancake_HTTPRequest($currentThread);
+            $request->init($data);
+        } catch(Pancake_InvalidHTTPRequestException $e) {
+            socket_write($requestSocket, $request->buildAnswer());
+            socket_shutdown($requestSocket);
+            continue;
+        }
         
-        Pancake_vHostWorker::findAvailable($vHost)->handleRequest($currentThread, $data);
+        Pancake_vHostWorker::findAvailable($vHost)->handleRequest($request);
         
         //socket_set_option($requestSocket, SOL_SOCKET, SO_KEEPALIVE, 1);
         
-        if(!socket_write($requestSocket, Pancake_IPC::get())) {
+        if(!socket_write($requestSocket, Pancake_IPC::get()->buildAnswer())) {
             $currentThread->setAvailable();
             continue;
         }

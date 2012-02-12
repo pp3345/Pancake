@@ -16,24 +16,17 @@
     while($message = Pancake_IPC::get()) {
         $currentThread->setAvailable();
         
-        Pancake_out('Handling request', SYSTEM, false, true);
+        Pancake_out('Handling request', SYSTEM, false, true);    
         
-        $message = explode("\n", $message, 2);     
+        $message->setHeader('Content-Type', 'text/plain');
         
-        $header =  'HTTP/1.1 200 OK'."\n";
-        $header .= 'Content-type: text/plain'."\n";
-        $header .= 'Connection: keep-alive'."\n";
-        $header .= 'Server: Pancake/0.1'."\n";
+        $body = 'Received Data:'."\r\n";
+        $body .= $message->getRequestHeaders()."\r\n";
+        $body .= 'Dump of RequestObject:'."\r\n";
+        $body .= print_r($message, true);
+        $message->setAnswerBody($body);
         
-        $body = 'Received Data:'."\n";
-        $body .= $message[1];
-        $body .= "\n\n";
-        $body .= "Answer:"."\n";
-        $body .= $header;
-        
-        $header .= 'Content-Length: '.strlen($body)."\n\n";
-        
-        Pancake_IPC::send($message[0], $header.$body);
+        Pancake_IPC::send($message->getRequestWorker()->IPCid, $message);
         
         $currentThread->setAvailable();
     }

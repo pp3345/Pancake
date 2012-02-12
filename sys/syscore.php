@@ -25,6 +25,8 @@
     require_once 'threads/requestWorkerController.class.php';
     require_once 'threads/vHostWorker.class.php';
     require_once 'threads/vHostWorkerController.class.php';
+    require_once 'HTTPRequest.class.php';
+    require_once 'invalidHTTPRequest.exception.php';
     require_once 'sharedMemory.class.php';
     require_once 'IPC.class.php';
     
@@ -169,6 +171,7 @@
     foreach(Pancake_Config::get('vhosts') as $name => $config) {
         for($i = 0;$i < Pancake_Config::get('vhosts.'.$name.'.workers');$i++)
             $vHostWorkers[] = new Pancake_vHostWorker($name);
+        Pancake_out('Created '.Pancake_Config::get('vhosts.'.$name.'.workers').' vHostWorkers for vHost "'.$name.'"', SYSTEM, true, true);
     }
     
     // Start RequestWorkerController
@@ -177,10 +180,14 @@
     // Create SocketWorkers for listening on single ports
     foreach($Pancake_sockets as $port => $socket)
         $socketWorkers[] = new Pancake_SocketWorker($port);
+    Pancake_out('Created '.count($Pancake_sockets).' SocketWorkers', SYSTEM, true, true);
         
     // Create RequestWorkers
     for($i = 0;$i < Pancake_Config::get('main.requestworkers');$i++)
         $requestWorkers[] = new Pancake_RequestWorker();
+    Pancake_out('Created '.Pancake_Config::get('main.requestworkers').' RequestWorkers', SYSTEM, true, true);
+    
+    Pancake_out('Ready for connections');
     
     // Good night
     while(true) {

@@ -82,10 +82,10 @@
         * @param string $request Request-data
         * @return bool Whether sending the request was successful or not
         */
-        public function handleRequest(Pancake_RequestWorker $worker, $request) {
+        public function handleRequest(Pancake_HTTPRequest $request) {
             if(!$this->isAvailable)
                 return false;
-            if(!Pancake_IPC::send($this->IPCid, $worker->IPCid."\n".$request))
+            if(!Pancake_IPC::send($this->IPCid, $request))
                 return false;
             return true; 
         }

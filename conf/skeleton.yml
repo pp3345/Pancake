@@ -13,5 +13,7 @@ main:
     - 90
     - 100
   requestworkers: 10
+  readtimeout: 100000
+  exposepancake: true
 include:
   - /usr/local/Pancake/conf/vhosts/
