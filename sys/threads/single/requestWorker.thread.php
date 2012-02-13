@@ -36,7 +36,7 @@
         // Inform SocketWorker
         Pancake_IPC::send(PANCAKE_SOCKET_WORKER_TYPE.$message, 'OK');
         
-        // Firefox sends HTTP-Request in first TCP-segment while Chrome sends HTTP-request after connection was completely established
+        // Firefox sends HTTP-Request in first TCP-segment while Chrome sends HTTP-Request after TCP-Handshake
         // Set timeout - DoS-protection
         socket_set_option($requestSocket, SOL_SOCKET, SO_RCVTIMEO, array('sec' => 0, 'usec' => Pancake_Config::get('main.readtimeout')));
         
@@ -55,38 +55,34 @@
         socket_getPeerName($requestSocket, $ip, $port);
         
         // Output debug-information
-        Pancake_out('Handling request from '.$ip.':'.$port, SYSTEM, false, true);
-        
-        $x = explode("\r\n", $data);
-        foreach($x as $header) {
-            $header = explode(':', $header, 2);
-            if($header[0] == 'Host') {
-                $vHost = trim($header[1]);
-                break;
-            }
-        }
+        //Pancake_out('Handling request from '.$ip.':'.$port, SYSTEM, false, true);
     
+        // Create HTTPRequest
         try {
             $request = new Pancake_HTTPRequest($currentThread);
             $request->init($data);
         } catch(Pancake_InvalidHTTPRequestException $e) {
-            socket_write($requestSocket, $request->buildAnswer());
-            socket_shutdown($requestSocket);
-            continue;
+            goto write; // EVIL! :O
         }
         
-        Pancake_vHostWorker::findAvailable($vHost)->handleRequest($request);
+        // Output request-information
+        Pancake_out('FROM '.$ip.': '.$request->getRequestType().' '.$request->getRequestFilePath().' HTTP/'.$request->getProtocolVersion().' on vHost '.$request->getRequestHeader('Host'), REQUEST);
+        
+        // Let an available vHostWorker handle this request 
+        Pancake_vHostWorker::findAvailable($request->getRequestHeader('Host'))->handleRequest($request);
         
         //socket_set_option($requestSocket, SOL_SOCKET, SO_KEEPALIVE, 1);
         
-        if(!socket_write($requestSocket, Pancake_IPC::get()->buildAnswer())) {
-            $currentThread->setAvailable();
-            continue;
-        }
+        // Wait for answer from vHostWorker
+        $request = Pancake_IPC::get();
+        
+        write:
+        
+        // Write answer to socket
+        socket_write($requestSocket, $request->buildAnswer());
         
         // Close socket
         socket_shutdown($requestSocket);
-        //socket_close($requestSocket);
         
         // Set worker available
         $currentThread->setAvailable();

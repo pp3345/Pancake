@@ -136,6 +136,9 @@
     Pancake_SharedMemory::create();
     Pancake_IPC::create();  
     
+    // Dirty workaround for error-logging (else may get permission denied)
+    trigger_error('Nothing', E_USER_NOTICE);
+    
     // Create sockets
     foreach(Pancake_Config::get('main.listenports') as $port) {
         if(!($Pancake_sockets[$port] = socket_create_listen($port))) {
@@ -188,6 +191,29 @@
     Pancake_out('Created '.Pancake_Config::get('main.requestworkers').' RequestWorkers', SYSTEM, true, true);
     
     Pancake_out('Ready for connections');
+    
+    // Clean
+    unset($requestWorkers);
+    unset($socketWorkers);
+    unset($vHostWorkers);
+    unset($user);
+    unset($group);
+    unset($Pancake_sockets);
+    unset($startOptions);
+    unset($currentThread);
+    unset($port);
+    unset($config);
+    unset($name);
+    unset($i);
+    unset($socket);
+    unset($_SERVER);
+    unset($_GET);
+    unset($_POST);
+    unset($_COOKIE);
+    unset($_FILES);
+    unset($GLOBALS);
+    unset($argv);
+    unset($argc);
     
     // Good night
     while(true) {

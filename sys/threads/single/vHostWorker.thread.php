@@ -13,21 +13,25 @@
     $currentThread->listen = Pancake_Config::get('vhosts.'.$currentThread->name.'.listen');
     $currentThread->updateSHMEM();
     
-    while($message = Pancake_IPC::get()) {
+    while($request = Pancake_IPC::get()) {
         $currentThread->setAvailable();
         
         Pancake_out('Handling request', SYSTEM, false, true);    
         
-        $message->setHeader('Content-Type', 'text/plain');
+        $request->setHeader('Content-Type', 'text/plain');
         
         $body = 'Received Data:'."\r\n";
-        $body .= $message->getRequestHeaders()."\r\n";
+        $body .= $request->getRequestHeaders()."\r\n";
         $body .= 'Dump of RequestObject:'."\r\n";
-        $body .= print_r($message, true);
-        $message->setAnswerBody($body);
+        $body .= print_r($request, true);
+        $request->setAnswerBody($body);
         
-        Pancake_IPC::send($message->getRequestWorker()->IPCid, $message);
+        Pancake_IPC::send($request->getRequestWorker()->IPCid, $request);
         
         $currentThread->setAvailable();
+        
+        // Clean
+        unset($request);
+        unset($body);
     }
 ?>

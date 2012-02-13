@@ -100,9 +100,12 @@
     */
     function Pancake_errorHandler($errtype, $errstr, $errfile = null, $errline = null) {
         global $currentThread;
+        static $fileStream;
+        if(!$fileStream)
+            $fileStream = @fopen(Pancake_Config::get('main.logging.error'), 'a+');
         if($errtype == E_ERROR || $errtype == E_WARNING || $errtype == E_USER_WARNING || $errtype == E_USER_ERROR || $errtype == E_RECOVERABLE_ERROR) {
             $message = 'An error ('.$errtype.') occured: '.$errstr.' in '.$errfile.' on line '.$errline;
-            file_put_contents(Pancake_Config::get('main.logging.error'), Pancake_out($message, SYSTEM, false, true), FILE_APPEND);
+            fwrite($fileStream, Pancake_out($message, SYSTEM, false, true));
         }
         return true;
     }
