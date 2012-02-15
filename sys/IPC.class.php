@@ -29,6 +29,14 @@
         }
         
         /**
+        * Destroys the IPC-resource
+        * 
+        */
+        static public function destroy() {
+            return msg_remove_queue(self::$IPC);
+        }
+        
+        /**
         * Send information to a Pancake-Thread
         * 
         * @param int $to ID of the recipient

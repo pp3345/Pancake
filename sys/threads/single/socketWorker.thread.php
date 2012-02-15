@@ -18,6 +18,9 @@
         exit;
     }
     
+    // Set user and group
+    Pancake_setUser();
+    
     // Set handler for stop-signals
     pcntl_signal(SIGTERM, 'stop');
     

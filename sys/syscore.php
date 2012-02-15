@@ -7,7 +7,7 @@
     /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
     /****************************************************************/
     
-    declare(ticks = 1);
+    declare(ticks = 5);
     const PANCAKE_VERSION = '0.1';
     const PANCAKE_HTTP = true;
     const PANCAKE_SOCKET_WORKER_TYPE = 1;
@@ -29,6 +29,7 @@
     require_once 'invalidHTTPRequest.exception.php';
     require_once 'sharedMemory.class.php';
     require_once 'IPC.class.php';
+    require_once 'vHost.class.php';
     
     // Set error handler
     set_error_handler('Pancake_errorHandler');
@@ -74,6 +75,12 @@
     if(!extension_loaded('sysvmsg') || !extension_loaded('sysvshm')) {
         Pancake_out('You need to compile PHP with --enable-sysvmsg and --enable-sysvshm in order to run Pancake.', SYSTEM, false);
         Pancake_abort();
+    }
+    
+    // Check for proctitle
+    if(extension_loaded('proctitle')) {
+        setproctitle('Pancake HTTP-Server '.PANCAKE_VERSION);
+        define('PANCAKE_PROCTITLE', true);
     }
     
     // Check for root-user
@@ -146,6 +153,7 @@
             unset($Pancake_sockets[$port]);
             continue;
         }
+        socket_set_option($Pancake_sockets[$port], SOL_SOCKET, SO_LINGER, array('l_onoff' => 1, 'l_linger' => 0));
         socket_set_nonblock($Pancake_sockets[$port]);
     }
     
@@ -154,28 +162,35 @@
         trigger_error('No sockets available to listen on', E_USER_ERROR);
         Pancake_abort();
     }
-     
-    // Set user and group to configured values
-    $user = posix_getpwnam(Pancake_Config::get('main.user'));
-    $group = posix_getgrnam(Pancake_Config::get('main.group'));
-    if(!posix_setgid($group['gid'])) {
-        trigger_error('Failed to change group', E_USER_ERROR);
-        Pancake_abort();
-    }
-    if(!posix_setuid($user['uid'])) {
-        trigger_error('Failed to change user', E_USER_ERROR);
-        Pancake_abort();
-    }
     
     // Start vHostWorkerController
-    Pancake_vHostWorkerController::getInstance();
+    //Pancake_vHostWorkerController::getInstance();
+    
+    // Load vHosts
+    foreach(Pancake_Config::get('vhosts') as $name => $config) {
+        try {
+            $vHosts[$name] = new Pancake_vHost($name);
+        } catch(Exception $exception) {
+            unset($vHosts[$name]);
+            trigger_error('Configuration of vHost "'.$name.'" is invalid: '.$exception->getMessage(), E_USER_WARNING);
+        }
+    }
+    
+    // Set vHosts by Names
+    foreach($vHosts as $vHost) {
+        foreach($vHost->getListen() as $address)
+            $Pancake_vHosts[$address] = $vHost;
+    }
+    
+    // Debug-outpt
+    Pancake_out('Loaded '.count($vHosts).' vHosts', SYSTEM, false, true);
     
     // Create vHostWorkers
-    foreach(Pancake_Config::get('vhosts') as $name => $config) {
+    /*foreach(Pancake_Config::get('vhosts') as $name => $config) {
         for($i = 0;$i < Pancake_Config::get('vhosts.'.$name.'.workers');$i++)
             $vHostWorkers[] = new Pancake_vHostWorker($name);
         Pancake_out('Created '.Pancake_Config::get('vhosts.'.$name.'.workers').' vHostWorkers for vHost "'.$name.'"', SYSTEM, true, true);
-    }
+    }*/
     
     // Start RequestWorkerController
     Pancake_RequestWorkerController::getInstance();
@@ -217,6 +232,6 @@
     
     // Good night
     while(true) {
-        sleep(1800);
+        sleep(1);
     }
 ?>

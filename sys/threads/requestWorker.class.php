@@ -35,7 +35,7 @@
             $this->IPCid = PANCAKE_REQUEST_WORKER_TYPE.$this->id;
             
             $this->codeFile = 'threads/single/requestWorker.thread.php';
-            $this->friendlyName = 'RequestWorker #'.$this->id;
+            $this->friendlyName = 'RequestWorker #'.($this->id+1);
             
             // Start worker
             $this->start();

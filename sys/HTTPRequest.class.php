@@ -20,14 +20,63 @@
         private $requestFilePath = null;
         private $GETParameters = array();
         private $POSTParameters = array();
+        private $cookies = array();
         private $requestWorker = null;
+        private $vHost = null;
+        private $requestLine = null;
         private static $answerCodes = array(
+                                            100 => 'Continue',
+                                            101 => 'Switching Protocols',
+                                            102 => 'Processing',
+                                            118 => 'Connection timed out',
                                             200 => 'OK',
+                                            201 => 'Created',
+                                            202 => 'Accepted',
+                                            203 => 'Non-Authoritative Information',
                                             204 => 'No content',
+                                            205 => 'Reset Content',
+                                            206 => 'Partial Content',
+                                            207 => 'Multi-Status',
+                                            300 => 'Multiple Choices',
+                                            301 => 'Moved Permanently',
+                                            302 => 'Found',
+                                            303 => 'See Other',
+                                            304 => 'Not Modified',
+                                            305 => 'Use Proxy',
+                                            307 => 'Temporary Redirect',
                                             400 => 'Bad request',
+                                            401 => 'Unauthorized',
+                                            402 => 'Payment required',
                                             403 => 'Forbidden',
                                             404 => 'Not found',
-                                            500 => 'Internal Server Error');
+                                            405 => 'Method not allowed',
+                                            406 => 'Not Acceptable',
+                                            407 => 'Proxy Authentication Required',
+                                            408 => 'Request Time-out',
+                                            409 => 'Conflict',
+                                            410 => 'Gone',
+                                            411 => 'Length Required',
+                                            412 => 'Precondition Failed',
+                                            413 => 'Request Entity Too Large',
+                                            414 => 'Request-URI Too Long',
+                                            415 => 'Unsupported Media Type',
+                                            416 => 'Requested range not satisfiable',
+                                            417 => 'Expectation Failed',
+                                            418 => 'I\'m a pancake',
+                                            421 => 'There are too many connections from your internet address',
+                                            422 => 'Unprocessable Entity',
+                                            423 => 'Locked',
+                                            424 => 'Failed Dependency',
+                                            500 => 'Internal Server Error',
+                                            501 => 'Not Implemented',
+                                            502 => 'Bad Gateway',
+                                            503 => 'Service Unavailable',
+                                            504 => 'Gateway Timeout',
+                                            505 => 'HTTP Version not supported',
+                                            506 => 'Variant Also Negotiates',
+                                            507 => 'Insufficient Storage',
+                                            509 => 'Bandwith Limit Exceeded',
+                                            510 => 'Not Extended');
         
         /**
         * Creates a new HTTPRequest-Object
@@ -54,7 +103,7 @@
                 
                 // Check request-method
                 if($firstLine[0] != 'GET' && $firstLine[0] != 'POST' && $firstLine[0] != 'HEAD' && $firstLine[0] != 'OPTIONS' && $firstLine[0] != 'TRACE')
-                    throw new Pancake_InvalidHTTPRequestException('Invalid request-method: '.$firstLine[0], $requestHeader);
+                    throw new Pancake_InvalidHTTPRequestException('Invalid request-method: '.$firstLine[0], 501, $requestHeader);
                 $this->requestType = $firstLine[0];
                 
                 // Check protocol version
@@ -63,7 +112,8 @@
                 else if($firstLine[2] == 'HTTP/1.1')
                     $this->protocolVersion = '1.1';
                 else
-                    throw new Pancake_InvalidHTTPRequestException('Unsupported protocol: '.$firstLine[2], $requestHeader);
+                    throw new Pancake_InvalidHTTPRequestException('Unsupported protocol: '.$firstLine[2], 505, $requestHeader);
+                $this->requestLine = $requestHeaders[0];
                 unset($requestHeaders[0]);
                 
                 // Read Headers
@@ -76,12 +126,38 @@
                 
                 // Check for Host-Header
                 if(!$this->getRequestHeader('Host'))
-                    throw new Pancake_InvalidHTTPRequestException('Missing required header: Host', $requestHeader);
+                    throw new Pancake_InvalidHTTPRequestException('Missing required header: Host', 400, $requestHeader);
+                
+                // Search for vHost
+                global $Pancake_vHosts;
+                if(!isset($Pancake_vHosts[$this->getRequestHeader('Host')]))
+                    throw new Pancake_InvalidHTTPRequestException('No vHost for host "'.$this->getRequestHeader('Host').'"', 400, $requestHeader);
+                else
+                    $this->vHost = $Pancake_vHosts[$this->getRequestHeader('Host')];
                  
                 // Split address from request-parameters
                 $path = explode('?', $firstLine[1], 2);
                 $this->requestFilePath = $path[0];
                 
+                // Do not allow requests to lower paths
+                if(strpos($this->requestFilePath, '../'))
+                    throw new Pancake_InvalidHTTPRequestException('You\'re not allowed to see the requested file: '.$this->requestFilePath, 403, $requestHeader);
+                
+                // Check for index-files    
+                if(is_dir($this->vHost->getDocumentRoot().$this->requestFilePath)) {
+                    foreach($this->vHost->getIndexFiles() as $file)
+                        if(file_exists($this->vHost->getDocumentRoot().$this->requestFilePath.'/'.$file)) {
+                            $this->requestFilePath .= '/'.$file;
+                            break;
+                        }
+                }
+                
+                // Check if requested file exists and is accessible
+                if(!file_exists($this->vHost->getDocumentRoot() . $this->requestFilePath))
+                    throw new Pancake_InvalidHTTPRequestException('File does not exist: '.$this->requestFilePath, 404, $requestHeader);
+                if(!is_readable($this->vHost->getDocumentRoot() . $this->requestFilePath))
+                    throw new Pancake_InvalidHTTPRequestException('You\'re not allowed to see the requested file: '.$this->requestFilePath, 403, $requestHeader);
+            
                 // Split GET-parameters
                 $get = explode('&', $path[1]);
                 
@@ -110,7 +186,7 @@
         */
         private function invalidRequest(Pancake_InvalidHTTPRequestException $exception) {
             $this->setHeader('Content-Type', 'text/plain');
-            $this->answerCode = 400;
+            $this->answerCode = $exception->getCode();
             $this->answerBody = 'Your HTTP-Request was invalid. Error:'."\r\n";
             $this->answerBody .= $exception->getMessage();
             $this->answerBody .= "\r\n\r\nHeaders:\r\n";
@@ -138,6 +214,9 @@
                 $this->setHeader('Content-Type', 'text/html');
             // Set Content-Length
             $this->setHeader('Content-Length', strlen($this->getAnswerBody()));
+            // Set Date
+            if(!$this->getAnswerHeader('Date'))
+                $this->setHeader('Date', date('r'));
             
             // Build Answer
             $answer = 'HTTP/'.$this->getProtocolVersion().' '.$this->getAnswerCode().' '.self::getCodeString($this->getAnswerCode())."\r\n";
@@ -264,6 +343,30 @@
         */
         public function getRequestWorker() {
             return $this->requestWorker;
+        }
+        
+        /**
+        * Get the vHost for this request
+        * 
+        */
+        public function getvHost() {
+            return $this->vHost;
+        }
+        
+        /**
+        * Returns all GET-parameters of this request
+        * 
+        */
+        public function getGETParams() {
+            return $this->GETParameters;
+        }
+        
+        /**
+        * Returns the first line of the request
+        * 
+        */
+        public function getRequestLine() {
+            return $this->requestLine;
         }
         
         /**

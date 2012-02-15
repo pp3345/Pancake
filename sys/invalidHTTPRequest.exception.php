@@ -13,8 +13,9 @@
     class Pancake_InvalidHTTPRequestException extends Exception {
         private $header = null;
         
-        public function __construct($message, $header) {
+        public function __construct($message, $code, $header) {
             $this->message = $message;
+            $this->code = $code;
             $this->header = $header;
         }
         

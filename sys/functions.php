@@ -71,6 +71,8 @@
         if($requestWorkers)
             foreach($requestWorkers as $worker)
                 $worker->stop();
+        Pancake_SharedMemory::destroy();
+        Pancake_IPC::destroy();
         exit;
     }                                    
     
@@ -106,6 +108,24 @@
         if($errtype == E_ERROR || $errtype == E_WARNING || $errtype == E_USER_WARNING || $errtype == E_USER_ERROR || $errtype == E_RECOVERABLE_ERROR) {
             $message = 'An error ('.$errtype.') occured: '.$errstr.' in '.$errfile.' on line '.$errline;
             fwrite($fileStream, Pancake_out($message, SYSTEM, false, true));
+        }
+        return true;
+    }
+    
+    /**
+    * Sets user and group for current thread
+    * 
+    */
+    function Pancake_setUser() {
+        $user = posix_getpwnam(Pancake_Config::get('main.user'));
+        $group = posix_getgrnam(Pancake_Config::get('main.group'));
+        if(!posix_setgid($group['gid'])) {
+            trigger_error('Failed to change group', E_USER_ERROR);
+            Pancake_abort();
+        }
+        if(!posix_setuid($user['uid'])) {
+            trigger_error('Failed to change user', E_USER_ERROR);
+            Pancake_abort();
         }
         return true;
     }

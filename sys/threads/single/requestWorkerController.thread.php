@@ -10,8 +10,10 @@
     if(PANCAKE_HTTP !== true)
         exit;
         
+    // Set user and group
+    Pancake_setUser();
+        
     while($message = Pancake_IPC::get()) {
-        //$message = explode(':', $message);
         $requestWorkers[$message->id] = $message;
         Pancake_SharedMemory::put($requestWorkers, PANCAKE_REQUEST_WORKER_TYPE.'0001');
     }

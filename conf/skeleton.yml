@@ -1,19 +1,17 @@
 # DO NOT EDIT THIS SKELETON-CONFIGURATION
 main:
-  sysvpath: /usr/local/Pancake/sysv/
+  sysvpath: /usr/local/Pancake/sysv/                            
   logging:
-    system: /usr/local/Pancake/log/system.log
-    request: /usr/local/Pancake/log/requests.log
-    error: /usr/local/Pancake/log/error.log
-  dateformat: 'd.m.y H:i:s'
-  debugmode: false
+    system: /usr/local/Pancake/log/system.log                   
+    request: /usr/local/Pancake/log/requests.log                
+    error: /usr/local/Pancake/log/error.log                     
+  dateformat: 'd.m.y H:i:s'                                     
+  debugmode: false                                              
   user: www-data
   group: www-data
-  listenports:
-    - 90
-    - 100
   requestworkers: 10
   readtimeout: 100000
   exposepancake: true
+  sharedmemory: 10000000
 include:
   - /usr/local/Pancake/conf/vhosts/

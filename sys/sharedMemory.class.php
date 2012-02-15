@@ -29,6 +29,14 @@
         }
         
         /**
+        * Destroys the SharedMemory-resource
+        * 
+        */
+        static public function destroy() {
+            return shm_remove(self::$sharedMemory);
+        }
+        
+        /**
         * Adds a variable to Shared Memory
         * 
         * @param mixed $variable

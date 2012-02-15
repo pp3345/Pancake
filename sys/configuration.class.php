@@ -14,8 +14,8 @@
     * Class for handling configuration
     */
     class Pancake_Config {
-        const PATH = '../conf/config.yml';            // Path to main configuration file
-        const SKELETON_PATH = '../conf/skeleton.yml'; // Path to skeleton configuration
+        const PATH = '/usr/local/Pancake/conf/config.yml';            // Path to main configuration file
+        const SKELETON_PATH = '/usr/local/Pancake/conf/skeleton.yml'; // Path to skeleton configuration
         static private $configuration = array();
         
         /**

@@ -53,6 +53,8 @@
                 $this->pid = posix_getpid();
                 global $currentThread;
                 $currentThread = $this;
+                if(PANCAKE_PROCTITLE === true)
+                    setproctitle('Pancake '.$this->friendlyName);
                 require $this->codeFile;
                 exit;
             }
