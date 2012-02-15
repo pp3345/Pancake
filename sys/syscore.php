@@ -29,6 +29,9 @@
     require_once 'IPC.class.php';
     require_once 'vHost.class.php';
     
+    // Set error reporting
+    error_reporting(E_ALL ^ E_DEPRECATED ^ E_NOTICE);
+    
     // Set error handler
     set_error_handler('Pancake_errorHandler');
     
