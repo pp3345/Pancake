@@ -23,8 +23,6 @@
     require_once 'threads/socketWorker.class.php';
     require_once 'threads/requestWorker.class.php';
     require_once 'threads/requestWorkerController.class.php';
-    require_once 'threads/vHostWorker.class.php';
-    require_once 'threads/vHostWorkerController.class.php';
     require_once 'HTTPRequest.class.php';
     require_once 'invalidHTTPRequest.exception.php';
     require_once 'sharedMemory.class.php';
