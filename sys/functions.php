@@ -105,6 +105,9 @@
         static $fileStream;
         if(!$fileStream)
             $fileStream = @fopen(Pancake_Config::get('main.logging.error'), 'a+');
+        // Check for @
+        if(error_reporting() == 0)
+            return true;
         if($errtype == E_ERROR || $errtype == E_WARNING || $errtype == E_USER_WARNING || $errtype == E_USER_ERROR || $errtype == E_RECOVERABLE_ERROR) {
             $message = 'An error ('.$errtype.') occured: '.$errstr.' in '.$errfile.' on line '.$errline;
             fwrite($fileStream, Pancake_out($message, SYSTEM, false, true));

@@ -25,23 +25,25 @@
     // Set handler for stop-signals
     pcntl_signal(SIGTERM, 'stop');
     
+    $listenSockets = $listenSocketsOrig = $Pancake_sockets;
+    
     // Wait for incoming requests     
-    while($message = Pancake_IPC::get()) {
-        // Set worker unavailable
-        $currentThread->setAvailable();
-        
-        // Inform SocketWorker
-        Pancake_IPC::send(PANCAKE_SOCKET_WORKER_TYPE.$message, 'OK');
+    while(@socket_select($listenSockets, $x = null, $x = null, 31536000) !== false) {
         
         // Accept connection
-        if(!($requestSocket = socket_accept($Pancake_sockets[$message]))) {
-            $currentThread->setAvailable();
-            continue;
+        foreach($listenSockets as $socket) {
+            if(socket_get_option($socket, SOL_SOCKET, SO_KEEPALIVE) == 1) {
+                $requestSocket = $socket;
+                break;
+            }
+            if(!($requestSocket = @socket_accept($socket)))
+                goto next;
+            
+            // Firefox sends HTTP-Request in first TCP-segment while Chrome sends HTTP-Request after TCP-Handshake
+            // Set timeout - DoS-protection
+            socket_set_option($requestSocket, SOL_SOCKET, SO_RCVTIMEO, array('sec' => 0, 'usec' => Pancake_Config::get('main.readtimeout')));
+            break;
         }
-        
-        // Firefox sends HTTP-Request in first TCP-segment while Chrome sends HTTP-Request after TCP-Handshake
-        // Set timeout - DoS-protection
-        socket_set_option($requestSocket, SOL_SOCKET, SO_RCVTIMEO, array('sec' => 0, 'usec' => Pancake_Config::get('main.readtimeout')));
         
         // Receive data from client
         while($bytes = socket_read($requestSocket, 16384)) {
@@ -50,9 +52,14 @@
             $data .= $bytes;
         }
         
+        // Check if any data was received
         if(!$data) {
-            $currentThread->setAvailable();
-            continue;
+            // Check for keep-alive
+            if($key = array_search($requestSocket, $listenSocketsOrig, true))
+                unset($listenSocketsOrig[$key]);
+            // Close socket
+            socket_close($requestSocket);
+            goto clean;
         }
         
         // Get information about client
@@ -66,14 +73,12 @@
             goto write; // EVIL! :O
         }
         
-        //socket_set_option($requestSocket, SOL_SOCKET, SO_KEEPALIVE, 1);
-        
         $_GET = $request->getGETParams();
         
         // Output debug-information to client
         if(isset($_GET['pancakedebug']) && PANCAKE_DEBUG_MODE === true) {
             $request->setHeader('Content-Type', 'text/plain');
-            
+                                                    
             $body = 'Received Data:'."\r\n";
             $body .= $request->getRequestLine()."\r\n";
             $body .= $request->getRequestHeaders()."\r\n";
@@ -107,7 +112,19 @@
             $body .= '</body>';
             $body .= '</html>';
             $request->setAnswerBody($body);
-        } else {
+        } else {    
+            // Get time of last modification
+            $modified = filemtime($request->getvHost()->getDocumentRoot().$request->getRequestFilePath());
+            // Set Last-Modified-Header as RFC 2822
+            $request->setHeader('Last-Modified', date('r', $modified));
+            
+            // Check for If-Modified-Since
+            if($request->getRequestHeader('If-Modified-Since'))
+                if(strtotime($request->getRequestHeader('If-Modified-Since')) >= $modified) {
+                    $request->setAnswerCode(304);
+                    goto write;
+                }
+            
             $request->setHeader('Content-Type', $fileInfo->file($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()));
             $request->setAnswerBody(file_get_contents($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()));
         }
@@ -115,7 +132,11 @@
         write:
         
         // Get answer and it's size
-        $answer = $request->buildAnswer();
+        $answer = $request->buildAnswer();           
+        
+        // Check if user wants keep-alive-connection
+        if(strtolower($request->getAnswerHeader('Connection')) == 'keep-alive')
+            socket_set_option($requestSocket, SOL_SOCKET, SO_KEEPALIVE, 1);
         
         // Set blocking, so that we don't try to write when socket is unavailable
         socket_set_block($requestSocket);
@@ -124,18 +145,34 @@
         socket_write($requestSocket, $answer);
         
         // Close socket
-        socket_shutdown($requestSocket);
+        if(strtolower($request->getAnswerHeader('Connection')) != 'keep-alive')
+            socket_shutdown($requestSocket);
         
         // Output request-information
         Pancake_out('REQ '.$request->getAnswerCode().' '.$ip.': '.$request->getRequestLine().' on vHost '.$request->getRequestHeader('Host').' - '.$request->getRequestHeader('User-Agent'), REQUEST);
         
-        // Set worker available
-        $currentThread->setAvailable();
+        next:
+        
+        if($request && !in_array($requestSocket, $listenSocketsOrig, true) && strtolower($request->getAnswerHeader('Connection')) == 'keep-alive')
+            $listenSocketsOrig[] = $requestSocket;
+            
+        clean:
+        
+        $listenSockets = $listenSocketsOrig;
         
         // Clean old request-data
         unset($data);
         unset($bytes);
         unset($request);
         unset($sentTotal);
+        unset($answer);
+        unset($body);
+        unset($directory);
+        unset($requestSocket);
+        unset($socket);
+        unset($_GET);
+        
+        // Reset statcache
+        clearstatcache();
     }
 ?>

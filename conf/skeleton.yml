@@ -10,7 +10,7 @@ main:
   user: www-data
   group: www-data
   requestworkers: 10
-  readtimeout: 100000
+  readtimeout: 200000
   exposepancake: true
   sharedmemory: 10000000
 include:

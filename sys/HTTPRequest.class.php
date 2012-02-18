@@ -187,7 +187,8 @@
         private function invalidRequest(Pancake_InvalidHTTPRequestException $exception) {
             $this->setHeader('Content-Type', 'text/plain');
             $this->answerCode = $exception->getCode();
-            $this->answerBody = 'Your HTTP-Request was invalid. Error:'."\r\n";
+            $this->answerBody = $this->answerCode.' '.$this->getCodeString($this->answerCode)."\r\n\r\n";
+            $this->answerBody .= 'Your HTTP-Request was invalid. Error:'."\r\n";
             $this->answerBody .= $exception->getMessage();
             $this->answerBody .= "\r\n\r\nHeaders:\r\n";
             $this->answerBody .= $exception->getHeader();
@@ -202,18 +203,18 @@
             if(!$this->getAnswerCode())
                 ($this->getAnswerBody()) ? $this->setAnswerCode(200) : $this->setAnswerCode(204);
             // Set Connection-Header
-            if($this->getAnswerCode() >= 200 && $this->getAnswerCode() < 300 && $this->getRequestHeader('Connection') != 'close')
+            if($this->getAnswerCode() >= 200 && $this->getAnswerCode() < 400 && strtolower($this->getRequestHeader('Connection')) == 'keep-alive')
                 $this->setHeader('Connection', 'keep-alive');
             else
                 $this->setHeader('Connection', 'close');
             // Add Server-Header
             if(Pancake_Config::get('main.exposepancake') === true)
                 $this->setHeader('Server', 'Pancake/' . PANCAKE_VERSION);
-            // Set Content-Type if not set
-            if(!$this->getAnswerHeader('Content-Type'))
-                $this->setHeader('Content-Type', 'text/html');
             // Set Content-Length
             $this->setHeader('Content-Length', strlen($this->getAnswerBody()));
+            // Set Content-Type if not set
+            if(!$this->getAnswerHeader('Content-Type') && $this->getAnswerHeader('Content-Length'))
+                $this->setHeader('Content-Type', 'text/html');
             // Set Date
             if(!$this->getAnswerHeader('Date'))
                 $this->setHeader('Date', date('r'));
