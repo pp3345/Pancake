@@ -21,6 +21,7 @@
         private $GETParameters = array();
         private $POSTParameters = array();
         private $cookies = array();
+        private $setCookies = array();
         private $requestWorker = null;
         private $vHost = null;
         private $requestLine = null;
@@ -48,11 +49,11 @@
                                             401 => 'Unauthorized',
                                             402 => 'Payment required',
                                             403 => 'Forbidden',
-                                            404 => 'Not found',
-                                            405 => 'Method not allowed',
+                                            404 => 'Not Found',
+                                            405 => 'Method Not Allowed',
                                             406 => 'Not Acceptable',
                                             407 => 'Proxy Authentication Required',
-                                            408 => 'Request Time-out',
+                                            408 => 'Request Timeout',
                                             409 => 'Conflict',
                                             410 => 'Gone',
                                             411 => 'Length Required',
@@ -60,9 +61,9 @@
                                             413 => 'Request Entity Too Large',
                                             414 => 'Request-URI Too Long',
                                             415 => 'Unsupported Media Type',
-                                            416 => 'Requested range not satisfiable',
+                                            416 => 'Requested Range Not Satisfiable',
                                             417 => 'Expectation Failed',
-                                            418 => 'I\'m a pancake',
+                                            418 => 'I\'m a Pancake',
                                             421 => 'There are too many connections from your internet address',
                                             422 => 'Unprocessable Entity',
                                             423 => 'Locked',
@@ -95,11 +96,20 @@
         */
         public function init($requestHeader) {
             try {
+                // Split headers from body
+                $requestParts = explode("\r\n\r\n", $requestHeader, 2);
+                
                 // Get single header lines
-                $requestHeaders = explode("\r\n", $requestHeader);
+                $requestHeaders = explode("\r\n", $requestParts[0]);
                 
                 // Split first line
                 $firstLine = explode(" ", $requestHeaders[0]);
+                
+                $this->requestLine = $requestHeaders[0];
+                
+                // HyperText CoffeePot Control Protocol :-)
+                if(($firstLine[0] == 'BREW' || $firstLine[0] == 'WHEN') && Pancake_Config::get('main.exposepancake') === true)
+                    throw new Pancake_InvalidHTTPRequestException('It seems like you were trying to make coffee via HTCPCP, but I\'m a Pancake, not a Coffee Pot.', 418, $requestHeader);
                 
                 // Check request-method
                 if($firstLine[0] != 'GET' && $firstLine[0] != 'POST' && $firstLine[0] != 'HEAD' && $firstLine[0] != 'OPTIONS' && $firstLine[0] != 'TRACE')
@@ -113,7 +123,6 @@
                     $this->protocolVersion = '1.1';
                 else
                     throw new Pancake_InvalidHTTPRequestException('Unsupported protocol: '.$firstLine[2], 505, $requestHeader);
-                $this->requestLine = $requestHeaders[0];
                 unset($requestHeaders[0]);
                 
                 // Read Headers
@@ -165,13 +174,40 @@
                 foreach($get as $param) {
                     if($param == null)
                         break;
-                    $param = explode('=', $param);
+                    $param = explode('=', $param, 2);
                     $this->GETParameters[urldecode($param[0])] = urldecode($param[1]);
                 }
                 
-                // Read POST-parameters
+                // Check for POST-parameters
                 if($this->requestType == 'POST') {
-                    // To be implemented
+                    // Check for url-encoded parameters
+                    if(strpos($this->getRequestHeader('Content-Type'), 'application/x-www-form-urlencoded') !== false) {
+                        // Split POST-parameters
+                        $post = explode('&', $requestParts[1]);
+                        
+                        // Read POST-parameters
+                        foreach($post as $param) {
+                            if($param == null)
+                                break;
+                            $param = explode('=', $param, 2);
+                            $this->POSTParameters[urldecode($param[0])] = urldecode($param[1]);
+                        }
+                    }
+                }
+                
+                // Check for cookies
+                if($this->getRequestHeader('Cookie')) {
+                    // Split cookies
+                    $cookies = explode(';', $this->getRequestHeader('Cookie'));
+                    
+                    // Read cookies
+                    foreach($cookies as $cookie) {
+                        if($cookie == null)
+                            break;
+                        $cookie = trim($cookie);
+                        $cookie = explode('=', $cookie, 2);
+                        $this->cookies[urldecode($cookie[0])] = urldecode($cookie[1]);
+                    }
                 }
             } catch (Pancake_InvalidHTTPRequestException $e) {
                 $this->invalidRequest($e);
@@ -185,13 +221,31 @@
         * @param Pancake_InvalidHTTPRequestException $exception
         */
         private function invalidRequest(Pancake_InvalidHTTPRequestException $exception) {
-            $this->setHeader('Content-Type', 'text/plain');
+            $this->setHeader('Content-Type', 'text/html');
             $this->answerCode = $exception->getCode();
-            $this->answerBody = $this->answerCode.' '.$this->getCodeString($this->answerCode)."\r\n\r\n";
-            $this->answerBody .= 'Your HTTP-Request was invalid. Error:'."\r\n";
-            $this->answerBody .= $exception->getMessage();
-            $this->answerBody .= "\r\n\r\nHeaders:\r\n";
-            $this->answerBody .= $exception->getHeader();
+            $this->answerBody = '<!doctype html>';
+            $this->answerBody .= '<html>';
+            $this->answerBody .= '<head>';
+                $this->answerBody .= '<title>'.$this->answerCode.' '.$this->getCodeString($this->answerCode).'</title>';
+                $this->answerBody .= '<style>';
+                    $this->answerBody .= 'body{font-family:"Arial"}';
+                    $this->answerBody .= 'hr{border:1px solid #000}';
+                $this->answerBody .= '</style>';
+                $this->answerBody .= '<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />';
+            $this->answerBody .= '</head>';
+            $this->answerBody .= '<body>';
+                $this->answerBody .= '<h1>'.$this->answerCode.' '.$this->getCodeString($this->answerCode).'</h1>';
+                $this->answerBody .= '<hr/>';
+                $this->answerBody .= '<strong>Your HTTP-Request was invalid.</strong> Error:<br/>';
+                $this->answerBody .= $exception->getMessage().'<br/><br/>';
+                $this->answerBody .= "<strong>Headers:</strong><br/>";
+                $this->answerBody .= nl2br($exception->getHeader());
+                if(Pancake_Config::get('main.exposepancake') === true) {
+                    $this->answerBody .= '<hr/>';
+                    $this->answerBody .= 'Pancake ' . PANCAKE_VERSION;
+                }
+            $this->answerBody .= '</body>';
+            $this->answerBody .= '</html>';
         }
        
         /**
@@ -210,6 +264,12 @@
             // Add Server-Header
             if(Pancake_Config::get('main.exposepancake') === true)
                 $this->setHeader('Server', 'Pancake/' . PANCAKE_VERSION);
+            // Set cookies
+            foreach($this->setCookies as $cookie) {
+                $setCookie .= ($setCookie) ? "\r\nSet-Cookie: ".$cookie : $cookie;
+            }
+            if($setCookie)
+                $this->setHeader('Set-Cookie', $setCookie);
             // Set Content-Length
             $this->setHeader('Content-Length', strlen($this->getAnswerBody()));
             // Set Content-Type if not set
@@ -236,6 +296,26 @@
         */
         public function setHeader($headerName, $headerValue) {
             return $this->answerHeaders[$headerName] = $headerValue;
+        }
+        
+        /**
+        * Sets a cookie. Parameters similar to PHPs function setcookie()
+        * 
+        */
+        public function setCookie($name, $value = null, $expire = 0, $path = null, $domain = null, $secure = false, $httpOnly = false) {
+            $cookie = urlencode($name).'='.urlencode($value);
+            if($expire)
+                $cookie .= '; Expires='.date('r', $expire);    // RFC 2822 Timestamp
+            if($path)
+                $cookie .= '; Path='.$path;
+            if($domain)
+                $cookie .= '; Domain='.$domain;
+            if($secure)
+                $cookie .= '; Secure';
+            if($httpOnly)
+                $cookie .= '; HttpOnly';
+            $this->setCookies[] = $cookie;
+            return true;
         }
         
         /**

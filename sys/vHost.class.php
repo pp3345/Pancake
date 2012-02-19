@@ -59,6 +59,14 @@
         }
         
         /**
+        * Returns the name of the vHost
+        * 
+        */
+        public function getName() {
+            return $this->name;
+        }
+        
+        /**
         * Get the DocumentRoot of the vHost
         * 
         */

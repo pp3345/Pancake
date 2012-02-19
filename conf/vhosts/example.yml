@@ -1,0 +1,13 @@
+#vhosts:
+#  default:                                                      # Name of the vHost
+#    docroot: /var/vhosts/default/                               # Path to DocumentRoot
+#    listen:                                                     # Hosts to listen on
+#      - mydomain.com
+#      - www.mydomain.com
+#      - 133.7.0.0
+#      - 127.0.0.1
+#    phpworkers: 3                                               # Amount of PHP-Workers to run
+#    index:                                                      # List of files allowed as directory-indexes
+#      - index.htm
+#      - index.html
+#      - index.php

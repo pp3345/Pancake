@@ -13,7 +13,10 @@
     global $Pancake_sockets;
     global $Pancake_vHosts;
     
-    $fileInfo = new finfo(FILEINFO_MIME);
+    if(Pancake_Config::get('main.mimeencoding') === true)
+        $fileInfo = new finfo(FILEINFO_MIME);
+    else
+        $fileInfo = new finfo(FILEINFO_MIME_TYPE);
     
     function stop() {
         exit;
@@ -89,42 +92,96 @@
             goto write;
         }
         
+        // Get time of last modification
+        $modified = filemtime($request->getvHost()->getDocumentRoot().$request->getRequestFilePath());
+        // Set Last-Modified-Header as RFC 2822
+        $request->setHeader('Last-Modified', date('r', $modified));
+        
+        // Check for If-Modified-Since
+        if($request->getRequestHeader('If-Modified-Since'))
+            if(strtotime($request->getRequestHeader('If-Modified-Since')) == $modified) {
+                $request->setAnswerCode(304);
+                goto write;
+            }
+        
         // Check for directory
         if(is_dir($request->getvHost()->getDocumentRoot().$request->getRequestFilePath())) {
             $directory = scandir($request->getvHost()->getDocumentRoot().$request->getRequestFilePath());
             
+            // Build directory listing
             $body =  '<!doctype html>';
             $body .= '<html>';
             $body .= '<head>';
             $body .= '<title>Directory Listing of '.$request->getRequestFilePath().'</title>';
+            $body .= '<style>';
+                $body .= 'body{font-family:"Arial"}';
+                $body .= 'thead{font-weight:bold}';
+                $body .= 'hr{border:1px solid #000}';
+            $body .= '</style>';
+            $body .= '<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />';
             $body .= '</head>';
             $body .= '<body>';
-            $body .= '<h1>'.$request->getRequestFilePath().'</h1>';
+            $body .= '<h1>Index of '.$request->getRequestFilePath().'</h1>';
             $body .= '<hr/>';
-            foreach($directory as $file) {
-                if($file == '.' || $file == '..')
-                    continue;
-                if(is_dir($request->getvHost()->getDocumentRoot().$request->getRequestFilePath().'/'.$file))
-                    $body .= '<a href="http://'.$request->getRequestHeader('Host').$request->getRequestFilePath().'/'.$file.'/">'.$file.'</a><br/>';
-                else
-                    $body .= '<a href="http://'.$request->getRequestHeader('Host').$request->getRequestFilePath().'/'.$file.'">'.$file.'</a><br/>';
+            $body .= '<table>';
+                $body .= '<thead><tr>';
+                    $body .= '<th>Filename</th>';
+                    $body .= '<th>Type</th>';
+                    $body .= '<th>Last Modified</th>';
+                    $body .= '<th>Size</th>';
+                $body .= '</tr></thead>';
+                $body .= '<tbody>';
+                    $body .= '<tr>';
+                        $body .= '<td>';
+                            $dirname = dirname($request->getRequestFilePath());
+                            $body .= '<a href="http://'.$request->getRequestHeader('Host').$dirname.'">../</a>';
+                        $body .= '</td>';
+                        $body .= '<td>';
+                            $body .= 'Directory';
+                        $body .= '</td>';
+                    $body .= '</tr>';
+                    foreach($directory as $file) {
+                        if($file == '.' 
+                        || $file == '..'
+                        || !is_readable($request->getvHost()->getDocumentRoot().$request->getRequestFilePath().'/'.$file))
+                            continue;
+                        
+                        $body .= '<tr>';
+                            $body .= '<td>';
+                                if(substr($request->getRequestFilePath(), -1) != '/') $add = '/';
+                                if(is_dir($request->getvHost()->getDocumentRoot().$request->getRequestFilePath().'/'.$file))
+                                    $body .= '<a href="http://'.$request->getRequestHeader('Host').$request->getRequestFilePath().$add.$file.'/">'.$file.'/</a>';
+                                else
+                                    $body .= '<a href="http://'.$request->getRequestHeader('Host').$request->getRequestFilePath().$add.$file.'">'.$file.'</a>';
+                            $body .= '</td>';
+                            $body .= '<td>';
+                                if(is_dir($request->getvHost()->getDocumentRoot().$request->getRequestFilePath().'/'.$file))
+                                    $body .= 'Directory';
+                                else
+                                    $body .= $fileInfo->file($request->getvHost()->getDocumentRoot().$request->getRequestFilePath().'/'.$file);
+                            $body .= '</td>';
+                            $body .= '<td>';
+                                $body .= date(Pancake_Config::get('main.dateformat'), filemtime($request->getvHost()->getDocumentRoot().$request->getRequestFilePath().'/'.$file));
+                            $body .= '</td>';
+                            if(!is_dir($request->getvHost()->getDocumentRoot().$request->getRequestFilePath().'/'.$file)) {
+                                $body .= '<td>';
+                                    $body .= Pancake_formatFilesize(filesize($request->getvHost()->getDocumentRoot().$request->getRequestFilePath().'/'.$file));
+                                $body .= '</td>';
+                            }
+                        $body .= '</tr>';
+                    }
+                $body .= '</tbody>';
+            $body .= '</table>';
+            
+            if(Pancake_Config::get('main.exposepancake') === true) {
+                $body .= '<hr/>';
+                $body .= 'Pancake '.PANCAKE_VERSION;
             }
+            
             $body .= '</body>';
             $body .= '</html>';
             $request->setAnswerBody($body);
         } else {    
-            // Get time of last modification
-            $modified = filemtime($request->getvHost()->getDocumentRoot().$request->getRequestFilePath());
-            // Set Last-Modified-Header as RFC 2822
-            $request->setHeader('Last-Modified', date('r', $modified));
-            
-            // Check for If-Modified-Since
-            if($request->getRequestHeader('If-Modified-Since'))
-                if(strtotime($request->getRequestHeader('If-Modified-Since')) >= $modified) {
-                    $request->setAnswerCode(304);
-                    goto write;
-                }
-            
             $request->setHeader('Content-Type', $fileInfo->file($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()));
             $request->setAnswerBody(file_get_contents($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()));
         }
@@ -149,7 +206,7 @@
             socket_shutdown($requestSocket);
         
         // Output request-information
-        Pancake_out('REQ '.$request->getAnswerCode().' '.$ip.': '.$request->getRequestLine().' on vHost '.$request->getRequestHeader('Host').' - '.$request->getRequestHeader('User-Agent'), REQUEST);
+        Pancake_out('REQ '.$request->getAnswerCode().' '.$ip.': '.$request->getRequestLine().' on vHost '.(($request->getvHost()) ? $request->getvHost()->getName() : null).' (via '.$request->getRequestHeader('Host').') - '.$request->getRequestHeader('User-Agent'), REQUEST);
         
         next:
         
@@ -171,6 +228,7 @@
         unset($requestSocket);
         unset($socket);
         unset($_GET);
+        unset($add);
         
         // Reset statcache
         clearstatcache();

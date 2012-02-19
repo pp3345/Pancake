@@ -93,6 +93,34 @@
     }
     
     /**
+    * Formats a filesize
+    * 
+    * @param int $size Size in Byte
+    * @return string Formatted size
+    */
+    function Pancake_formatFilesize($size) {
+        if(Pancake_Config::get('main.sizeprefix') == 'si') {
+            if($size > 1000000000) // 1 Gigabyte
+                return round($size / 1000000000, 2) . ' GB';
+            else if($size > 1000000) // 1 Megabyte
+                return round($size / 1000000, 2) . ' MB';
+            else if($size > 1000) // 1 Kilobyte
+                return round($size / 1000, 2) . ' KB';
+            else 
+                return $size . ' Byte';
+        } else {
+            if($size > 1073741824) // 1 Gibibyte
+                return round($size / 1073741824, 2) . ' GiB';
+            else if($size > 1048576) // 1 Mebibyte 
+                return round($size / 1048576, 2) . ' MiB';
+            else if($size > 1024) // 1 Kibibyte
+                return round($size / 1024, 2) . ' KiB';
+            else
+                return $size . ' Byte';   
+        }
+    }
+    
+    /**
     * ErrorHandler. Outputs errors if DebugMode is switched on and logs them to a file
     * 
     * @param int $errtype Type of the occured error 
