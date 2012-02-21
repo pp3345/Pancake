@@ -20,6 +20,10 @@
         private $phpCodeCache = array();
         private $phpWorkers = 0;
         private $indexFiles = array();
+        private $authDirectories = array();
+        private $authFiles = array();
+        private $writeLimit = 0;
+        private $allowDirectoryListings = false;
         
         /**
         * Loads a vHost
@@ -45,6 +49,36 @@
             $this->phpCodeCache = $config['phpcache'];
             $this->phpWorkers = $config['phpworkers'];
             $this->indexFiles = $config['index'];
+            $this->writeLimit = (int) $config['writelimit'];
+            $this->allowDirectoryListings = (bool) $config['allowdirectorylistings'];
+            
+            // Load files and directories that need authentication
+            if($config['auth']) {
+                foreach($config['auth'] as $authFileConfig) {
+                    // Dirty workaround for bug in PECL yaml
+                    foreach($authFileConfig as $index => $value) {
+                        if($index != 'type' && $index != 'realm' && $index != 'authfiles') {
+                            $authFile = $index;
+                            break;
+                        }
+                    }
+                    if(!is_array($authFileConfig['authfiles']) || ($authFileConfig['type'] != 'basic' && $authFileConfig['type'] != 'digest')) {
+                        trigger_error('Invalid Authentication configuration for "'.$authFile.'"', E_USER_WARNING);
+                        continue;
+                    }
+                    if(is_dir($this->documentRoot.$authFile)) {
+                        $this->authDirectories[$authFile] = array(
+                                                                    'realm' => $authFileConfig['realm'],
+                                                                    'type' => $authFileConfig['type'],
+                                                                    'authfiles' => $authFileConfig['authfiles']);
+                    } else {
+                        $this->authFiles[$authFile] = array(
+                                                            'realm' => $authFileConfig['realm'],
+                                                            'type' => $authFileConfig['type'],
+                                                            'authfiles' => $authFileConfig['authfiles']);
+                    }
+                }
+            }
             
             // Check PHP-CodeCache
             if($this->phpCodeCache) {
@@ -56,6 +90,61 @@
                 if(!$this->phpWorkers)
                     throw new Exception('The value for phpworkers must be greater or equal 1 if you want to use the CodeCache.');
             }
+        }
+        
+        /**
+        * Checks whether a specified file requires authentication
+        * 
+        * @param string $filePath Path to the file, relative to the DocRoot of the vHost
+        * @return mixed Returns false or array with realm and type
+        */
+        public function requiresAuthentication($filePath) {
+            if($this->authFiles[$filePath])
+                return $this->authFiles[$filePath];
+            else if($this->authDirectories[$filePath])
+                return $this->authDirectories[$filePath];
+            else {
+                while($filePath != '/') {
+                    $filePath = dirname($filePath);
+                    if($this->authDirectories[$filePath])
+                        return $this->authDirectories[$filePath];
+                }
+            }
+            return false;
+        }
+        
+        /**
+        * Checks if user and password for a file are correct
+        * 
+        * @param string $filePath Path to the file, relative to the DocRoot of the vHost
+        * @param string $user Username
+        * @param string $password Password
+        * @return bool
+        */
+        public function isValidAuthentication($filePath, $user, $password) {
+            if(!$this->authFiles && !$this->authDirectories)
+                return false;
+            if($this->authFiles[$filePath]) {
+                foreach($this->authFiles[$filePath]['authfiles'] as $authfile) {
+                    if(Pancake_AuthenticationFile::get($authfile)->isValid($user, $password))
+                        return true;
+                }
+            } else if($this->authDirectories[$filePath]) {
+                foreach($this->authDirectories[$filePath]['authfiles'] as $authfile) {
+                    if(Pancake_AuthenticationFile::get($authfile)->isValid($user, $password))
+                        return true;
+                }
+            } else {
+                while($filePath != '/') {
+                    $filePath = dirname($filePath);
+                    if($this->authDirectories[$filePath])
+                        foreach($this->authDirectories[$filePath]['authfiles'] as $authfile) {
+                            if(Pancake_AuthenticationFile::get($authfile)->isValid($user, $password))
+                                return true;
+                        }
+                }
+            }
+            return false;
         }
         
         /**
@@ -97,5 +186,21 @@
         public function getIndexFiles() {
             return $this->indexFiles;
         }
+        
+        /**
+        * Get maximum size for a single write-action
+        * 
+        */
+        public function getWriteLimit() {
+            return $this->writeLimit;
+        }
+        
+        /**
+        * Returns whether directory listings are allowed or not
+        * 
+        */
+        public function allowDirectoryListings() {
+            return $this->allowDirectoryListings;
+        }                                                          
     }
 ?>

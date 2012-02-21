@@ -22,6 +22,7 @@
     require_once 'sharedMemory.class.php';
     require_once 'IPC.class.php';
     require_once 'vHost.class.php';
+    require_once 'authenticationFile.class.php';
     
     // Set error reporting
     error_reporting(E_ALL ^ E_DEPRECATED ^ E_NOTICE);

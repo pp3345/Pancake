@@ -25,6 +25,8 @@
         private $requestWorker = null;
         private $vHost = null;
         private $requestLine = null;
+        private $rangeFrom = 0;
+        private $rangeTo = 0;
         private static $answerCodes = array(
                                             100 => 'Continue',
                                             101 => 'Switching Protocols',
@@ -116,11 +118,17 @@
                     throw new Pancake_InvalidHTTPRequestException('Invalid request-method: '.$firstLine[0], 501, $requestHeader);
                 $this->requestType = $firstLine[0];
                 
+                // Check if request-method is allowed
+                if(($this->requestType == 'HEAD'    && Pancake_Config::get('main.allowhead')    !== true)
+                || ($this->requestType == 'TRACE'   && Pancake_Config::get('main.allowtrace')   !== true)
+                || ($this->requestType == 'OPTIONS' && Pancake_Config::get('main.allowoptions') !== true)) 
+                    throw new Pancake_InvalidHTTPRequestException('The request-method you are trying to use is not allowed: '.$this->requestType, 405, $requestHeader); 
+                
                 // Check protocol version
-                if($firstLine[2] == 'HTTP/1.0')
-                    $this->protocolVersion = '1.0';
-                else if($firstLine[2] == 'HTTP/1.1')
+                if(strtoupper($firstLine[2]) == 'HTTP/1.1')
                     $this->protocolVersion = '1.1';
+                else if(strtoupper($firstLine[2]) == 'HTTP/1.0')
+                    $this->protocolVersion = '1.0';
                 else
                     throw new Pancake_InvalidHTTPRequestException('Unsupported protocol: '.$firstLine[2], 505, $requestHeader);
                 unset($requestHeaders[0]);
@@ -132,6 +140,10 @@
                     $header = explode(':', $header, 2);
                     $this->requestHeaders[$header[0]] = trim($header[1]);
                 }
+                
+                // Enough informations for TRACE gathered
+                if($this->requestType == 'TRACE')
+                    return;
                 
                 // Check for Host-Header
                 if(!$this->getRequestHeader('Host'))
@@ -148,6 +160,10 @@
                 $path = explode('?', $firstLine[1], 2);
                 $this->requestFilePath = $path[0];
                 
+                // Check if path begins with /
+                if(substr($this->requestFilePath, 0, 1) != '/')
+                    $this->requestFilePath = '/' . $this->requestFilePath;
+                
                 // Do not allow requests to lower paths
                 if(strpos($this->requestFilePath, '../'))
                     throw new Pancake_InvalidHTTPRequestException('You\'re not allowed to see the requested file: '.$this->requestFilePath, 403, $requestHeader);
@@ -157,16 +173,48 @@
                     foreach($this->vHost->getIndexFiles() as $file)
                         if(file_exists($this->vHost->getDocumentRoot().$this->requestFilePath.'/'.$file)) {
                             $this->requestFilePath .= '/'.$file;
-                            break;
+                            goto checkRead;
                         }
+                    // No index file found, check if vHost allows directory listings
+                    if($this->vHost->allowDirectoryListings() !== true)
+                        throw new Pancake_InvalidHTTPRequestException('You\'re not allowed to view the listing of the requested directory: '.$this->requestFilePath, 403, $requestHeader);
                 }
+
+                checkRead:
                 
                 // Check if requested file exists and is accessible
                 if(!file_exists($this->vHost->getDocumentRoot() . $this->requestFilePath))
                     throw new Pancake_InvalidHTTPRequestException('File does not exist: '.$this->requestFilePath, 404, $requestHeader);
                 if(!is_readable($this->vHost->getDocumentRoot() . $this->requestFilePath))
                     throw new Pancake_InvalidHTTPRequestException('You\'re not allowed to see the requested file: '.$this->requestFilePath, 403, $requestHeader);
-            
+                
+                // Check if requested path needs authentication
+                if($authData = $this->vHost->requiresAuthentication($this->requestFilePath)) {
+                    if($this->getRequestHeader('Authorization')) {
+                        if($authData['type'] == 'basic') {
+                            $auth = explode(" ", $this->getRequestHeader('Authorization'));
+                            $userPassword = explode(":", base64_decode($auth[1]));
+                            if($this->vHost->isValidAuthentication($this->requestFilePath, $userPassword[0], $userPassword[1]))
+                                goto valid;
+                        } else {
+                             
+                        }
+                    }
+                    if($authData['type'] == 'basic') {
+                        $this->setHeader('WWW-Authenticate', 'Basic realm="'.$authData['realm'].'"');
+                        throw new Pancake_InvalidHTTPRequestException('You need to authorize in order to view this file.', 401, $requestHeader);
+                    }
+                }
+                
+                valid:
+                
+                // Check for Range-header
+                if($this->getRequestHeader('Range')) {
+                    preg_match('~([0-9]+)-([0-9]+)?~', $this->getRequestHeader('Range'), $range);
+                    $this->rangeFrom = $range[1];
+                    $this->rangeTo = $range[2];
+                }
+                
                 // Split GET-parameters
                 $get = explode('&', $path[1]);
                 
@@ -194,7 +242,7 @@
                         }
                     }
                 }
-                
+                 
                 // Check for cookies
                 if($this->getRequestHeader('Cookie')) {
                     // Split cookies
@@ -253,6 +301,13 @@
         *  
         */
         public function buildAnswer() {
+            // Check for TRACE
+            if($this->getRequestType() == 'TRACE' && $this->getAnswerCode() != 405) {
+                $answer = $this->getRequestLine()."\r\n";
+                $answer .= $this->getRequestHeaders()."\r\n";
+                return $answer;
+            }
+            
             // Set AnswerCode if not set
             if(!$this->getAnswerCode())
                 ($this->getAnswerBody()) ? $this->setAnswerCode(200) : $this->setAnswerCode(204);
@@ -271,7 +326,8 @@
             if($setCookie)
                 $this->setHeader('Set-Cookie', $setCookie);
             // Set Content-Length
-            $this->setHeader('Content-Length', strlen($this->getAnswerBody()));
+            if(!$this->getAnswerHeader('Content-Length'))
+                $this->setHeader('Content-Length', strlen($this->getAnswerBody()));
             // Set Content-Type if not set
             if(!$this->getAnswerHeader('Content-Type') && $this->getAnswerHeader('Content-Length'))
                 $this->setHeader('Content-Type', 'text/html');
@@ -283,7 +339,8 @@
             $answer = 'HTTP/'.$this->getProtocolVersion().' '.$this->getAnswerCode().' '.self::getCodeString($this->getAnswerCode())."\r\n";
             $answer .= $this->getAnswerHeaders();
             $answer .= "\r\n";
-            $answer .= $this->getAnswerBody();
+            if($this->getRequestType() != 'HEAD')
+                $answer .= $this->getAnswerBody();
             
             return $answer;
         }
@@ -429,6 +486,7 @@
         /**
         * Get the vHost for this request
         * 
+        * @return Pancake_vHost
         */
         public function getvHost() {
             return $this->vHost;
@@ -448,6 +506,22 @@
         */
         public function getRequestLine() {
             return $this->requestLine;
+        }
+        
+        /**
+        * Returns the start of the requested range
+        * 
+        */
+        public function getRangeFrom() {
+            return $this->rangeFrom;
+        }
+        
+        /**
+        * Returns the end of the requested range
+        * 
+        */
+        public function getRangeTo() {
+            return $this->rangeTo;
         }
         
         /**

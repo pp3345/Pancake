@@ -32,7 +32,6 @@
     
     // Wait for incoming requests     
     while(@socket_select($listenSockets, $x = null, $x = null, 31536000) !== false) {
-        
         // Accept connection
         foreach($listenSockets as $socket) {
             if(socket_get_option($socket, SOL_SOCKET, SO_KEEPALIVE) == 1) {
@@ -50,7 +49,7 @@
         
         // Receive data from client
         while($bytes = socket_read($requestSocket, 16384)) {
-            if(!$data)
+            if(strpos($bytes, "\r\n\r\n"))
                 socket_set_nonblock($requestSocket);
             $data .= $bytes;
         }
@@ -64,7 +63,7 @@
             socket_close($requestSocket);
             goto clean;
         }
-        
+
         // Get information about client
         socket_getPeerName($requestSocket, $ip, $port);
     
@@ -74,6 +73,20 @@
             $request->init($data);
         } catch(Pancake_InvalidHTTPRequestException $e) {
             goto write; // EVIL! :O
+        }
+        
+        if($request->getRequestType() == 'TRACE')
+            goto write;
+        
+        // Check for "OPTIONS"-requestmethod
+        if($request->getRequestType() == 'OPTIONS') {
+            // We can add OPTIONS here without checking if it is allowed because Pancake would already have aborted the request if it wasn't allowed
+            $allow = 'GET, POST, OPTIONS';
+            if(Pancake_Config::get('main.allowhead') === true)
+                $allow .= ', HEAD';
+            if(Pancake_Config::get('main.allowtrace') === true)
+                $allow .= ', TRACE';
+            $request->setHeader('Allow', $allow);
         }
         
         $_GET = $request->getGETParams();
@@ -183,16 +196,28 @@
             $request->setAnswerBody($body);
         } else {    
             $request->setHeader('Content-Type', $fileInfo->file($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()));
-            $request->setAnswerBody(file_get_contents($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()));
+            $request->setHeader('Content-Length', filesize($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()) - $request->getRangeFrom());
+            $request->setHeader('Accept-Ranges', 'bytes');
+            $requestFileHandle = fopen($request->getvHost()->getDocumentRoot().$request->getRequestFilePath(), 'r');
+            if($request->getRangeFrom()) {
+                $request->setAnswerCode(206);
+                fseek($requestFileHandle, $request->getRangeFrom());
+                $request->setHeader('Content-Range', 'bytes ' . $request->getRangeFrom().'-'.(filesize($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()) - 1).'/'.filesize($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()));
+            }
+            if(filesize($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()) - $request->getRangeFrom() > $request->getvHost()->getWriteLimit())
+                $sendParts = true;
+            $data = fread($requestFileHandle, $request->getvHost()->getWriteLimit());
+            $request->setAnswerBody($data);
+            unset($data);
         }
         
         write:
         
-        // Get answer and it's size
+        // Get answer and its size
         $answer = $request->buildAnswer();           
         
         // Check if user wants keep-alive-connection
-        if(strtolower($request->getAnswerHeader('Connection')) == 'keep-alive')
+        if($request->getAnswerHeader('Connection') == 'keep-alive')
             socket_set_option($requestSocket, SOL_SOCKET, SO_KEEPALIVE, 1);
         
         // Set blocking, so that we don't try to write when socket is unavailable
@@ -200,6 +225,17 @@
         
         // Write answer to socket
         socket_write($requestSocket, $answer);
+        
+        // Send parts
+        if($sendParts === true) {
+            while(!feof($requestFileHandle)) {
+                $data = fread($requestFileHandle, $request->getvHost()->getWriteLimit());
+                if(!socket_write($requestSocket, $data))
+                    goto close;
+            }
+        }
+            
+        close:
         
         // Close socket
         if(strtolower($request->getAnswerHeader('Connection')) != 'keep-alive')
@@ -229,6 +265,9 @@
         unset($socket);
         unset($_GET);
         unset($add);
+        unset($sendParts);
+        if(is_resource($requestFileHandle))
+            fclose($requestFileHandle);
         
         // Reset statcache
         clearstatcache();

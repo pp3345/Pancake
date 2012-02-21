@@ -15,5 +15,6 @@ main:
   sharedmemory: 10000000
   sizeprefix: bin
   mimeencoding: false
-include:
-  - /usr/local/Pancake/conf/vhosts/
+  allowhead: true
+  allowtrace: true
+  allowoptions: true           

@@ -83,12 +83,12 @@
     * @param array $array2
     */
     function array_intelligent_merge($array1, $array2) {
-        $endArray = $array2;
-        foreach($array1 as $key => $value)
+        $endArray = $array1;
+        foreach($array2 as $key => $value)
             if(is_array($value))
                 $endArray[$key] = array_intelligent_merge($array1[$key], $array2[$key]);
-            else if(empty($array2[$key]))
-                $endArray[$key] = $array1[$key];
+            else
+                $endArray[$key] = $array2[$key];
         return $endArray;
     }
     
