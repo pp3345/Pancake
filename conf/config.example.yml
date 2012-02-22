@@ -1,5 +1,5 @@
 main:
-  sysvpath: /usr/local/Pancake/sysv/                            # Path to System V-Files
+  tmppath: /usr/local/Pancake/tmp/                              # Path for temporary files
   logging:
     system: /usr/local/Pancake/log/system.log                   # Path to System-Log
     request: /usr/local/Pancake/log/requests.log                # Path to Request-Log

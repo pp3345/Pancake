@@ -194,18 +194,47 @@
             $body .= '</body>';
             $body .= '</html>';
             $request->setAnswerBody($body);
-        } else {    
-            $request->setHeader('Content-Type', $fileInfo->file($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()));
-            $request->setHeader('Content-Length', filesize($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()) - $request->getRangeFrom());
-            $request->setHeader('Accept-Ranges', 'bytes');
-            $requestFileHandle = fopen($request->getvHost()->getDocumentRoot().$request->getRequestFilePath(), 'r');
+        } else {
+            $request->setHeader('Content-Type', $fileInfo->file($request->getvHost()->getDocumentRoot().$request->getRequestFilePath())); 
+            $request->setHeader('Accept-Ranges', 'bytes'); 
+            
+            // Check if GZIP-compression should be used  
+            if($request->acceptsCompression('gzip') && $request->getvHost()->allowGZIPCompression() === true && filesize($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()) >= $request->getvHost()->getGZIPMimimum()) {
+                // Set encoding-header
+                $request->setHeader('Transfer-Encoding', 'gzip');
+                // Create temporary file
+                $gzipPath = tempnam(Pancake_Config::get('main.tmppath'), 'GZIP');
+                $gzipFileHandle = gzopen($gzipPath, 'w' . $request->getvHost()->getGZIPLevel());
+                // Load uncompressed requested file
+                $requestedFileHandle = fopen($request->getvHost()->getDocumentRoot().$request->getRequestFilePath(), 'r');
+                // Compress file
+                while(!feof($requestedFileHandle))
+                    gzwrite($gzipFileHandle, fread($requestedFileHandle, $request->getvHost()->getWriteLimit()));
+                // Close GZIP-resource and open normal file-resource
+                gzclose($gzipFileHandle);
+                $requestFileHandle = fopen($gzipPath, 'r');
+                // Set Content-Length
+                $request->setHeader('Content-Length', filesize($gzipPath) - $request->getRangeFrom());
+                // Check if we should send the file in parts
+                if(filesize($gzipPath) - $request->getRangeFrom() > $request->getvHost()->getWriteLimit())
+                    $sendParts = true;
+            } else {
+                $request->setHeader('Content-Length', filesize($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()) - $request->getRangeFrom());
+                $requestFileHandle = fopen($request->getvHost()->getDocumentRoot().$request->getRequestFilePath(), 'r');
+                if(filesize($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()) - $request->getRangeFrom() > $request->getvHost()->getWriteLimit())
+                    $sendParts = true;
+            }
+            
+            // Check if a specific range was requested
             if($request->getRangeFrom()) {
                 $request->setAnswerCode(206);
                 fseek($requestFileHandle, $request->getRangeFrom());
-                $request->setHeader('Content-Range', 'bytes ' . $request->getRangeFrom().'-'.(filesize($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()) - 1).'/'.filesize($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()));
+                if($gzipPath)
+                    $request->setHeader('Content-Range', 'bytes ' . $request->getRangeFrom().'-'.(filesize($gzipPath) - 1).'/'.filesize($gzipPath));
+                else
+                    $request->setHeader('Content-Range', 'bytes ' . $request->getRangeFrom().'-'.(filesize($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()) - 1).'/'.filesize($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()));
             }
-            if(filesize($request->getvHost()->getDocumentRoot().$request->getRequestFilePath()) - $request->getRangeFrom() > $request->getvHost()->getWriteLimit())
-                $sendParts = true;
+            
             $data = fread($requestFileHandle, $request->getvHost()->getWriteLimit());
             $request->setAnswerBody($data);
             unset($data);
@@ -215,6 +244,9 @@
         
         // Get answer and its size
         $answer = $request->buildAnswer();           
+        
+        // Output request-information
+        Pancake_out('REQ '.$request->getAnswerCode().' '.$ip.': '.$request->getRequestLine().' on vHost '.(($request->getvHost()) ? $request->getvHost()->getName() : null).' (via '.$request->getRequestHeader('Host').') - '.$request->getRequestHeader('User-Agent'), REQUEST);
         
         // Check if user wants keep-alive-connection
         if($request->getAnswerHeader('Connection') == 'keep-alive')
@@ -227,7 +259,7 @@
         socket_write($requestSocket, $answer);
         
         // Send parts
-        if($sendParts === true) {
+        if($sendParts === true && $request->getRequestType() != 'HEAD') {
             while(!feof($requestFileHandle)) {
                 $data = fread($requestFileHandle, $request->getvHost()->getWriteLimit());
                 if(!socket_write($requestSocket, $data))
@@ -240,9 +272,6 @@
         // Close socket
         if(strtolower($request->getAnswerHeader('Connection')) != 'keep-alive')
             socket_shutdown($requestSocket);
-        
-        // Output request-information
-        Pancake_out('REQ '.$request->getAnswerCode().' '.$ip.': '.$request->getRequestLine().' on vHost '.(($request->getvHost()) ? $request->getvHost()->getName() : null).' (via '.$request->getRequestHeader('Host').') - '.$request->getRequestHeader('User-Agent'), REQUEST);
         
         next:
         
@@ -266,6 +295,9 @@
         unset($_GET);
         unset($add);
         unset($sendParts);
+        if($gzipPath)
+            unlink($gzipPath);
+        unset($gzipPath);
         if(is_resource($requestFileHandle))
             fclose($requestFileHandle);
         

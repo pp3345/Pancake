@@ -22,7 +22,7 @@
         */
         static public function create() {
             // Create temporary file
-            $tempFile = tempnam(Pancake_Config::get('main.sysvpath'), 'SHMEM');
+            $tempFile = tempnam(Pancake_Config::get('main.tmppath'), 'SHMEM');
             
             // Get filetoken for temporary file and attach Shared Memory
             self::$sharedMemory = shm_attach(ftok($tempFile, 'p'), 10000000);

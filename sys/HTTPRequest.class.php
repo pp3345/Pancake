@@ -27,6 +27,7 @@
         private $requestLine = null;
         private $rangeFrom = 0;
         private $rangeTo = 0;
+        private $acceptedCompressions = array();
         private static $answerCodes = array(
                                             100 => 'Continue',
                                             101 => 'Switching Protocols',
@@ -207,6 +208,21 @@
                 }
                 
                 valid:
+                
+                // Check for If-Unmodified-Since
+                if($this->getRequestHeader('If-Unmodified-Since')) {
+                    if(filemtime($this->vHost->getDocumentRoot().$this->requestFilePath) != strtotime($this->getRequestHeader('If-Unmodified-Since')))
+                        throw new Pancake_InvalidHTTPRequestException('File was modified since requested time.', 412, $requestHeader);
+                }
+                
+                // Check for accepted compressions
+                if($this->getRequestHeader('Accept-Encoding')) {
+                    $accepted = explode(',', $this->getRequestHeader('Accept-Encoding'));
+                    foreach($accepted as $format) {
+                        $format = strtolower(trim($format));
+                        $this->acceptedCompressions[$format] = true;
+                    }
+                }
                 
                 // Check for Range-header
                 if($this->getRequestHeader('Range')) {
@@ -522,6 +538,15 @@
         */
         public function getRangeTo() {
             return $this->rangeTo;
+        }
+        
+        /**
+        * Check if client accepts a specific compression format
+        * 
+        * @param string $compression Name of the compression, e. g. gzip, deflate, etc.
+        */
+        public function acceptsCompression($compression) {
+            return $this->acceptedCompressions[strtolower($compression)] === true;
         }
         
         /**

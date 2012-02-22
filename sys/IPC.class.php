@@ -22,7 +22,7 @@
         */
         static public function create() {
             // Create temporary file 
-            $tempFile = tempnam(Pancake_Config::get('main.sysvpath'), 'IPC');
+            $tempFile = tempnam(Pancake_Config::get('main.tmppath'), 'IPC');
             
             // Create resource
             self::$IPC = msg_get_queue(ftok($tempFile, 'p'));

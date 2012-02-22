@@ -43,7 +43,7 @@
         if(PANCAKE_DAEMONIZED !== true)
             echo $message;
         if($log === true && !fwrite($fileStream[$type], $message))
-            Pancake_out('Couldn\'t write to logfile', SYSTEM, false);
+            trigger_error('Couldn\'t write to logfile', E_USER_WARNING);
         return $message;
     }
     

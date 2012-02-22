@@ -1,6 +1,6 @@
 # DO NOT EDIT THIS SKELETON-CONFIGURATION
 main:
-  sysvpath: /usr/local/Pancake/sysv/                            
+  tmppath: /usr/local/Pancake/tmp/                            
   logging:
     system: /usr/local/Pancake/log/system.log                   
     request: /usr/local/Pancake/log/requests.log                

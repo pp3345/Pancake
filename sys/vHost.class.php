@@ -24,6 +24,9 @@
         private $authFiles = array();
         private $writeLimit = 0;
         private $allowDirectoryListings = false;
+        private $gzipMinimum = 0;
+        private $gzipLevel = -1;
+        private $allowGZIP = false;
         
         /**
         * Loads a vHost
@@ -51,6 +54,9 @@
             $this->indexFiles = $config['index'];
             $this->writeLimit = (int) $config['writelimit'];
             $this->allowDirectoryListings = (bool) $config['allowdirectorylistings'];
+            $this->gzipMinimum = (int) $config['gzipmin'];
+            $this->gzipLevel = (int) $config['gziplevel'];
+            $this->allowGZIP = (bool) $config['enablegzip'];
             
             // Load files and directories that need authentication
             if($config['auth']) {
@@ -201,6 +207,30 @@
         */
         public function allowDirectoryListings() {
             return $this->allowDirectoryListings;
-        }                                                          
+        }
+        
+        /**
+        * Returns the minimum filesize for using GZIP-compression   
+        *                                                       
+        */
+        public function getGZIPMimimum() {
+            return $this->gzipMinimum;
+        }
+        
+        /**
+        * Returns the level of GZIP-compression to use
+        * 
+        */
+        public function getGZIPLevel() {
+            return $this->gzipLevel;
+        }
+        
+        /**
+        * Returns whether GZIP-compression can be used or not
+        * 
+        */
+        public function allowGZIPCompression() {
+            return $this->allowGZIP;
+        }
     }
 ?>

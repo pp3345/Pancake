@@ -8,6 +8,9 @@
 #      - 127.0.0.1
 #    phpworkers: 3                                               # Amount of PHP-Workers to run
 #    writelimit: 1048576                                         # Limits the maximum data to be sent to the client at a time - Low value = less RAM-usage, but slower - High value = faster, but more RAM-usage
+#    gzipmin: 1048576                                            # Minimum static filesize to use GZIP-compression
+#    gziplevel: 1                                                # Level of the GZIP-compression - Lower = bigger size, less CPU-usage
+#    enablegzip: false                                           # Enable and disable GZIP-compression - We recommend leaving it disabled, it's better to precompress big files - GZIP-compression may produce very heavy CPU-load
 #    allowdirectorylistings: true                                # Enable directory listings
 #    index:                                                      # List of files allowed as directory-indexes
 #      - index.htm
