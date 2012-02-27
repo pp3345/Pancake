@@ -37,7 +37,7 @@
                                             201 => 'Created',
                                             202 => 'Accepted',
                                             203 => 'Non-Authoritative Information',
-                                            204 => 'No content',
+                                            204 => 'No Content',
                                             205 => 'Reset Content',
                                             206 => 'Partial Content',
                                             207 => 'Multi-Status',
@@ -372,6 +372,15 @@
         }
         
         /**
+        * Remove Answer Header
+        * 
+        * @param string $headerName
+        */
+        public function removeHeader($headerName) {
+            unset($this->answerHeaders[$headerName]);
+        }
+        
+        /**
         * Sets a cookie. Parameters similar to PHPs function setcookie()
         * 
         */
@@ -389,6 +398,23 @@
                 $cookie .= '; HttpOnly';
             $this->setCookies[] = $cookie;
             return true;
+        }
+        
+        /**
+        * Creates the $_SERVER-variable
+        * 
+        */
+        public function createSERVER() {
+            $_SERVER['REQUEST_TIME'] = time();
+            $_SERVER['USER'] = Pancake_Config::get('main.user');
+            $_SERVER['REQUEST_METHOD'] = $this->requestType;
+            $_SERVER['SERVER_PROTOCOL'] = 'HTTP/' . $this->protocolVersion;
+            $_SERVER['SERVER_SOFTWARE'] = 'Pancake/' . PANCAKE_VERSION;
+            
+            foreach($this->requestHeaders as $name => $value)
+                $_SERVER['HTTP_'.str_replace('-', '_', strtoupper($name))] = $value;
+                
+            return $_SERVER;
         }
         
         /**
@@ -514,6 +540,22 @@
         */
         public function getGETParams() {
             return $this->GETParameters;
+        }
+        
+        /**
+        * Returns all POST-parameters of this request
+        * 
+        */
+        public function getPOSTParams() {
+            return $this->POSTParameters;
+        }
+        
+        /**
+        * Returns all Cookies the client sent in this request
+        * 
+        */
+        public function getCookies() {
+            return $this->cookies;
         }
         
         /**

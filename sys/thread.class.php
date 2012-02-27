@@ -14,11 +14,12 @@
     * Multi-Threading in PHP.
     */
     class Pancake_Thread {
-        protected $codeFile = null;
+        public $codeFile = null;
         public $pid = 0;
         public $ppid = 0;
         public $running = false;
-        public $friendlyName;
+        public $friendlyName = null;
+        public $startedManually = false;
         
         /**
         * Create new Thread
@@ -33,13 +34,24 @@
         }
         
         /**
-        * Starts the Thread
+        * Checks if the codeFile is valid
+        * 
         */
-        public function start() {
+        private function checkCodeFile() {
             if(!file_exists($this->codeFile) || !is_readable($this->codeFile)) {
                 trigger_error('Thread can\'t be created because the specified codeFile isn\'t available', E_USER_WARNING);
                 return false;
             }
+            return true;
+        }
+        
+        /**
+        * Starts the Thread
+        */
+        public function start() {
+            if(!$this->checkCodeFile())
+                return false;
+            
             $this->ppid = posix_getpid();
             $this->pid = pcntl_fork();
            
@@ -51,12 +63,37 @@
             } else {                            // Child
                 $this->running = true;
                 $this->pid = posix_getpid();
-                global $currentThread;
-                $currentThread = $this;
-                if(PANCAKE_PROCTITLE === true)
-                    setproctitle('Pancake '.$this->friendlyName);
+                global $Pancake_currentThread;
+                $Pancake_currentThread = $this;
+                dt_set_proctitle('Pancake '.$this->friendlyName);
                 require $this->codeFile;
                 exit;
+            }
+        }
+        
+        /**
+        * Start the thread manually - A bit dirty, but works
+        */
+        public function startManually() {
+            if(!$this->checkCodeFile())
+                return false;
+            
+            $this->ppid = posix_getpid();
+            $this->pid = pcntl_fork();
+           
+            if($this->pid == -1)                // On error
+                return false;
+            else if($this->pid) {               // Parent 
+                $this->running = true;
+                return true;
+            } else {                            // Child
+                $this->running = true;
+                $this->pid = posix_getpid();
+                global $Pancake_currentThread;
+                $Pancake_currentThread = $this;
+                dt_set_proctitle('Pancake '.$this->friendlyName);
+                $this->startedManually = true;
+                return true;
             }
         }
         

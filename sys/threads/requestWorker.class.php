@@ -17,8 +17,6 @@
         static private $instances = array();
         public $id = 0;
         public $IPCid = 0;
-        public $isAvailable = true;
-        
         
         /**
         * Creates a new RequestWorker

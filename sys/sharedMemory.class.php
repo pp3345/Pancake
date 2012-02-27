@@ -25,7 +25,7 @@
             $tempFile = tempnam(Pancake_Config::get('main.tmppath'), 'SHMEM');
             
             // Get filetoken for temporary file and attach Shared Memory
-            self::$sharedMemory = shm_attach(ftok($tempFile, 'p'), 10000000);
+            self::$sharedMemory = shm_attach(ftok($tempFile, 'p'), Pancake_Config::get('main.sharedmemory'));
         }
         
         /**

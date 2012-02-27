@@ -14,6 +14,8 @@
     * Represents a single virtual host in Pancake    
     */
     class Pancake_vHost {
+        private static $vHosts = 0;
+        private $id = 0;
         private $name = null;
         private $documentRoot = null;
         private $listen = array();
@@ -36,6 +38,9 @@
         */
         public function __construct($name) {
             $this->name = $name;
+            
+            // Set ID
+            $this->id = self::$vHosts++;
             
             // Get configured settings
             $config = Pancake_Config::get('vhosts.'.$this->name);
@@ -231,6 +236,22 @@
         */
         public function allowGZIPCompression() {
             return $this->allowGZIP;
+        }
+        
+        /**
+        * Returns the amount of PHP-workers the vHost is running
+        * 
+        */
+        public function getPHPWorkerAmount() {
+            return $this->phpWorkers;
+        }
+        
+        /**
+        * Returns the unique ID of the vHost
+        * 
+        */
+        public function getID() {
+            return $this->id;
         }
     }
 ?>

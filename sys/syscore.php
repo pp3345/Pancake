@@ -8,15 +8,17 @@
     /****************************************************************/
     
     declare(ticks = 5);
-    const PANCAKE_VERSION = '0.1';
+    const PANCAKE_VERSION = '0.2';
     const PANCAKE_HTTP = true;
     const PANCAKE_REQUEST_WORKER_TYPE = 1;
+    const PANCAKE_PHP_WORKER_TYPE = 2;
     
     // Include files necessary to run Pancake
     require_once 'functions.php';
     require_once 'thread.class.php';
     require_once 'configuration.class.php';
     require_once 'threads/requestWorker.class.php';
+    require_once 'threads/phpWorker.class.php';
     require_once 'HTTPRequest.class.php';
     require_once 'invalidHTTPRequest.exception.php';
     require_once 'sharedMemory.class.php';
@@ -67,16 +69,16 @@
         Pancake_abort();
     }
     
-    // Check for Semaphore
+    // Check for System V
     if(!extension_loaded('sysvmsg') || !extension_loaded('sysvshm')) {
         Pancake_out('You need to compile PHP with --enable-sysvmsg and --enable-sysvshm in order to run Pancake.', SYSTEM, false);
         Pancake_abort();
     }
     
-    // Check for proctitle
-    if(extension_loaded('proctitle')) {
-        setproctitle('Pancake HTTP-Server '.PANCAKE_VERSION);
-        define('PANCAKE_PROCTITLE', true);
+    // Check for DeepTrace
+    if(!extension_loaded('DeepTrace')) {
+        Pancake_out('You need to run Pancake with the DeepTrace-extension, which is delivered with Pancake. Just run pancake.sh.', SYSTEM, false);
+        Pancake_abort();
     }
     
     // Check for root-user
@@ -87,6 +89,18 @@
     
     // Load configuration
     Pancake_Config::load();
+    
+    // Remove some PHP-functions and -constants in order to provide ability to run PHP under Pancake
+    dt_remove_function('php_sapi_name');
+    dt_remove_function('setcookie');
+    dt_remove_function('header');
+    dt_remove_function('headers_sent');
+    dt_remove_function('headers_list');
+    dt_remove_function('header_remove');
+    dt_rename_function('phpinfo', 'Pancake_phpinfo_orig');
+    
+    // Set thread title 
+    dt_set_proctitle('Pancake HTTP-Server '.PANCAKE_VERSION);
     
     // Set PANCAKE_DEBUG_MODE
     if(isset($startOptions['debug']) || Pancake_Config::get('main.debugmode') === true)
@@ -178,10 +192,23 @@
         }
     }
     
-    // Set vHosts by Names
+    // Check if any vHosts are available
+    if(!$vHosts) {
+        trigger_error('No vHosts available.', E_USER_ERROR);
+        Pancake_abort();
+    }
+    
+    // Set vHosts by Names and create PHP-workers
     foreach($vHosts as $vHost) {
         foreach($vHost->getListen() as $address)
             $Pancake_vHosts[$address] = $vHost;
+        for($i = 0;$i < $vHost->getPHPWorkerAmount();$i++) {
+            $thread = new Pancake_PHPWorker($vHost);
+            if($thread->startedManually) {
+                require $thread->codeFile;
+                exit;
+            }
+        }
     }
     
     // Debug-outpt
@@ -201,7 +228,7 @@
     unset($group);
     unset($Pancake_sockets);
     unset($startOptions);
-    unset($currentThread);
+    unset($Pancake_currentThread);
     unset($port);
     unset($config);
     unset($name);

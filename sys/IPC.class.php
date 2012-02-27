@@ -51,10 +51,10 @@
         * 
         */
         static public function get() {
-            global $currentThread;
-            if(!$currentThread)
+            global $Pancake_currentThread;
+            if(!$Pancake_currentThread)
                 return false;
-            if(!msg_receive(self::$IPC, $currentThread->IPCid, $msgtype, 10000, $message))
+            if(!msg_receive(self::$IPC, $Pancake_currentThread->IPCid, $msgtype, 1000000, $message))
                 return false;
             return $message;
         }

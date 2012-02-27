@@ -19,7 +19,7 @@
     */
     function Pancake_out($text, $type = SYSTEM, $log = true, $debugMode = false) {
         static $fileStream = array();
-        global $currentThread;
+        global $Pancake_currentThread;
         
         if($type != SYSTEM && $type != REQUEST)
             return false;
@@ -31,7 +31,7 @@
             }
         }
     
-        $friendlyName = (!$currentThread) ? 'Master' : $currentThread->friendlyName;
+        $friendlyName = (!$Pancake_currentThread) ? 'Master' : $Pancake_currentThread->friendlyName;
         
         $message = '['.$friendlyName.'] '
                     .date(Pancake_Config::get('main.dateformat')).' '
@@ -41,7 +41,7 @@
             return $message;
         
         if(PANCAKE_DAEMONIZED !== true)
-            echo $message;
+            fwrite(STDOUT, $message);
         if($log === true && !fwrite($fileStream[$type], $message))
             trigger_error('Couldn\'t write to logfile', E_USER_WARNING);
         return $message;
@@ -51,12 +51,12 @@
     * Aborts execution of Pancake
     */
     function Pancake_abort() {
-        global $currentThread;
+        global $Pancake_currentThread;
         global $Pancake_sockets;
         global $socketWorkers;
         global $requestWorkers;
-        if($currentThread) {
-            $currentThread->parentSignal(SIGUSR2);
+        if($Pancake_currentThread) {
+            $Pancake_currentThread->parentSignal(SIGUSR2);
             return;
         }
         
@@ -129,7 +129,7 @@
     * @param int $errline The line in which the error occured
     */
     function Pancake_errorHandler($errtype, $errstr, $errfile = null, $errline = null) {
-        global $currentThread;
+        global $Pancake_currentThread;
         static $fileStream;
         if(!$fileStream)
             $fileStream = @fopen(Pancake_Config::get('main.logging.error'), 'a+');
@@ -138,7 +138,9 @@
             return true;
         if($errtype == E_ERROR || $errtype == E_WARNING || $errtype == E_USER_WARNING || $errtype == E_USER_ERROR || $errtype == E_RECOVERABLE_ERROR) {
             $message = 'An error ('.$errtype.') occured: '.$errstr.' in '.$errfile.' on line '.$errline;
-            fwrite($fileStream, Pancake_out($message, SYSTEM, false, true));
+            $msg = Pancake_out($message, SYSTEM, false, true);
+            if(is_resource($fileStream))
+                fwrite($fileStream, $msg);
         }
         return true;
     }
@@ -159,5 +161,34 @@
             Pancake_abort();
         }
         return true;
+    }
+    
+    /**
+    * Returns the MIME-type of a file
+    * 
+    * @param string $filePath Path to the file
+    */
+    function Pancake_MIME($filePath) {
+        static $mimeByExt;
+        
+        if(!$mimeByExt) {
+            $mime = Pancake_Config::get('mime');
+            
+            foreach($mime as $mimeConf) {
+                foreach($mimeConf as $index => $value) {
+                    foreach($value as $ext)
+                        $mimeByExt[$ext] = $index;
+                }
+            }
+        }
+        
+        $fileName = basename($filePath);
+        $ext = explode('.', $fileName);
+        if(!isset($ext[1]))
+            return 'text/plain';
+        $ext = strtolower($ext[count($ext)-1]);
+        if(!isset($mimeByExt[$ext]))
+            return 'text/plain';
+        return $mimeByExt[$ext];
     }
 ?>

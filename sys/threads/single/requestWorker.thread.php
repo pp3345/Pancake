@@ -13,11 +13,6 @@
     global $Pancake_sockets;
     global $Pancake_vHosts;
     
-    if(Pancake_Config::get('main.mimeencoding') === true)
-        $fileInfo = new finfo(FILEINFO_MIME);
-    else
-        $fileInfo = new finfo(FILEINFO_MIME_TYPE);
-    
     function stop() {
         exit;
     }
@@ -41,7 +36,6 @@
             if(!($requestSocket = @socket_accept($socket)))
                 goto next;
             
-            // Firefox sends HTTP-Request in first TCP-segment while Chrome sends HTTP-Request after TCP-Handshake
             // Set timeout - DoS-protection
             socket_set_option($requestSocket, SOL_SOCKET, SO_RCVTIMEO, array('sec' => 0, 'usec' => Pancake_Config::get('main.readtimeout')));
             break;
@@ -69,7 +63,7 @@
     
         // Create HTTPRequest
         try {
-            $request = new Pancake_HTTPRequest($currentThread);
+            $request = new Pancake_HTTPRequest($Pancake_currentThread);
             $request->init($data);
         } catch(Pancake_InvalidHTTPRequestException $e) {
             goto write; // EVIL! :O
@@ -101,6 +95,31 @@
             $body .= 'Dump of RequestObject:'."\r\n";
             $body .= print_r($request, true);
             $request->setAnswerBody($body);
+            
+            goto write;
+        }
+        
+        // Check for PHP
+        if(Pancake_MIME($request->getvHost()->getDocumentRoot() . $request->getRequestFilePath()) == 'text/x-php' && $request->getvHost()->getPHPWorkerAmount()) {
+            // Search Available PHP-Worker
+            $key = Pancake_PHPWorker::handleRequest($request);
+            
+            // Wait for PHP-Worker to finish
+            Pancake_IPC::get();
+            
+            // Get updated request-object from Shared Memory
+            $request = Pancake_SharedMemory::get($key);
+            if($request === false) {
+                for($i = 0;$i < 10 && $request === false;$i++) {
+                    usleep(1000);
+                    $request = Pancake_SharedMemory::get($key);
+                }
+                if($request === false)
+                    continue;
+            }
+            
+            // Remove object from Shared Memory
+            Pancake_SharedMemory::delete($key);
             
             goto write;
         }
@@ -171,7 +190,7 @@
                                 if(is_dir($request->getvHost()->getDocumentRoot().$request->getRequestFilePath().'/'.$file))
                                     $body .= 'Directory';
                                 else
-                                    $body .= $fileInfo->file($request->getvHost()->getDocumentRoot().$request->getRequestFilePath().'/'.$file);
+                                    $body .= Pancake_MIME($request->getvHost()->getDocumentRoot() . $request->getRequestFilePath() . '/' . $file);
                             $body .= '</td>';
                             $body .= '<td>';
                                 $body .= date(Pancake_Config::get('main.dateformat'), filemtime($request->getvHost()->getDocumentRoot().$request->getRequestFilePath().'/'.$file));
@@ -195,7 +214,7 @@
             $body .= '</html>';
             $request->setAnswerBody($body);
         } else {
-            $request->setHeader('Content-Type', $fileInfo->file($request->getvHost()->getDocumentRoot().$request->getRequestFilePath())); 
+            $request->setHeader('Content-Type', Pancake_MIME($request->getvHost()->getDocumentRoot() . $request->getRequestFilePath())); 
             $request->setHeader('Accept-Ranges', 'bytes'); 
             
             // Check if GZIP-compression should be used  

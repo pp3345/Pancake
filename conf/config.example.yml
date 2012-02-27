@@ -16,9 +16,9 @@ main:
   exposepancake: true                                           # If true, Pancake will send a "Server"-Header with Information about Pancake
   sharedmemory: 10000000                                        # Size of SharedMemory in Bytes
   sizeprefix: bin                                               # "si" or "bin" - SI: 1000 Byte = 1 Kilobyte - Binary: 1024 Byte = 1 Kibibyte
-  mimeencoding: false                                           # If true, Pancake will show MIME-types with their encodings (see RFC 2045)
   allowhead: true                                               # Whether to allow the "HEAD"-requestmethod
   allowtrace: true                                              # Whether to allow the "TRACE"-requestmethod
   allowoptions: true                                            # Whether to allow the "OPTIONS"-requestmethod
 include:                                                        # Additional configuration-files to include
   - /usr/local/Pancake/conf/vhosts/
+  - /usr/local/Pancake/conf/mime.yml
