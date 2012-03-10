@@ -7,7 +7,9 @@
     /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
     /****************************************************************/
     
-    //define('PHP_SAPI', 'pancake');
+    /* See php.net for further documentation on the SAPI-functions */
+    
+    const PHP_SAPI = 'pancake';
     
     function php_sapi_name() {
         return 'pancake';
@@ -36,5 +38,22 @@
     
     function headers_sent() {
         return false;
+    }
+    
+    function http_response_code($response_code = 0) {
+        global $Pancake_request;
+        
+        if($response_code)
+            $Pancake_request->setAnswerCode($response_code);
+        return $Pancake_request->getAnswerCode();
+    }
+    
+    function phpinfo() {
+        return Pancake_phpinfo_orig();
+    }
+    
+    function Pancake_PHPExitHandler($exitmsg = null) {
+        echo $exitmsg;
+        return !defined('PANCAKE_PHP');
     }
 ?>

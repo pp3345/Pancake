@@ -89,3 +89,5 @@ mime:
     - tar
   - application/x-bzip:
     - bz2
+  - text/x-script.perl:
+    - pl

@@ -82,11 +82,11 @@
     * @param array $array1
     * @param array $array2
     */
-    function array_intelligent_merge($array1, $array2) {
+    function Pancake_array_merge($array1, $array2) {
         $endArray = $array1;
         foreach($array2 as $key => $value)
             if(is_array($value))
-                $endArray[$key] = array_intelligent_merge($array1[$key], $array2[$key]);
+                $endArray[$key] = Pancake_array_merge($array1[$key], $array2[$key]);
             else
                 $endArray[$key] = $array2[$key];
         return $endArray;
@@ -190,5 +190,28 @@
         if(!isset($mimeByExt[$ext]))
             return 'text/plain';
         return $mimeByExt[$ext];
+    }
+    
+    /**
+    * Cleans all global and superglobal variables
+    * 
+    */
+    function Pancake_cleanGlobals() {
+        $_GET = $_SERVER = $_POST = $_COOKIE = $_ENV = $_REQUEST = array();
+        
+        // We can't reset $GLOBALS like this because it would destroy its function of automatically adding all global vars
+        foreach($GLOBALS as $globalName => $globalVar) {
+            if($globalName != 'Pancake_currentThread'
+            && $globalName != 'GLOBALS'
+            && $globalName != '_GET'
+            && $globalName != '_POST'
+            && $globalName != '_ENV'
+            && $globalName != '_COOKIE'
+            && $globalName != '_SERVER'
+            && $globalName != '_REQUEST') {
+                $GLOBALS[$globalName] = null;
+                unset($GLOBALS[$globalName]);
+            }
+        }
     }
 ?>

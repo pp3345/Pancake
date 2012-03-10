@@ -28,6 +28,9 @@
         private $rangeFrom = 0;
         private $rangeTo = 0;
         private $acceptedCompressions = array();
+        private $requestURI = null;
+        private $remoteIP = null;
+        private $remotePort = 0;
         private static $answerCodes = array(
                                             100 => 'Continue',
                                             101 => 'Switching Protocols',
@@ -88,8 +91,10 @@
         * @param Pancake_RequestWorker $worker
         * @return Pancake_HTTPRequest
         */
-        public function __construct(Pancake_RequestWorker $worker) {
+        public function __construct(Pancake_RequestWorker $worker, $remoteIP = null, $remotePort = null) {
             $this->requestWorker = $worker;
+            $this->remoteIP = $remoteIP;
+            $this->remotePort = $remotePort;
         }
         
         /**
@@ -157,6 +162,8 @@
                 else
                     $this->vHost = $Pancake_vHosts[$this->getRequestHeader('Host')];
                  
+                $this->requestURI = $firstLine[1]; 
+                 
                 // Split address from request-parameters
                 $path = explode('?', $firstLine[1], 2);
                 $this->requestFilePath = $path[0];
@@ -167,7 +174,7 @@
                 
                 // Do not allow requests to lower paths
                 if(strpos($this->requestFilePath, '../'))
-                    throw new Pancake_InvalidHTTPRequestException('You\'re not allowed to see the requested file: '.$this->requestFilePath, 403, $requestHeader);
+                    throw new Pancake_InvalidHTTPRequestException('You are not allowed to open the requested file: '.$this->requestFilePath, 403, $requestHeader);
                 
                 // Check for index-files    
                 if(is_dir($this->vHost->getDocumentRoot().$this->requestFilePath)) {
@@ -410,6 +417,12 @@
             $_SERVER['REQUEST_METHOD'] = $this->requestType;
             $_SERVER['SERVER_PROTOCOL'] = 'HTTP/' . $this->protocolVersion;
             $_SERVER['SERVER_SOFTWARE'] = 'Pancake/' . PANCAKE_VERSION;
+            $_SERVER['PHP_SELF'] = $this->requestFilePath;
+            $_SERVER['SCRIPT_NAME'] = $this->requestFilePath;
+            $_SERVER['REQUEST_URI'] = $this->requestURI;
+            $_SERVER['SCRIPT_FILENAME'] = $this->vHost->getDocumentRoot() . $this->requestFilePath;
+            $_SERVER['REMOTE_ADDR'] = $this->remoteIP;
+            $_SERVER['REMOTE_PORT'] = $this->remotePort;
             
             foreach($this->requestHeaders as $name => $value)
                 $_SERVER['HTTP_'.str_replace('-', '_', strtoupper($name))] = $value;

@@ -97,7 +97,9 @@
     dt_remove_function('headers_sent');
     dt_remove_function('headers_list');
     dt_remove_function('header_remove');
+    if(function_exists('http_response_code')) dt_remove_function('http_response_code');
     dt_rename_function('phpinfo', 'Pancake_phpinfo_orig');
+    dt_remove_constant('PHP_SAPI');
     
     // Set thread title 
     dt_set_proctitle('Pancake HTTP-Server '.PANCAKE_VERSION);
@@ -242,6 +244,7 @@
     unset($GLOBALS);
     unset($argv);
     unset($argc);
+    gc_collect_cycles();
     
     // Good night
     while(true) {

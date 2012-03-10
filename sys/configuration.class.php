@@ -25,7 +25,7 @@
             if(!($skeletonData = file_get_contents(self::SKELETON_PATH))
             || !($configData = file_get_contents(self::PATH))
             || !(self::$configuration = yaml_parse($skeletonData)) 
-            || !(self::$configuration = array_intelligent_merge(self::$configuration, yaml_parse($configData)))) {
+            || !(self::$configuration = Pancake_array_merge(self::$configuration, yaml_parse($configData)))) {
                 Pancake_out('Couldn\'t load configuration', SYSTEM, false);
                 return false;
             }
@@ -36,13 +36,13 @@
                         $directory = scandir($include);
                         foreach($directory as $file) {
                             if($file != '.' && $file != '..') {
-                                if(!($includeData = file_get_contents($include.'/'.$file)) || !(self::$configuration = array_intelligent_merge(self::$configuration, yaml_parse($includeData))))
+                                if(!($includeData = file_get_contents($include.'/'.$file)) || !(self::$configuration = Pancake_array_merge(self::$configuration, yaml_parse($includeData))))
                                     Pancake_out('Couldn\'t load configuration-include: '.$file);
                             }
                         }
                         continue;
                     }
-                    if(!($includeData = file_get_contents($include)) || !(self::$configuration = array_intelligent_merge(self::$configuration, yaml_parse($includeData))))
+                    if(!($includeData = file_get_contents($include)) || !(self::$configuration = Pancake_array_merge(self::$configuration, yaml_parse($includeData))))
                         Pancake_out('Couldn\'t load configuration-include: '.$include);
                 }
         }

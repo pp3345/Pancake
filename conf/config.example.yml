@@ -9,8 +9,7 @@ main:
   user: www-data                                                # *NIX-User under which Pancake should run
   group: www-data                                               # *NIX-Group under which Pancake should run
   listenports:                                                  # List of ports to listen on (Recommended for HTTP: 80)
-    - 90
-    - 100
+    - 80
   requestworkers: 10                                            # Amount of RequestWorkers to run
   readtimeout: 200000                                           # Timelimit until Pancake will decline a request in µs
   exposepancake: true                                           # If true, Pancake will send a "Server"-Header with Information about Pancake

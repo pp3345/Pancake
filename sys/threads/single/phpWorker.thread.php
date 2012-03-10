@@ -8,16 +8,10 @@
     /****************************************************************/
     
     if(PANCAKE_HTTP !== true)
-        exit;    
+        exit;
     
     // Clean
-    foreach(get_defined_vars() as $varName => $varValue) {
-        if($varName != 'Pancake_currentThread')
-            eval('unset($'.$varName.');');
-    }
-    
-    unset($varName);
-    unset($varValue);
+    Pancake_cleanGlobals();
     
     // Load ScriptUtils
     require_once 'php/util.php';    
@@ -25,18 +19,12 @@
     // Set user and group
     Pancake_setUser();                      
     
-    function Pancake_PHPExitHandler($exitmsg = null) {
-        echo $exitmsg;
-        return !defined('PANCAKE_PHP');
-    }
-    
     // Set exit handler so that Pancake won't die when a script calls exit() oder die()
     dt_set_exit_handler('Pancake_PHPExitHandler');        
     dt_throw_exit_exception(true);
     
     // Wait for requests    
-    while($Pancake_message = Pancake_IPC::get()) {
-        
+    while($Pancake_message = Pancake_IPC::get()) {        
         // Get request from Shared Memory
         $Pancake_request = Pancake_SharedMemory::get($Pancake_message);
         if($Pancake_request === false) {
@@ -55,10 +43,13 @@
         $Pancake_funcsPre = get_defined_functions();
         $Pancake_constsPre = get_defined_constants(true);
         $Pancake_varsPre = get_defined_vars();
+        $Pancake_includesPre = get_included_files();
+        $Pancake_classesPre = get_declared_classes();
         
         // Set environment vars
         $_GET = $Pancake_request->getGETParams();
         $_POST = $Pancake_request->getPOSTParams();
+        $_REQUEST = Pancake_array_merge($_GET, $_POST);
         $_COOKIE = $Pancake_request->getCookies();
         $_SERVER = $Pancake_request->createSERVER();
         
@@ -70,8 +61,7 @@
         // Script will throw an exception when trying to exit, this way we can handle it easily
         try {
             include $Pancake_request->getvHost()->getDocumentRoot() . $Pancake_request->getRequestFilePath();
-        } catch(Exception $e) {
-        }
+        } catch(Exception $e) {}
         
         // Get contents from output buffer
         $contents = ob_get_contents();
@@ -87,11 +77,18 @@
         $funcsPost = get_defined_functions();
         $constsPost = get_defined_constants(true);
         $varsPost = get_defined_vars();
+        $includesPost = get_included_files();
+        $classesPost = get_declared_classes();
         
         foreach($funcsPost['user'] as $func) {
             if(!in_array($func, $Pancake_funcsPre['user'])) {
                 dt_remove_function($func);
             }
+        }
+        
+        foreach($classesPost as $class) {
+            if(!in_array($class, $Pancake_classesPre))
+                dt_remove_class($class);
         }
         
         if($constsPost['user'])
@@ -101,30 +98,12 @@
                 }
             }
             
-        foreach($varsPost as $var => $varValue) {
-            if(!array_key_exists($var, $Pancake_varsPre) && $var != 'Pancake_varsPre') {
-                eval('unset($'.$var.');');
-            }
-        }
+        foreach($includesPost as $include) {
+            if(!in_array($include, $Pancake_includesPre))
+                dt_remove_include($include);
+        }             
         
-        unset($contents);
-        unset($Pancake_funcsPre);
-        unset($Pancake_constsPre);
-        unset($Pancake_varsPre);
-        unset($funcsPost);
-        unset($constsPost);
-        unset($varsPost);
-        unset($const);
-        unset($constValue);
-        unset($var);
-        unset($varValue);
-        unset($func);
-        unset($Pancake_request);
-        unset($Pancake_message);
-        unset($e);
-        unset($_GET);
-        unset($_SERVER);
-        unset($_POST);
-        unset($GLOBALS);
+        Pancake_cleanGlobals();
+        gc_collect_cycles();
     }      
 ?>

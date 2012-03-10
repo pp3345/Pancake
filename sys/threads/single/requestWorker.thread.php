@@ -42,10 +42,10 @@
         }
         
         // Receive data from client
-        while($bytes = socket_read($requestSocket, 16384)) {
-            if(strpos($bytes, "\r\n\r\n"))
-                socket_set_nonblock($requestSocket);
+        while($bytes = socket_read($requestSocket, 1048576)) { // 1 MiB
             $data .= $bytes;
+            if(strpos($data, "\r\n\r\n") && strpos($data, "POST") !== 0)
+                socket_set_nonblock($requestSocket);
         }
         
         // Check if any data was received
@@ -63,7 +63,7 @@
     
         // Create HTTPRequest
         try {
-            $request = new Pancake_HTTPRequest($Pancake_currentThread);
+            $request = new Pancake_HTTPRequest($Pancake_currentThread, $ip, $port);
             $request->init($data);
         } catch(Pancake_InvalidHTTPRequestException $e) {
             goto write; // EVIL! :O
@@ -319,6 +319,8 @@
         unset($gzipPath);
         if(is_resource($requestFileHandle))
             fclose($requestFileHandle);
+        
+        gc_collect_cycles();
         
         // Reset statcache
         clearstatcache();
