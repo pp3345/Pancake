@@ -5,11 +5,15 @@ main:
     request: /usr/local/Pancake/log/requests.log                # Path to Request-Log
     error: /usr/local/Pancake/log/error.log                     # Path to Error-Log
   dateformat: 'd.m.y H:i:s'                                     # Format for timestamps - See php.net/date for more information
-  debugmode: true                                               # Enable debugging
+  debugmode: false                                              # Enable debugging
   user: www-data                                                # *NIX-User under which Pancake should run
   group: www-data                                               # *NIX-Group under which Pancake should run
   listenports:                                                  # List of ports to listen on (Recommended for HTTP: 80)
     - 80
+  ipv4:                                                         # IPv4 network interfaces to listen on (use 0 to listen on all available interfaces)
+    - 0
+  ipv6:                                                         # IPv6 network interfaces to listen on (use 0 to listen on all available interfaces)
+    - 0
   requestworkers: 10                                            # Amount of RequestWorkers to run
   readtimeout: 200000                                           # Timelimit until Pancake will decline a request in µs
   exposepancake: true                                           # If true, Pancake will send a "Server"-Header with Information about Pancake

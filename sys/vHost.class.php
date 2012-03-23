@@ -29,6 +29,8 @@
         private $gzipMinimum = 0;
         private $gzipLevel = -1;
         private $allowGZIP = false;
+        private $isDefault = false;
+        static private $defaultvHost = null;
         
         /**
         * Loads a vHost
@@ -62,6 +64,9 @@
             $this->gzipMinimum = (int) $config['gzipmin'];
             $this->gzipLevel = (int) $config['gziplevel'];
             $this->allowGZIP = (bool) $config['enablegzip'];
+            $this->isDefault = (bool) $config['isdefault'];
+            if($this->isDefault === true)
+                self::$defaultvHost = $this;
             
             // Load files and directories that need authentication
             if($config['auth']) {
@@ -252,6 +257,22 @@
         */
         public function getID() {
             return $this->id;
+        }
+        
+        /**
+        * Returns whether this vHost is the default vHost or not
+        * 
+        */
+        public function isDefault() {
+            return $this->isDefault;
+        }
+        
+        /**
+        * Returns the instance of the default virtual host
+        * 
+        */
+        public static function getDefault() {
+            return self::$defaultvHost;
         }
     }
 ?>

@@ -91,3 +91,6 @@ mime:
     - bz2
   - text/x-script.perl:
     - pl
+  - image/svg+xml:
+    - svg
+    - svgz

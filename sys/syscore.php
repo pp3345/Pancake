@@ -7,16 +7,20 @@
     /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
     /****************************************************************/
     
+    if(defined('PANCAKE_HTTP'))
+        exit;
+    
     declare(ticks = 5);
     const PANCAKE_VERSION = '0.2';
     const PANCAKE_HTTP = true;
     const PANCAKE_REQUEST_WORKER_TYPE = 1;
     const PANCAKE_PHP_WORKER_TYPE = 2;
+    define('PANCAKE_ERROR_REPORTING', E_COMPILE_ERROR | E_COMPILE_WARNING | E_CORE_ERROR | E_CORE_WARNING | E_ERROR | E_PARSE | E_RECOVERABLE_ERROR | E_USER_ERROR | E_USER_WARNING | E_WARNING);
     
     // Include files necessary to run Pancake
+    require_once 'configuration.class.php';
     require_once 'functions.php';
     require_once 'thread.class.php';
-    require_once 'configuration.class.php';
     require_once 'threads/requestWorker.class.php';
     require_once 'threads/phpWorker.class.php';
     require_once 'HTTPRequest.class.php';
@@ -25,9 +29,10 @@
     require_once 'IPC.class.php';
     require_once 'vHost.class.php';
     require_once 'authenticationFile.class.php';
+    require_once 'mime.class.php';
     
     // Set error reporting
-    error_reporting(E_ALL ^ E_DEPRECATED ^ E_NOTICE);
+    error_reporting(PANCAKE_ERROR_REPORTING);
     
     // Set error handler
     set_error_handler('Pancake_errorHandler');
@@ -89,7 +94,6 @@
     
     // Load configuration
     Pancake_Config::load();
-    
     // Remove some PHP-functions and -constants in order to provide ability to run PHP under Pancake
     dt_remove_function('php_sapi_name');
     dt_remove_function('setcookie');
@@ -97,9 +101,13 @@
     dt_remove_function('headers_sent');
     dt_remove_function('headers_list');
     dt_remove_function('header_remove');
+    dt_remove_function('is_uploaded_file');
+    dt_remove_function('move_uploaded_file');
+    dt_remove_function('register_shutdown_function');
     if(function_exists('http_response_code')) dt_remove_function('http_response_code');
-    dt_rename_function('phpinfo', 'Pancake_phpinfo_orig');
-    dt_remove_constant('PHP_SAPI');
+    dt_rename_function('phpinfo', 'Pancake_phpinfo_orig');  
+    dt_rename_function('ob_get_level', 'Pancake_ob_get_level_orig');
+    dt_remove_constant('PHP_SAPI'); 
     
     // Set thread title 
     dt_set_proctitle('Pancake HTTP-Server '.PANCAKE_VERSION);
@@ -155,28 +163,60 @@
     Pancake_SharedMemory::create();
     Pancake_IPC::create();  
     
+    // Load MIME-types
+    Pancake_MIME::load();
+    
     // Dirty workaround for error-logging (else may get permission denied)
     trigger_error('Nothing', E_USER_NOTICE);
     
     // Create sockets
-    foreach(Pancake_Config::get('main.listenports') as $listenPort) {
-        // Create socket
-        $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-        
-        // Set option to reuse local address
-        socket_set_option($socket, SOL_SOCKET, SO_REUSEADDR, 1);
-        
-        // Bind to all interfaces
-        if(!socket_bind($socket, 0, $listenPort)) {
-            trigger_error('Failed to create socket on port '.$listenPort, E_USER_WARNING);
-            continue;
-        } 
-        
-        // Start listening  
-        socket_listen($socket);
-        socket_set_nonblock($socket);
-        $Pancake_sockets[$listenPort] = $socket;
+    // IPv6
+    foreach(Pancake_Config::get('main.ipv6') as $interface) { 
+        foreach(Pancake_Config::get('main.listenports') as $listenPort) {
+            // Create socket
+            $socket = socket_create(AF_INET6, SOCK_STREAM, SOL_TCP);
+            
+            // Set option to reuse local address
+            socket_set_option($socket, SOL_SOCKET, SO_REUSEADDR, 1);
+            
+            // Bind to interface
+            if(!socket_bind($socket, $interface, $listenPort)) {
+                trigger_error('Failed to create socket for '.$interface.' on port '.$listenPort, E_USER_WARNING);
+                continue;
+            } 
+            
+            // Start listening  
+            socket_listen($socket);
+            socket_set_nonblock($socket);
+            $Pancake_sockets[] = $socket;
+        }
     }
+    
+    Pancake_out('Listening on ' . count(Pancake_Config::get('main.ipv6')) . ' IPv6 network interfaces', SYSTEM, true, true);
+    
+    // IPv4
+    foreach(Pancake_Config::get('main.ipv4') as $interface) {
+        foreach(Pancake_Config::get('main.listenports') as $listenPort) {
+            // Create socket
+            $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+            
+            // Set option to reuse local address
+            socket_set_option($socket, SOL_SOCKET, SO_REUSEADDR, 1);
+            
+            // Bind to interface
+            if(!socket_bind($socket, $interface, $listenPort)) {
+                trigger_error('Failed to create socket for '.$interface.' on port '.$listenPort, E_USER_WARNING);
+                continue;
+            } 
+            
+            // Start listening  
+            socket_listen($socket);
+            socket_set_nonblock($socket);
+            $Pancake_sockets[] = $socket;
+        }
+    }
+    
+    Pancake_out('Listening on ' . count(Pancake_Config::get('main.ipv4')) . ' IPv4 network interfaces', SYSTEM, true, true);
     
     // Check if any sockets are available
     if(!$Pancake_sockets) {
@@ -200,20 +240,31 @@
         Pancake_abort();
     }
     
+    // Check if the default vHost is set
+    if(!(Pancake_vHost::getDefault() instanceof Pancake_vHost)) {
+        Pancake_out('You need to specify a default vHost. (isdefault=true)', SYSTEM, false);
+        Pancake_abort();
+    }
+    
     // Set vHosts by Names and create PHP-workers
     foreach($vHosts as $vHost) {
         foreach($vHost->getListen() as $address)
             $Pancake_vHosts[$address] = $vHost;
+    }
+    
+    // We're doing this in two steps so that all vHosts will be displayed in phpinfo()
+    foreach($vHosts as $vHost) {
         for($i = 0;$i < $vHost->getPHPWorkerAmount();$i++) {
             $thread = new Pancake_PHPWorker($vHost);
             if($thread->startedManually) {
                 require $thread->codeFile;
                 exit;
             }
+            $phpWorkers[] = $thread;
         }
     }
     
-    // Debug-outpt
+    // Debug-output
     Pancake_out('Loaded '.count($vHosts).' vHosts', SYSTEM, false, true);
         
     // Create RequestWorkers
@@ -224,8 +275,6 @@
     Pancake_out('Ready for connections');
     
     // Clean
-    unset($requestWorkers);
-    unset($socketWorkers);
     unset($user);
     unset($group);
     unset($Pancake_sockets);

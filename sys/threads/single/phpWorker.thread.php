@@ -17,11 +17,12 @@
     require_once 'php/util.php';    
     
     // Set user and group
-    Pancake_setUser();                      
+    Pancake_setUser(); 
     
     // Set exit handler so that Pancake won't die when a script calls exit() oder die()
-    dt_set_exit_handler('Pancake_PHPExitHandler');        
+    dt_set_exit_handler('Pancake_PHPExitHandler');     
     dt_throw_exit_exception(true);
+    dt_show_plain_info(false);
     
     // Wait for requests    
     while($Pancake_message = Pancake_IPC::get()) {        
@@ -42,7 +43,6 @@
         // Get currently defined funcs, consts and vars
         $Pancake_funcsPre = get_defined_functions();
         $Pancake_constsPre = get_defined_constants(true);
-        $Pancake_varsPre = get_defined_vars();
         $Pancake_includesPre = get_included_files();
         $Pancake_classesPre = get_declared_classes();
         
@@ -52,16 +52,38 @@
         $_REQUEST = Pancake_array_merge($_GET, $_POST);
         $_COOKIE = $Pancake_request->getCookies();
         $_SERVER = $Pancake_request->createSERVER();
+        $_FILES = $Pancake_request->getUploadedFiles();
         
         define('PANCAKE_PHP', true);
         
         // Start output buffer
         ob_start();
-
+        
+        // Set error-handling
+        error_reporting(ini_get('error_reporting'));
+        set_error_handler('Pancake_PHPErrorHandler');
+        
         // Script will throw an exception when trying to exit, this way we can handle it easily
         try {
             include $Pancake_request->getvHost()->getDocumentRoot() . $Pancake_request->getRequestFilePath();
+            // Run Registered Shutdown Functions
+            foreach((array) $Pancake_shutdownCalls as $shutdownCall) {
+                unset($args);
+                $call = 'call_user_func($shutdownCall["callback"]';
+                foreach((array) @$shutdownCall['args'] as $arg) {
+                    $args[$i++] = $arg;
+                    if($args)
+                        $call .= ',';
+                    $call .= '$args['.$i.']';
+                }
+                $call .= ');';
+                eval($call);
+            }
         } catch(Exception $e) {}
+        
+        // Reset error-handling
+        error_reporting(PANCAKE_ERROR_REPORTING);
+        set_error_handler('Pancake_errorHandler');
         
         // Get contents from output buffer
         $contents = ob_get_contents();
@@ -74,11 +96,13 @@
         // Clean
         ob_end_clean();
         
+        // We're cleaning the globals here because PHP 5.4 is likely to crash when having an instance of a non-existant class
+        Pancake_cleanGlobals();
+        
         $funcsPost = get_defined_functions();
         $constsPost = get_defined_constants(true);
-        $varsPost = get_defined_vars();
         $includesPost = get_included_files();
-        $classesPost = get_declared_classes();
+        $classesPost = get_declared_classes();    
         
         foreach($funcsPost['user'] as $func) {
             if(!in_array($func, $Pancake_funcsPre['user'])) {
@@ -101,9 +125,17 @@
         foreach($includesPost as $include) {
             if(!in_array($include, $Pancake_includesPre))
                 dt_remove_include($include);
-        }             
+        } 
         
         Pancake_cleanGlobals();
+        
+        unset($Pancake_classesPre);
+        unset($Pancake_constsPre);
+        unset($Pancake_funcsPre);
+        unset($Pancake_includesPre);
+        
         gc_collect_cycles();
-    }      
+    }
+    
+    dt_throw_exit_exception(false);      
 ?>

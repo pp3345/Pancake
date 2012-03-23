@@ -140,5 +140,22 @@
                 return false;
             return true;
         }
+        
+        /**
+        * Waits until the Thread exited and kills it if it does not respond in time
+        * 
+        */
+        public final function waitForExit() {
+            if(pcntl_waitpid($this->pid, $x, WNOHANG) === 0) {
+                Pancake_out('Waiting for ' . $this->friendlyName . ' to stop');
+                // Sleep maximum 1 second
+                for($i = 0;$i < 200 && pcntl_waitpid($this->pid, $x, WNOHANG) === 0; $i++)
+                    usleep(10000);
+                if(pcntl_waitpid($this->pid, $x, WNOHANG) === 0) {
+                    Pancake_out('Killing worker');
+                    $this->kill();
+                }
+            }
+        }       
     }
 ?>

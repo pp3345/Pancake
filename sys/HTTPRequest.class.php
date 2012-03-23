@@ -31,6 +31,9 @@
         private $requestURI = null;
         private $remoteIP = null;
         private $remotePort = 0;
+        private $mimeType = null;
+        private $uploadedFiles = array();
+        private $uploadedFileTempNames = array();
         private static $answerCodes = array(
                                             100 => 'Continue',
                                             101 => 'Switching Protocols',
@@ -51,9 +54,9 @@
                                             304 => 'Not Modified',
                                             305 => 'Use Proxy',
                                             307 => 'Temporary Redirect',
-                                            400 => 'Bad request',
+                                            400 => 'Bad Request',
                                             401 => 'Unauthorized',
-                                            402 => 'Payment required',
+                                            402 => 'Payment Required',
                                             403 => 'Forbidden',
                                             404 => 'Not Found',
                                             405 => 'Method Not Allowed',
@@ -95,6 +98,7 @@
             $this->requestWorker = $worker;
             $this->remoteIP = $remoteIP;
             $this->remotePort = $remotePort;
+            $this->vHost = Pancake_vHost::getDefault();
         }
         
         /**
@@ -102,7 +106,7 @@
         *  
         * @param string $requestHeader Headers of the request
         */
-        public function init($requestHeader) {
+        public function init($requestHeader) { 
             try {
                 // Split headers from body
                 $requestParts = explode("\r\n\r\n", $requestHeader, 2);
@@ -147,19 +151,27 @@
                     $this->requestHeaders[$header[0]] = trim($header[1]);
                 }
                 
+                // Check if Content-Length is given and not too large on POST
+                if($this->requestType == 'POST') {
+                    global $Pancake_postMaxSize;
+                    
+                    if($this->getRequestHeader('Content-Length') > $Pancake_postMaxSize)
+                        throw new Pancake_InvalidHTTPRequestException('The uploaded content is too large.', 413, $requestHeader);
+                    if($this->getRequestHeader('Content-Length') === null)
+                        throw new Pancake_InvalidHTTPRequestException('Your request can\'t be processed without a given Content-Length', 411, $requestHeader);
+                } 
+                
                 // Enough informations for TRACE gathered
                 if($this->requestType == 'TRACE')
                     return;
                 
                 // Check for Host-Header
-                if(!$this->getRequestHeader('Host'))
+                if(!$this->getRequestHeader('Host') && $this->protocolVersion == '1.1')
                     throw new Pancake_InvalidHTTPRequestException('Missing required header: Host', 400, $requestHeader);
                 
                 // Search for vHost
                 global $Pancake_vHosts;
-                if(!isset($Pancake_vHosts[$this->getRequestHeader('Host')]))
-                    throw new Pancake_InvalidHTTPRequestException('No vHost for host "'.$this->getRequestHeader('Host').'"', 400, $requestHeader);
-                else
+                if(isset($Pancake_vHosts[$this->getRequestHeader('Host')]))
                     $this->vHost = $Pancake_vHosts[$this->getRequestHeader('Host')];
                  
                 $this->requestURI = $firstLine[1]; 
@@ -238,6 +250,9 @@
                     $this->rangeTo = $range[2];
                 }
                 
+                // Get MIME-type of the requested file
+                $this->mimeType = Pancake_MIME::typeOf($this->vHost->getDocumentRoot() . $this->requestFilePath);
+                
                 // Split GET-parameters
                 $get = explode('&', $path[1]);
                 
@@ -246,24 +261,12 @@
                     if($param == null)
                         break;
                     $param = explode('=', $param, 2);
-                    $this->GETParameters[urldecode($param[0])] = urldecode($param[1]);
-                }
-                
-                // Check for POST-parameters
-                if($this->requestType == 'POST') {
-                    // Check for url-encoded parameters
-                    if(strpos($this->getRequestHeader('Content-Type'), 'application/x-www-form-urlencoded') !== false) {
-                        // Split POST-parameters
-                        $post = explode('&', $requestParts[1]);
-                        
-                        // Read POST-parameters
-                        foreach($post as $param) {
-                            if($param == null)
-                                break;
-                            $param = explode('=', $param, 2);
-                            $this->POSTParameters[urldecode($param[0])] = urldecode($param[1]);
-                        }
-                    }
+                    // GET and POST Parameters can be arrays
+                    if(strpos(urldecode($param[0]), '[]')) {
+                        $param[0] = str_replace('[]', null, urldecode($param[0]));
+                        $this->GETParameters[$param[0]][] = urldecode($param[1]);
+                    } else
+                        $this->GETParameters[urldecode($param[0])] = urldecode($param[1]);
                 }
                  
                 // Check for cookies
@@ -284,6 +287,66 @@
                 $this->invalidRequest($e);
                 throw $e;
             }                          
+        }
+        
+        /**
+        * Processes the POST RequestBody
+        * 
+        * @param string $postData The RequestBody received by the client
+        */
+        public function readPOSTData($postData) {
+            // Check for url-encoded parameters
+            if(strpos($this->getRequestHeader('Content-Type'), 'application/x-www-form-urlencoded') !== false) {
+                // Split POST-parameters
+                $post = explode('&', $postData);
+
+                // Read POST-parameters
+                foreach($post as $param) {
+                    if($param == null)
+                        break;
+                    $param = explode('=', $param, 2);
+                    if(strpos(urldecode($param[0]), '[]')) {
+                        $param[0] = str_replace('[]', null, urldecode($param[0]));
+                        $this->POSTParameters[$param[0]][] = urldecode($param[1]);
+                    } else
+                        $this->POSTParameters[urldecode($param[0])] = urldecode($param[1]);
+                }
+            // Check for uploaded files
+            } else if(strpos($this->getRequestHeader('Content-Type'), 'multipart/form-data') !== false) {
+                // Get boundary string that splits the dispositions
+                preg_match('~boundary=(.*)~', $this->getRequestHeader('Content-Type'), $boundary);
+                $boundary = $boundary[1];
+                if(!$boundary)
+                    return false;
+                
+                // For some strange reason the actual boundary string is -- + the specified boundary string
+                $postData = str_replace("\r\n--" . $boundary . '--', null, $postData);
+                
+                $dispositions = explode("\r\n--" . $boundary, $postData);
+                
+                // The first disposition will have a boundary string at its beginning
+                $disposition[0] = substr($disposition[0], strlen('--' . $boundary . "\r\n"));
+
+                foreach($dispositions as $disposition) {
+                    $dispParts = explode("\r\n\r\n", $disposition, 2);
+                    preg_match('~Content-Disposition: form-data;[ ]?name="(.*?)";?[ ]?(?:filename="(.*?)")?(?:\r\n)?(?:Content-Type: (.*))?~', $dispParts[0], $data);
+                    // [ 0 => string, 1 => name, 2 => filename, 3 => Content-Type ]
+                    if(isset($data[2]) && isset($data[3])) {
+                        $tmpFileName = tempnam(Pancake_Config::get('main.tmppath'), 'UPL');
+                        file_put_contents($tmpFileName, $dispParts[1]);
+                        $this->uploadedFiles[$data[1]] = array(
+                                                                'name' => $data[2],
+                                                                'type' => $data[3],
+                                                                'error' => UPLOAD_ERR_OK,
+                                                                'size' => strlen($dispParts[1]),
+                                                                'tmp_name' => $tmpFileName);
+                        $this->uploadedFileTempNames[] = $tmpFileName;
+                    } else {
+                        $this->POSTParameters[$data[1]] = $dispParts[1];
+                    }
+                }
+            }
+            return true;
         }
         
         /**
@@ -323,7 +386,7 @@
         * Build complete answer
         *  
         */
-        public function buildAnswer() {
+        public function buildAnswerHeaders() {
             // Check for TRACE
             if($this->getRequestType() == 'TRACE' && $this->getAnswerCode() != 405) {
                 $answer = $this->getRequestLine()."\r\n";
@@ -333,7 +396,7 @@
             
             // Set AnswerCode if not set
             if(!$this->getAnswerCode())
-                ($this->getAnswerBody()) ? $this->setAnswerCode(200) : $this->setAnswerCode(204);
+                ($this->getAnswerBody() || $this->getAnswerHeader('Content-Length')) ? $this->setAnswerCode(200) : $this->setAnswerCode(204);
             // Set Connection-Header
             if($this->getAnswerCode() >= 200 && $this->getAnswerCode() < 400 && strtolower($this->getRequestHeader('Connection')) == 'keep-alive')
                 $this->setHeader('Connection', 'keep-alive');
@@ -362,8 +425,6 @@
             $answer = 'HTTP/'.$this->getProtocolVersion().' '.$this->getAnswerCode().' '.self::getCodeString($this->getAnswerCode())."\r\n";
             $answer .= $this->getAnswerHeaders();
             $answer .= "\r\n";
-            if($this->getRequestType() != 'HEAD')
-                $answer .= $this->getAnswerBody();
             
             return $answer;
         }
@@ -593,6 +654,46 @@
         */
         public function getRangeTo() {
             return $this->rangeTo;
+        }
+        
+        /**
+        * Returns the IP of the client
+        * 
+        */
+        public function getRemoteIP() {
+            return $this->remoteIP;
+        }
+        
+        /**
+        * Returns the port the client listens on
+        * 
+        */
+        public function getRemotePort() {
+            return $this->remotePort;
+        }
+        
+        /**
+        * Returns the MIME-type of the requested file
+        * 
+        */
+        public function getMIMEType() {
+            return $this->mimeType;
+        }
+        
+        /**
+        * Returns an array with the uploaded files (similar to $_FILES)
+        * 
+        */
+        public function getUploadedFiles() {
+            return $this->uploadedFiles;
+        } 
+        
+        /**
+        * Returns an array with the temporary names of all uploaded files
+        * 
+        */
+        public function getUploadedFileNames() {
+            return $this->uploadedFileTempNames;
         }
         
         /**

@@ -3,9 +3,9 @@ Pancake is a fast, simple and lightweight HTTP-Server written in PHP with accele
 System requirements:
 
 POSIX-compliant operating system (should run fine on Linux, BSD, Apple Mac OS X, etc. but won't run under any version of Microsoft Windows)
-PHP 5.3.0 or newer compiled with --enable-pcntl, --enable-sysvshm and --enable-sysvmsg
+PHP 5.3.0 or newer compiled with --enable-pcntl, --enable-sysvshm and --enable-sysvmsg (PHP 5.4 recommended!)
 PECL yaml 1.0.1 or newer
-DeepTrace 0.2 or newer (current version is delivered with Pancake precompiled for x86 and x86_64, so you don't need to install or compile anything extra)
+DeepTrace 1.2.2 or newer (current version is delivered with Pancake precompiled for x86 and x86_64, so you don't need to install or compile anything extra)
 
 Optional:
 PECL bcompiler 1.0.2 or newer (for even better PHP-acceleration)
