@@ -13,20 +13,20 @@
     /**
     * Function for output and logging
     * @param string $text The string to be logged
-    * @param int $type SYSTEM or REQUEST 
+    * @param int $type PANCAKE_SYSTEM or PANCAKE_REQUEST 
     * @param bool $log Whether the text may be logged or not
     * @param bool $debugMode Whether the text should only be output in debugmode
     */
-    function Pancake_out($text, $type = SYSTEM, $log = true, $debugMode = false) {
+    function Pancake_out($text, $type = PANCAKE_SYSTEM, $log = true, $debugMode = false) {
         static $fileStream = array();
         global $Pancake_currentThread;
         
-        if($type != SYSTEM && $type != REQUEST)
+        if($type !== PANCAKE_SYSTEM && $type !== PANCAKE_REQUEST)
             return false;
         
         if(!$fileStream && $log === true) {
-            if(!($fileStream[SYSTEM] = fopen(Pancake_Config::get('main.logging.system'), 'a+')) || !($fileStream[REQUEST] = fopen(Pancake_Config::get('main.logging.request'), 'a+'))) {
-                Pancake_out('Couldn\'t open file for logging - Check if it exists and is accessible for Pancake', SYSTEM, false);
+            if(!($fileStream[PANCAKE_SYSTEM] = fopen(Pancake_Config::get('main.logging.system'), 'a+')) || !($fileStream[PANCAKE_REQUEST] = fopen(Pancake_Config::get('main.logging.request'), 'a+'))) {
+                Pancake_out('Couldn\'t open file for logging - Check if it exists and is accessible for Pancake', PANCAKE_SYSTEM, false);
                 Pancake_abort();
             }
         }
@@ -141,10 +141,9 @@
         // Check for @
         if(error_reporting() == 0)
             return true;
-        //if($errtype == E_ERROR || $errtype == E_WARNING || $errtype == E_USER_WARNING || $errtype == E_USER_ERROR || $errtype == E_RECOVERABLE_ERROR) {
         if($errtype & PANCAKE_ERROR_REPORTING) {
             $message = 'An error ('.$errtype.') occured: '.$errstr.' in '.$errfile.' on line '.$errline;
-            $msg = Pancake_out($message, SYSTEM, false, true);
+            $msg = Pancake_out($message, PANCAKE_SYSTEM, false, true);
             if(is_resource($fileStream))
                 fwrite($fileStream, $msg);
         }
@@ -176,8 +175,6 @@
     function Pancake_cleanGlobals() {
         $_GET = $_SERVER = $_POST = $_COOKIE = $_ENV = $_REQUEST = $_FILES = array();
         
-        //Pancake_out(var_dump($GLOBALS));
-        
         // We can't reset $GLOBALS like this because it would destroy its function of automatically adding all global vars
         foreach($GLOBALS as $globalName => $globalVar) {
             if($globalName != 'Pancake_currentThread'
@@ -193,7 +190,8 @@
             && $globalName != 'Pancake_constsPre'
             && $globalName != 'Pancake_includesPre'
             && $globalName != 'Pancake_classesPre'
-            && $globalName != 'Pancake_funcsPre') {
+            && $globalName != 'Pancake_funcsPre'
+            && $globalName != 'Pancake_interfacesPre') {
                 $GLOBALS[$globalName] = null;
                 
                 unset($GLOBALS[$globalName]);
@@ -201,4 +199,6 @@
         }
         return true;
     }
+    
+    function Pancake_dummy() {}
 ?>

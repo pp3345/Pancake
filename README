@@ -5,10 +5,29 @@ System requirements:
 POSIX-compliant operating system (should run fine on Linux, BSD, Apple Mac OS X, etc. but won't run under any version of Microsoft Windows)
 PHP 5.3.0 or newer compiled with --enable-pcntl, --enable-sysvshm and --enable-sysvmsg (PHP 5.4 recommended!)
 PECL yaml 1.0.1 or newer
-DeepTrace 1.2.2 or newer (current version is delivered with Pancake precompiled for x86 and x86_64, so you don't need to install or compile anything extra)
+DeepTrace 1.3.0 or newer (current version is delivered with Pancake precompiled for x86 and x86_64, so you don't need to install or compile anything extra)
 
-Optional:
-PECL bcompiler 1.0.2 or newer (for even better PHP-acceleration)
+How to install Pancake:
+
+1. cd /usr/local/
+2. git clone git://github.com/pp3345/Pancake/
+3. Configure a vHost (example in Pancake/conf/vhosts/example.yml)
+
+How to run Pancake:
+
+/usr/local/Pancake/sys/pancake.sh
+
+(as root, you may use sudo)
+
+If you need to compile DeepTrace:
+
+1. cd
+2. git clone git://github.com/NeoXiD/DeepTrace
+3. cd DeepTrace
+4. phpize
+5. ./configure
+6. make
+7. cp modules/DeepTrace.so /usr/local/Pancake/sys/ext/<arch>_<phpver>.so (for example x86_64_54.so for x86_64 and PHP 5.4)
 
 It's licensed under the CC BY-NC-SA 3.0 of which you may obtain a copy at http://creativecommons.org/licenses/by-nc-sa/3.0/
 If you would like to make commercial use of Pancake, please contact me.

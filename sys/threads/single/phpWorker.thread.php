@@ -24,6 +24,10 @@
     dt_throw_exit_exception(true);
     dt_show_plain_info(false);
     
+    // Load CodeCache
+    foreach((array) $Pancake_currentThread->vHost->getCodeCacheFiles() as $cacheFile)
+        Pancake_cacheFile($Pancake_currentThread->vHost, $cacheFile);
+    
     // Wait for requests    
     while($Pancake_message = Pancake_IPC::get()) {        
         // Get request from Shared Memory
@@ -45,6 +49,7 @@
         $Pancake_constsPre = get_defined_constants(true);
         $Pancake_includesPre = get_included_files();
         $Pancake_classesPre = get_declared_classes();
+        $Pancake_interfacesPre = get_declared_interfaces();
         
         // Set environment vars
         $_GET = $Pancake_request->getGETParams();
@@ -79,11 +84,21 @@
                 $call .= ');';
                 eval($call);
             }
-        } catch(Exception $e) {}
+        } catch(DeepTraceExitException $e) {
+        } catch(Exception $exception) {
+            if(($oldHandler = set_exception_handler('Pancake_dummy')) !== null) {
+                call_user_func($oldHandler, $exception); 
+            }
+        }
         
         // Reset error-handling
         error_reporting(PANCAKE_ERROR_REPORTING);
         set_error_handler('Pancake_errorHandler');
+        set_exception_handler(null);
+        
+        // Destroy all output buffers
+        while(ob_get_level() > 0)
+            Pancake_ob_end_flush_orig();
         
         // Get contents from output buffer
         $contents = ob_get_contents();
@@ -94,7 +109,7 @@
         Pancake_IPC::send($Pancake_request->getRequestWorker()->IPCid, 1);
         
         // Clean
-        ob_end_clean();
+        Pancake_ob_end_clean_orig();
         
         // We're cleaning the globals here because PHP 5.4 is likely to crash when having an instance of a non-existant class
         Pancake_cleanGlobals();
@@ -103,6 +118,12 @@
         $constsPost = get_defined_constants(true);
         $includesPost = get_included_files();
         $classesPost = get_declared_classes();    
+        $interfacesPost = get_declared_interfaces();
+        
+        foreach($interfacesPost as $interface) {
+            if(!in_array($interface, $Pancake_interfacesPre))
+                dt_remove_interface($interface);
+        }
         
         foreach($funcsPost['user'] as $func) {
             if(!in_array($func, $Pancake_funcsPre['user'])) {

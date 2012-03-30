@@ -28,6 +28,10 @@
             self::$IPC = msg_get_queue(ftok($tempFile, 'p'));
         }
         
+        static public function getResource() {
+            return self::$IPC;
+        }
+        
         /**
         * Destroys the IPC-resource
         * 

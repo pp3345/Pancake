@@ -26,7 +26,7 @@
             || !($configData = file_get_contents(self::PATH))
             || !(self::$configuration = yaml_parse($skeletonData)) 
             || !(self::$configuration = Pancake_array_merge(self::$configuration, yaml_parse($configData)))) {
-                Pancake_out('Couldn\'t load configuration', SYSTEM, false);
+                Pancake_out('Couldn\'t load configuration', PANCAKE_SYSTEM, false);
                 return false;
             }
             $includes = self::get('include');

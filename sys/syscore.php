@@ -11,10 +11,12 @@
         exit;
     
     declare(ticks = 5);
-    const PANCAKE_VERSION = '0.2';
+    const PANCAKE_VERSION = '0.3';
     const PANCAKE_HTTP = true;
     const PANCAKE_REQUEST_WORKER_TYPE = 1;
     const PANCAKE_PHP_WORKER_TYPE = 2;
+    const PANCAKE_SYSTEM = 1;
+    const PANCAKE_REQUEST = 2;
     define('PANCAKE_ERROR_REPORTING', E_COMPILE_ERROR | E_COMPILE_WARNING | E_CORE_ERROR | E_CORE_WARNING | E_ERROR | E_PARSE | E_RECOVERABLE_ERROR | E_USER_ERROR | E_USER_WARNING | E_WARNING);
     
     // Include files necessary to run Pancake
@@ -54,41 +56,41 @@
         exit;
     }
     
-    Pancake_out('Loading Pancake '.PANCAKE_VERSION.'...', SYSTEM, false);
+    Pancake_out('Loading Pancake '.PANCAKE_VERSION.'...', PANCAKE_SYSTEM, false);
     
     // Check for POSIX-compliance
     if(!is_callable('posix_getpid')) {
-        Pancake_out('Pancake can\'t run on this system. Either your operating system isn\'t POSIX-compliant or PHP was compiled with --disable-posix', SYSTEM, false);
+        Pancake_out('Pancake can\'t run on this system. Either your operating system isn\'t POSIX-compliant or PHP was compiled with --disable-posix', PANCAKE_SYSTEM, false);
         Pancake_abort();
     }
     
     // Check for available PCNTL-functions
     if(!extension_loaded('pcntl')) {
-        Pancake_out('Pancake can\'t run on this system. You need to recompile PHP with --enable-pcntl', SYSTEM, false);
+        Pancake_out('Pancake can\'t run on this system. You need to recompile PHP with --enable-pcntl', PANCAKE_SYSTEM, false);
         Pancake_abort();
     }
     
     // Check if PECL-extension for YAML-support is installed
     if(!extension_loaded('yaml')) {
-        Pancake_out('You need to install the PECL-extension for YAML-support in order to run Pancake.', SYSTEM, false);
+        Pancake_out('You need to install the PECL-extension for YAML-support in order to run Pancake.', PANCAKE_SYSTEM, false);
         Pancake_abort();
     }
     
     // Check for System V
     if(!extension_loaded('sysvmsg') || !extension_loaded('sysvshm')) {
-        Pancake_out('You need to compile PHP with --enable-sysvmsg and --enable-sysvshm in order to run Pancake.', SYSTEM, false);
+        Pancake_out('You need to compile PHP with --enable-sysvmsg and --enable-sysvshm in order to run Pancake.', PANCAKE_SYSTEM, false);
         Pancake_abort();
     }
     
     // Check for DeepTrace
     if(!extension_loaded('DeepTrace')) {
-        Pancake_out('You need to run Pancake with the DeepTrace-extension, which is delivered with Pancake. Just run pancake.sh.', SYSTEM, false);
+        Pancake_out('You need to run Pancake with the DeepTrace-extension, which is delivered with Pancake. Just run pancake.sh.', PANCAKE_SYSTEM, false);
         Pancake_abort();
     }
     
     // Check for root-user
     if(posix_getuid() !== 0) {
-        Pancake_out('You need to run Pancake as root.', SYSTEM, false);
+        Pancake_out('You need to run Pancake as root.', PANCAKE_SYSTEM, false);
         Pancake_abort();
     }
     
@@ -97,6 +99,7 @@
     // Remove some PHP-functions and -constants in order to provide ability to run PHP under Pancake
     dt_remove_function('php_sapi_name');
     dt_remove_function('setcookie');
+    dt_remove_function('setrawcookie');
     dt_remove_function('header');
     dt_remove_function('headers_sent');
     dt_remove_function('headers_list');
@@ -107,6 +110,10 @@
     if(function_exists('http_response_code')) dt_remove_function('http_response_code');
     dt_rename_function('phpinfo', 'Pancake_phpinfo_orig');  
     dt_rename_function('ob_get_level', 'Pancake_ob_get_level_orig');
+    dt_rename_function('ob_end_clean', 'Pancake_ob_end_clean_orig');
+    dt_rename_function('ob_end_flush', 'Pancake_ob_end_flush_orig');
+    dt_rename_function('ob_flush', 'Pancake_ob_flush_orig');
+    dt_rename_function('ob_get_flush', 'Pancake_ob_get_flush_orig');
     dt_remove_constant('PHP_SAPI'); 
     
     // Set thread title 
@@ -115,6 +122,8 @@
     // Set PANCAKE_DEBUG_MODE
     if(isset($startOptions['debug']) || Pancake_Config::get('main.debugmode') === true)
         define('PANCAKE_DEBUG_MODE', true);
+    else
+        define('PANCAKE_DEBUG_MODE', false);
     
     Pancake_out('Basic configuration loaded');
     if(PANCAKE_DEBUG_MODE === true)
@@ -122,7 +131,7 @@
         
     // Check if configured user exists
     if(posix_getpwnam(Pancake_Config::get('main.user')) === false || posix_getgrnam(Pancake_Config::get('main.group')) === false) {
-        Pancake_out('The configured user/group doesn\'t exist.', SYSTEM, false);
+        Pancake_out('The configured user/group doesn\'t exist.', PANCAKE_SYSTEM, false);
         Pancake_abort();
     }
     
@@ -139,23 +148,24 @@
         if(is_resource(STDOUT)) fclose(STDOUT);
         if(is_resource(STDERR)) fclose(STDERR);
         define('PANCAKE_DAEMONIZED', true);
-    }
+    } else
+        define('PANCAKE_DAEMONIZED', false);
     
     // Check for ports to listen on
     if(!Pancake_Config::get('main.listenports')) {
-        Pancake_out('You need to specify at least one port for Pancake to listen on. We recommend port 80.', SYSTEM, false);
+        Pancake_out('You need to specify at least one port for Pancake to listen on. We recommend port 80.', PANCAKE_SYSTEM, false);
         Pancake_abort();
     }       
     
     // Check if configured worker-amounts are OK
     if(Pancake_Config::get('main.requestworkers') < 1) {
-        Pancake_out('You need to specify an amount of request-workers greater or equal to 1.', SYSTEM, false);
+        Pancake_out('You need to specify an amount of request-workers greater or equal to 1.', PANCAKE_SYSTEM, false);
         Pancake_abort();
     }
     
     // Check for configured vhosts
     if(!Pancake_Config::get('vhosts')) {
-        Pancake_out('You need to define at least one virtual host.', SYSTEM, false);
+        Pancake_out('You need to define at least one virtual host.', PANCAKE_SYSTEM, false);
         Pancake_abort();
     }
     
@@ -192,7 +202,7 @@
         }
     }
     
-    Pancake_out('Listening on ' . count(Pancake_Config::get('main.ipv6')) . ' IPv6 network interfaces', SYSTEM, true, true);
+    Pancake_out('Listening on ' . count(Pancake_Config::get('main.ipv6')) . ' IPv6 network interfaces', PANCAKE_SYSTEM, true, true);
     
     // IPv4
     foreach(Pancake_Config::get('main.ipv4') as $interface) {
@@ -216,7 +226,7 @@
         }
     }
     
-    Pancake_out('Listening on ' . count(Pancake_Config::get('main.ipv4')) . ' IPv4 network interfaces', SYSTEM, true, true);
+    Pancake_out('Listening on ' . count(Pancake_Config::get('main.ipv4')) . ' IPv4 network interfaces', PANCAKE_SYSTEM, true, true);
     
     // Check if any sockets are available
     if(!$Pancake_sockets) {
@@ -242,7 +252,7 @@
     
     // Check if the default vHost is set
     if(!(Pancake_vHost::getDefault() instanceof Pancake_vHost)) {
-        Pancake_out('You need to specify a default vHost. (isdefault=true)', SYSTEM, false);
+        Pancake_out('You need to specify a default vHost. (isdefault=true)', PANCAKE_SYSTEM, false);
         Pancake_abort();
     }
     
@@ -265,12 +275,12 @@
     }
     
     // Debug-output
-    Pancake_out('Loaded '.count($vHosts).' vHosts', SYSTEM, false, true);
+    Pancake_out('Loaded '.count($vHosts).' vHosts', PANCAKE_SYSTEM, false, true);
         
     // Create RequestWorkers
     for($i = 0;$i < Pancake_Config::get('main.requestworkers');$i++)
         $requestWorkers[] = new Pancake_RequestWorker();
-    Pancake_out('Created '.Pancake_Config::get('main.requestworkers').' RequestWorkers', SYSTEM, true, true);
+    Pancake_out('Created '.Pancake_Config::get('main.requestworkers').' RequestWorkers', PANCAKE_SYSTEM, true, true);
     
     Pancake_out('Ready for connections');
     
@@ -294,6 +304,9 @@
     unset($argv);
     unset($argc);
     gc_collect_cycles();
+    
+    sleep(5);
+    Pancake_IPC::send(19, 'TEST');
     
     // Good night
     while(true) {

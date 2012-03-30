@@ -16,28 +16,53 @@
     } 
     
     function setcookie($name, $value = null, $expire = 0, $path = null, $domain = null, $secure = false, $httponly = false) {
+        Pancake_out('SETCOOKIE');
         global $Pancake_request;
+        
         return $Pancake_request->setCookie($name, $value, $expire, $path, $domain, $secure, $httponly); 
+    }
+    
+    function setrawcookie($name, $value = null, $expire = 0, $path = null, $domain = null, $secure = false, $httponly = false) {
+        Pancake_out('SETRAWCOOKIE');
+        global $Pancake_request;
+        
+        return $Pancake_request->setCookie($name, $value, $expire, $path, $domain, $secure, $httponly, true); 
     }
     
     function header($string, $replace = true, $http_response_code = 0) {
         global $Pancake_request;
         
-        $header = explode(':', $string, 2);
-        $Pancake_request->setHeader($header[0], trim($header[1]));
+        if(strtoupper(substr($string, 0, 5)) == 'HTTP/') {
+            $data = explode(' ', $string);
+            $Pancake_request->setAnswerCode($data[1]);
+        } else {
+            $header = explode(':', $string, 2);
+            $Pancake_request->setHeader($header[0], trim($header[1]));
+            if($header[0] == 'Location' && $Pancake_request->getAnswerCode() != 201 && substr($Pancake_request->getAnswerCode(), 0, 1) != 3)
+                $Pancake_request->setAnswerCode(302);
+        }
         
         if($http_response_code)
             $Pancake_request->setAnswerCode($http_response_code);
     }
     
-    function header_remove($name) {
+    function header_remove($name = null) {
         global $Pancake_request;
         
-        $Pancake_request->removeHeader($name);
+        if($name)
+            $Pancake_request->removeHeader($name);
+        else
+            $Pancake_request->removeAllHeaders();
     }
     
     function headers_sent() {
         return false;
+    }
+    
+    function headers_list() {
+        global $Pancake_request;
+        
+        return $Pancake_request->getAnswerHeadersArray();
     }
     
     function http_response_code($response_code = 0) {
@@ -60,7 +85,7 @@
         if(!Pancake_phpinfo_orig($what))
             return false;
         $phpInfo = ob_get_contents();
-        ob_end_clean();
+        Pancake_ob_end_clean_orig();
         
         // Modify it
         $phpInfo = str_replace('<td class="v">Command Line Interface </td>', '<td class="v">Pancake HTTP-Server </td>', $phpInfo);
@@ -222,5 +247,54 @@
     
     function ob_get_level() {
         return Pancake_ob_get_level_orig() - 1;
+    }
+    
+    function ob_end_clean() {
+        if(ob_get_level() > 0)
+            return Pancake_ob_end_clean_orig();
+        trigger_error('ob_end_clean(): failed to delete buffer. No buffer to delete', E_USER_NOTICE);
+        return false;
+    }
+    
+    function ob_end_flush() {
+        if(ob_get_level() > 0)
+            return Pancake_ob_end_flush_orig();
+        trigger_error('ob_end_flush(): failed to delete and flush buffer. No buffer to delete or flush', E_USER_NOTICE);
+        return false;
+    }
+    
+    function ob_get_flush() {
+        if(ob_get_level() > 0)
+            return Pancake_ob_get_flush_orig();
+        trigger_error('ob_get_flush(): failed to delete and flush buffer. No buffer to delete or flush', E_USER_NOTICE);
+        return false;
+    }
+    
+    function ob_flush() {
+        if(ob_get_level() > 0)
+            return Pancake_ob_flush_orig();      
+    }
+    
+    /**
+    * Loads a file into Pancakes CodeCache
+    * 
+    * @param Pancake_vHost $vHost
+    * @param string $fileName Filename, relative to the vHosts DocumentRoot
+    */
+    function Pancake_cacheFile(Pancake_vHost $vHost, $fileName) {
+        if($vHost->isExcludedFile($fileName))
+            return;
+        if(is_dir($vHost->getDocumentRoot() . '/' . $fileName)) {
+            Pancake_out('Scanning directory ' . $vHost->getDocumentRoot() . '/' . $fileName);
+            $directory = scandir($vHost->getDocumentRoot() . '/' . $fileName);
+            if(substr($fileName, -1, 1) != '/')
+                $fileName .= '/';
+            foreach($directory as $file)
+                if($file != '..' && $file != '.')
+                    Pancake_cacheFile($vHost, $fileName . $file);
+        } else {
+            Pancake_out('Caching file ' . $vHost->getDocumentRoot() . '/' . $fileName);
+            require_once $vHost->getDocumentRoot() . '/' . $fileName;
+        }
     }
 ?>

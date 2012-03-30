@@ -20,6 +20,7 @@
         private $documentRoot = null;
         private $listen = array();
         private $phpCodeCache = array();
+        private $phpCodeCacheExcludes = array();
         private $phpWorkers = 0;
         private $indexFiles = array();
         private $authDirectories = array();
@@ -57,6 +58,7 @@
             if(count($this->listen) < 1)
                 throw new Exception('You need to specify at least one address to listen on');
             $this->phpCodeCache = $config['phpcache'];
+            $this->phpCodeCacheExcludes = $config['phpcacheexclude'];
             $this->phpWorkers = $config['phpworkers'];
             $this->indexFiles = $config['index'];
             $this->writeLimit = (int) $config['writelimit'];
@@ -99,7 +101,7 @@
             // Check PHP-CodeCache
             if($this->phpCodeCache) {
                 foreach($this->phpCodeCache as $id => $codeFile)
-                    if(!file_exists($codeFile) || !is_readable($codeFile)) {
+                    if(!file_exists($this->documentRoot . '/' . $codeFile) || !is_readable($this->documentRoot . '/' . $codeFile)) {
                         unset($this->phpCodeCache[$id]);
                         throw new Exception('Specified CodeCache-File does not exist or isn\'t readable: '.$codeFile);
                     }
@@ -265,6 +267,15 @@
         */
         public function isDefault() {
             return $this->isDefault;
+        }
+        
+        /**
+        * Checks if the FileName (relative to DocumentRoot) should be excluded from CodeCache
+        * 
+        * @param string $fileName
+        */
+        public function isExcludedFile($fileName) {
+            return in_array($fileName, (array) $this->phpCodeCacheExcludes);
         }
         
         /**

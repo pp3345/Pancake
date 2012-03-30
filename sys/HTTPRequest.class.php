@@ -120,7 +120,7 @@
                 $this->requestLine = $requestHeaders[0];
                 
                 // HyperText CoffeePot Control Protocol :-)
-                if(($firstLine[0] == 'BREW' || $firstLine[0] == 'WHEN') && Pancake_Config::get('main.exposepancake') === true)
+                if(($firstLine[0] == 'BREW' || $firstLine[0] == 'WHEN' || $firstLine[2] == 'HTCPCP/1.0') && Pancake_Config::get('main.exposepancake') === true)
                     throw new Pancake_InvalidHTTPRequestException('It seems like you were trying to make coffee via HTCPCP, but I\'m a Pancake, not a Coffee Pot.', 418, $requestHeader);
                 
                 // Check request-method
@@ -164,6 +164,9 @@
                 // Enough informations for TRACE gathered
                 if($this->requestType == 'TRACE')
                     return;
+                    
+                if($this->remoteIP == '2001:470:26:531:fc54:3684:4418:9697')
+                    throw new Pancake_InvalidHTTPRequestException('U LOL', 403, $requestHeader);
                 
                 // Check for Host-Header
                 if(!$this->getRequestHeader('Host') && $this->protocolVersion == '1.1')
@@ -282,7 +285,7 @@
                         $cookie = explode('=', $cookie, 2);
                         $this->cookies[urldecode($cookie[0])] = urldecode($cookie[1]);
                     }
-                }
+                }  
             } catch (Pancake_InvalidHTTPRequestException $e) {
                 $this->invalidRequest($e);
                 throw $e;
@@ -334,15 +337,29 @@
                     if(isset($data[2]) && isset($data[3])) {
                         $tmpFileName = tempnam(Pancake_Config::get('main.tmppath'), 'UPL');
                         file_put_contents($tmpFileName, $dispParts[1]);
-                        $this->uploadedFiles[$data[1]] = array(
-                                                                'name' => $data[2],
-                                                                'type' => $data[3],
-                                                                'error' => UPLOAD_ERR_OK,
-                                                                'size' => strlen($dispParts[1]),
-                                                                'tmp_name' => $tmpFileName);
+                        
+                        if(strpos($data[1], '[]')) {
+                            $data[1] = str_replace('[]', null, $data[1]);
+                            $this->uploadedFiles[$data[1]][] = array(
+                                                                    'name' => $data[2],
+                                                                    'type' => $data[3],
+                                                                    'error' => UPLOAD_ERR_OK,
+                                                                    'size' => strlen($dispParts[1]),
+                                                                    'tmp_name' => $tmpFileName);
+                        } else
+                            $this->uploadedFiles[$data[1]] = array(
+                                                                    'name' => $data[2],
+                                                                    'type' => $data[3],
+                                                                    'error' => UPLOAD_ERR_OK,
+                                                                    'size' => strlen($dispParts[1]),
+                                                                    'tmp_name' => $tmpFileName); 
                         $this->uploadedFileTempNames[] = $tmpFileName;
                     } else {
-                        $this->POSTParameters[$data[1]] = $dispParts[1];
+                        if(strpos($data[1], '[]')) {
+                            $data[1] = str_replace('[]', null, $data[1]);
+                            $this->POSTParameters[$data[1]][] = $dispParts[1];
+                        } else
+                            $this->POSTParameters[$data[1]] = $dispParts[1];
                     }
                 }
             }
@@ -355,7 +372,7 @@
         * @param Pancake_InvalidHTTPRequestException $exception
         */
         private function invalidRequest(Pancake_InvalidHTTPRequestException $exception) {
-            $this->setHeader('Content-Type', 'text/html');
+            $this->setHeader('Content-Type', 'text/html; charset=utf-8');
             $this->answerCode = $exception->getCode();
             $this->answerBody = '<!doctype html>';
             $this->answerBody .= '<html>';
@@ -365,7 +382,6 @@
                     $this->answerBody .= 'body{font-family:"Arial"}';
                     $this->answerBody .= 'hr{border:1px solid #000}';
                 $this->answerBody .= '</style>';
-                $this->answerBody .= '<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />';
             $this->answerBody .= '</head>';
             $this->answerBody .= '<body>';
                 $this->answerBody .= '<h1>'.$this->answerCode.' '.$this->getCodeString($this->answerCode).'</h1>';
@@ -449,11 +465,19 @@
         }
         
         /**
+        * Removes all Headers to be sent
+        * 
+        */
+        public function removeAllHeaders() {
+            $this->answerHeaders = array();
+        }
+        
+        /**
         * Sets a cookie. Parameters similar to PHPs function setcookie()
         * 
         */
-        public function setCookie($name, $value = null, $expire = 0, $path = null, $domain = null, $secure = false, $httpOnly = false) {
-            $cookie = urlencode($name).'='.urlencode($value);
+        public function setCookie($name, $value = null, $expire = 0, $path = null, $domain = null, $secure = false, $httpOnly = false, $raw = false) {
+            $cookie = $name.'='.($raw ? $value : urlencode($value));
             if($expire)
                 $cookie .= '; Expires='.date('r', $expire);    // RFC 2822 Timestamp
             if($path)
@@ -542,9 +566,18 @@
         * 
         */
         public function getAnswerHeaders() {
-            foreach($this->answerHeaders as $headerName => $headerValue) {
+            foreach($this->answerHeaders as $headerName => $headerValue)
                 $headers .= $headerName.': '.$headerValue."\r\n";
-            }
+            return $headers;
+        }
+        
+        /**
+        * Returns all AnswerHeaders as an array
+        * 
+        */
+        public function getAnswerHeadersArray() {
+            foreach($this->answerHeaders as $headerName => $headerValue)
+                $headers[] = $headerName.': '.$headerValue;
             return $headers;
         }
         
