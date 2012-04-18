@@ -20,6 +20,7 @@
         public $running = false;
         public $friendlyName = null;
         public $startedManually = false;
+        private static $threadCache = array();
         
         /**
         * Create new Thread
@@ -58,6 +59,9 @@
             if($this->pid == -1)                // On error
                 return false;
             else if($this->pid) {               // Parent 
+                if($key = array_search($this, self::$threadCache))
+                    unset(self::$threadCache[$key]);
+                self::$threadCache[$this->pid] = $this;
                 $this->running = true;
                 return true;
             } else {                            // Child
@@ -84,6 +88,9 @@
             if($this->pid == -1)                // On error
                 return false;
             else if($this->pid) {               // Parent 
+                if($key = array_search($this, self::$threadCache))
+                    unset(self::$threadCache[$key]);
+                self::$threadCache[$this->pid] = $this;
                 $this->running = true;
                 return true;
             } else {                            // Child
@@ -157,5 +164,13 @@
                 }
             }
         }       
+        
+        public final static function get($pid) {
+            return self::$threadCache[$pid];
+        }
+        
+        public final static function getAll() {
+            return self::$threadCache;
+        }
     }
 ?>

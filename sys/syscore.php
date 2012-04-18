@@ -114,6 +114,7 @@
     dt_rename_function('ob_end_flush', 'Pancake_ob_end_flush_orig');
     dt_rename_function('ob_flush', 'Pancake_ob_flush_orig');
     dt_rename_function('ob_get_flush', 'Pancake_ob_get_flush_orig');
+    dt_rename_function('session_start', 'Pancake_session_start_orig');
     dt_remove_constant('PHP_SAPI'); 
     
     // Set thread title 
@@ -138,7 +139,7 @@
     // Handle signals
     pcntl_signal(SIGUSR2, 'Pancake_abort');
     pcntl_signal(SIGTERM, 'Pancake_abort');
-    pcntl_signal(SIGINT, 'Pancake_abort');
+    pcntl_signal(SIGINT, 'Pancake_abort');      
     
     // Daemonize
     if(isset($startOptions['daemon'])) {
@@ -181,7 +182,7 @@
     
     // Create sockets
     // IPv6
-    foreach(Pancake_Config::get('main.ipv6') as $interface) { 
+    foreach((array) Pancake_Config::get('main.ipv6') as $interface) { 
         foreach(Pancake_Config::get('main.listenports') as $listenPort) {
             // Create socket
             $socket = socket_create(AF_INET6, SOCK_STREAM, SOL_TCP);
@@ -205,7 +206,7 @@
     Pancake_out('Listening on ' . count(Pancake_Config::get('main.ipv6')) . ' IPv6 network interfaces', PANCAKE_SYSTEM, true, true);
     
     // IPv4
-    foreach(Pancake_Config::get('main.ipv4') as $interface) {
+    foreach((array) Pancake_Config::get('main.ipv4') as $interface) {
         foreach(Pancake_Config::get('main.listenports') as $listenPort) {
             // Create socket
             $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
@@ -265,6 +266,7 @@
     // We're doing this in two steps so that all vHosts will be displayed in phpinfo()
     foreach($vHosts as $vHost) {
         for($i = 0;$i < $vHost->getPHPWorkerAmount();$i++) {
+            Pancake_cleanGlobals(array('i', 'vHosts', 'vHost'));
             $thread = new Pancake_PHPWorker($vHost);
             if($thread->startedManually) {
                 require $thread->codeFile;
@@ -276,40 +278,56 @@
     
     // Debug-output
     Pancake_out('Loaded '.count($vHosts).' vHosts', PANCAKE_SYSTEM, false, true);
-        
+                       
+    Pancake_cleanGlobals();
+    
     // Create RequestWorkers
-    for($i = 0;$i < Pancake_Config::get('main.requestworkers');$i++)
-        $requestWorkers[] = new Pancake_RequestWorker();
+    for($i = 0;$i < Pancake_Config::get('main.requestworkers');$i++) {
+        
+        $requestWorkers[] = new Pancake_RequestWorker(); 
+    }
     Pancake_out('Created '.Pancake_Config::get('main.requestworkers').' RequestWorkers', PANCAKE_SYSTEM, true, true);
     
     Pancake_out('Ready for connections');
     
     // Clean
-    unset($user);
-    unset($group);
-    unset($Pancake_sockets);
-    unset($startOptions);
-    unset($Pancake_currentThread);
-    unset($port);
-    unset($config);
-    unset($name);
-    unset($i);
-    unset($socket);
-    unset($_SERVER);
-    unset($_GET);
-    unset($_POST);
-    unset($_COOKIE);
-    unset($_FILES);
-    unset($GLOBALS);
-    unset($argv);
-    unset($argc);
+    Pancake_cleanGlobals();
     gc_collect_cycles();
     
-    sleep(5);
-    Pancake_IPC::send(19, 'TEST');
+    pcntl_sigprocmask(SIG_BLOCK, array(SIGCHLD));
     
-    // Good night
+    // Don't do anything except one of the children died
     while(true) {
-        sleep(1);
+        pcntl_sigwaitinfo(array(SIGCHLD), $info);
+        
+        // pcntl_sigwaitinfo() might be interrupted by system calls
+        if(!$info)
+            continue;
+        
+        // Destroy zombies
+        pcntl_wait($x, WNOHANG);
+        
+        $thread = Pancake_Thread::get($info['pid']);
+        if(Pancake_IPC::get(MSG_IPC_NOWAIT, 9999)) {
+            Pancake_out('Worker ' . $thread->friendlyName . ' reached request-limit - Rebooting worker', PANCAKE_REQUEST, true, true);
+        } else
+            Pancake_out('Detected crash of worker ' . $thread->friendlyName . ' - Rebooting worker');
+        
+        // PHPWorkers need to be started manually
+        if($thread instanceof Pancake_PHPWorker) {
+            $thread->startManually();
+            if($thread->startedManually) {
+                require $thread->codeFile;
+                exit;
+            }
+            
+            // Send error to RequestWorker
+            $ipcStatus = Pancake_IPC::status();
+            if(($thread = Pancake_Thread::get($ipcStatus['msg_lspid'])) instanceof Pancake_RequestWorker)
+                Pancake_IPC::send($thread->IPCid, 500);
+        } else
+            $thread->start();
+            
+        unset($info);
     }
 ?>

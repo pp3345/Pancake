@@ -7,6 +7,10 @@
 #   /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
 #   /****************************************************************/
 
+FILENAME=`readlink -f $0`
+DIRNAME=`dirname $FILENAME`
+cd $DIRNAME
+
 PHPCOMMAND=php
 ARCH=`uname -m`
 PHPMAJOR=`$PHPCOMMAND -r "echo PHP_MAJOR_VERSION;"`
@@ -20,10 +24,10 @@ then
 fi
 if test $ARCH == "x86_64" 
 then
-	$PHPCOMMAND -d zend_extension=./ext/x86_64_$PHPMAJOR$PHPMINOR.so syscore.php
+	$PHPCOMMAND -d zend_extension=./ext/x86_64_$PHPMAJOR$PHPMINOR.so $DIRNAME/syscore.php
 elif test $ARCH == "x86" || test $ARCH == "i386" || test $ARCH == "i486" || test $ARCH == "i586" || test $ARCH == "i686" 
 then
-	$PHPCOMMAND -d zend_extension=./ext/x86_$PHPMAJOR$PHPMINOR.so syscore.php
+	$PHPCOMMAND -d zend_extension=./ext/x86_$PHPMAJOR$PHPMINOR.so $DIRNAME/syscore.php
 else
 	echo "Unknown architecture. Please compile the DeepTrace-extension by yourself"
 fi

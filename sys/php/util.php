@@ -16,14 +16,12 @@
     } 
     
     function setcookie($name, $value = null, $expire = 0, $path = null, $domain = null, $secure = false, $httponly = false) {
-        Pancake_out('SETCOOKIE');
         global $Pancake_request;
         
         return $Pancake_request->setCookie($name, $value, $expire, $path, $domain, $secure, $httponly); 
     }
     
     function setrawcookie($name, $value = null, $expire = 0, $path = null, $domain = null, $secure = false, $httponly = false) {
-        Pancake_out('SETRAWCOOKIE');
         global $Pancake_request;
         
         return $Pancake_request->setCookie($name, $value, $expire, $path, $domain, $secure, $httponly, true); 
@@ -37,7 +35,7 @@
             $Pancake_request->setAnswerCode($data[1]);
         } else {
             $header = explode(':', $string, 2);
-            $Pancake_request->setHeader($header[0], trim($header[1]));
+            $Pancake_request->setHeader($header[0], trim($header[1]), $replace);
             if($header[0] == 'Location' && $Pancake_request->getAnswerCode() != 201 && substr($Pancake_request->getAnswerCode(), 0, 1) != 3)
                 $Pancake_request->setAnswerCode(302);
         }
@@ -275,6 +273,22 @@
             return Pancake_ob_flush_orig();      
     }
     
+    function session_start() {
+        if(session_id()) {
+            return Pancake_session_start_orig();
+        } else if($_GET[session_name()]) {
+            session_id($_GET[session_name()]);
+            return Pancake_session_start_orig();
+        } else if($_COOKIE[session_name()]) {
+            session_id($_COOKIE[session_name()]);
+            return Pancake_session_start_orig();
+        } else {
+            if(!Pancake_session_start_orig())
+                return false;
+            return true;
+        }
+    }
+    
     /**
     * Loads a file into Pancakes CodeCache
     * 
@@ -285,7 +299,7 @@
         if($vHost->isExcludedFile($fileName))
             return;
         if(is_dir($vHost->getDocumentRoot() . '/' . $fileName)) {
-            Pancake_out('Scanning directory ' . $vHost->getDocumentRoot() . '/' . $fileName);
+            //Pancake_out('Scanning directory ' . $vHost->getDocumentRoot() . '/' . $fileName);
             $directory = scandir($vHost->getDocumentRoot() . '/' . $fileName);
             if(substr($fileName, -1, 1) != '/')
                 $fileName .= '/';
@@ -293,7 +307,9 @@
                 if($file != '..' && $file != '.')
                     Pancake_cacheFile($vHost, $fileName . $file);
         } else {
-            Pancake_out('Caching file ' . $vHost->getDocumentRoot() . '/' . $fileName);
+            if(Pancake_MIME::typeOf($vHost->getDocumentRoot() . '/' . $fileName) != 'text/x-php')
+                return;
+            //Pancake_out('Caching file ' . $vHost->getDocumentRoot() . '/' . $fileName);
             require_once $vHost->getDocumentRoot() . '/' . $fileName;
         }
     }

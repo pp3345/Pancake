@@ -51,14 +51,22 @@
         }
         
         /**
+        * Returns the status of the IPC
+        * 
+        */
+        static public function status() {
+            return msg_stat_queue(self::$IPC);
+        }
+        
+        /**
         * Gets a message from the IPC as soon as available
         * 
         */
-        static public function get() {
+        static public function get($flags = null, $to = null) {
             global $Pancake_currentThread;
-            if(!$Pancake_currentThread)
+            if(!$Pancake_currentThread && !$to)
                 return false;
-            if(!msg_receive(self::$IPC, $Pancake_currentThread->IPCid, $msgtype, 1000000, $message))
+            if(!msg_receive(self::$IPC, $to ? $to : $Pancake_currentThread->IPCid, $msgtype, 1000000, $message, true, $flags))
                 return false;
             return $message;
         }

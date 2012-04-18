@@ -1,9 +1,9 @@
 main:
-  tmppath: /usr/local/Pancake/tmp/                              # Path for temporary files
+  tmppath: ../tmp/                                              # Path for temporary files
   logging:
-    system: /usr/local/Pancake/log/system.log                   # Path to System-Log
-    request: /usr/local/Pancake/log/requests.log                # Path to Request-Log
-    error: /usr/local/Pancake/log/error.log                     # Path to Error-Log
+    system: ../log/system.log                                   # Path to System-Log
+    request: ../log/requests.log                                # Path to Request-Log
+    error: ../log/error.log                                     # Path to Error-Log
   dateformat: 'd.m.y H:i:s'                                     # Format for timestamps - See php.net/date for more information
   debugmode: false                                              # Enable debugging
   user: www-data                                                # *NIX-User under which Pancake should run
@@ -22,6 +22,7 @@ main:
   allowhead: true                                               # Whether to allow the "HEAD"-requestmethod
   allowtrace: true                                              # Whether to allow the "TRACE"-requestmethod
   allowoptions: true                                            # Whether to allow the "OPTIONS"-requestmethod
+  requestworkerlimit: 500                                       # Limit of requests a RequestWorker may process until it has to be restarted
 include:                                                        # Additional configuration-files to include
-  - /usr/local/Pancake/conf/vhosts/
-  - /usr/local/Pancake/conf/mime.yml
+  - ../conf/vhosts/
+  - ../conf/mime.yml

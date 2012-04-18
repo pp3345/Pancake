@@ -164,9 +164,6 @@
                 // Enough informations for TRACE gathered
                 if($this->requestType == 'TRACE')
                     return;
-                    
-                if($this->remoteIP == '2001:470:26:531:fc54:3684:4418:9697')
-                    throw new Pancake_InvalidHTTPRequestException('U LOL', 403, $requestHeader);
                 
                 // Check for Host-Header
                 if(!$this->getRequestHeader('Host') && $this->protocolVersion == '1.1')
@@ -195,7 +192,7 @@
                 if(is_dir($this->vHost->getDocumentRoot().$this->requestFilePath)) {
                     foreach($this->vHost->getIndexFiles() as $file)
                         if(file_exists($this->vHost->getDocumentRoot().$this->requestFilePath.'/'.$file)) {
-                            $this->requestFilePath .= '/'.$file;
+                            $this->requestFilePath .= (substr($this->requestFilePath, -1, 1) == '/' ? null : '/') . $file;
                             goto checkRead;
                         }
                     // No index file found, check if vHost allows directory listings
@@ -264,12 +261,36 @@
                     if($param == null)
                         break;
                     $param = explode('=', $param, 2);
-                    // GET and POST Parameters can be arrays
-                    if(strpos(urldecode($param[0]), '[]')) {
-                        $param[0] = str_replace('[]', null, urldecode($param[0]));
-                        $this->GETParameters[$param[0]][] = urldecode($param[1]);
+                    $param[0] = urldecode($param[0]);
+                    $param[1] = urldecode($param[1]);
+                    
+                    if(strpos($param[0], '[') < strpos($param[0], ']')) {
+                        preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $param[0], $parts);
+                        
+                        $paramDefinition = '$this->GETParameters[$parts[1][0]]';
+                        foreach((array) $parts[2] as $index => $arrayKey) {
+                            if($arrayKey == null)
+                                $paramDefinition .= '[]';
+                            else
+                                $paramDefinition .= '[$parts[2]['.$index.']]';
+                        }
+                        
+                        $paramDefinition .= ' = $param[1];';
+                        eval($paramDefinition);
                     } else
-                        $this->GETParameters[urldecode($param[0])] = urldecode($param[1]);
+                        $this->GETParameters[$param[0]] = $param[1];
+                    
+                    // GET and POST Parameters can be arrays
+                    /*if(substr($param[0], strlen($param[0]) - 2, 2) == '[]') {
+                        $param[0] = substr($param[0], 0, strlen($param[0]) - 2);
+                        $this->GETParameters[$param[0]][] = $param[1];
+                    } else if(substr($param[0], -1, 1) == ']' && $arrayBeginPos = strpos($param[0], '[')) {
+                        $indexName = substr($param[0], $arrayBeginPos + 1, strlen($param[0]) - $arrayBeginPos - 2);
+                        $param[0] = substr($param[0], 0, $arrayBeginPos);
+                        $this->GETParameters[$param[0]][$indexName] = $param[1];
+                    } else
+                        $this->GETParameters[$param[0]] = $param[1];*/
+                    
                 }
                  
                 // Check for cookies
@@ -281,9 +302,30 @@
                     foreach($cookies as $cookie) {
                         if($cookie == null)
                             break;
-                        $cookie = trim($cookie);
+                            
+                        $param = explode('=', trim($cookie), 2);
+                        $param[0] = urldecode($param[0]);
+                        $param[1] = urldecode($param[1]);
+                        
+                        if(strpos($param[0], '[') < strpos($param[0], ']')) {
+                            preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $param[0], $parts);
+                            
+                            $paramDefinition = '$this->cookies[$parts[1][0]]';
+                            foreach((array) $parts[2] as $index => $arrayKey) {
+                                if($arrayKey == null)
+                                    $paramDefinition .= '[]';
+                                else
+                                    $paramDefinition .= '[$parts[2]['.$index.']]';
+                            }
+                            
+                            $paramDefinition .= ' = $param[1];';
+                            eval($paramDefinition);
+                        } else
+                            $this->cookies[$param[0]] = $param[1];
+                        
+                        /*$cookie = trim($cookie);
                         $cookie = explode('=', $cookie, 2);
-                        $this->cookies[urldecode($cookie[0])] = urldecode($cookie[1]);
+                        $this->cookies[urldecode($cookie[0])] = urldecode($cookie[1]);*/
                     }
                 }  
             } catch (Pancake_InvalidHTTPRequestException $e) {
@@ -298,6 +340,8 @@
         * @param string $postData The RequestBody received by the client
         */
         public function readPOSTData($postData) {
+            // ~(.*?)(?:\[([^\]]*)\])~
+            
             // Check for url-encoded parameters
             if(strpos($this->getRequestHeader('Content-Type'), 'application/x-www-form-urlencoded') !== false) {
                 // Split POST-parameters
@@ -308,11 +352,35 @@
                     if($param == null)
                         break;
                     $param = explode('=', $param, 2);
-                    if(strpos(urldecode($param[0]), '[]')) {
-                        $param[0] = str_replace('[]', null, urldecode($param[0]));
-                        $this->POSTParameters[$param[0]][] = urldecode($param[1]);
+                    $param[0] = urldecode($param[0]);
+                    $param[1] = urldecode($param[1]);
+                    
+                    if(strpos($param[0], '[') < strpos($param[0], ']')) {
+                        preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $param[0], $parts);
+                        
+                        $paramDefinition = '$this->POSTParameters[$parts[1][0]]';
+                        foreach((array) $parts[2] as $index => $arrayKey) {
+                            if($arrayKey == null)
+                                $paramDefinition .= '[]';
+                            else
+                                $paramDefinition .= '[$parts[2]['.$index.']]';
+                        }
+                        
+                        $paramDefinition .= ' = $param[1];';
+                        eval($paramDefinition);
                     } else
-                        $this->POSTParameters[urldecode($param[0])] = urldecode($param[1]);
+                        $this->POSTParameters[$param[0]] = $param[1];
+                    
+                    /*
+                    if(substr($param[0], strlen($param[0]) - 2, 2) == '[]') {
+                        $param[0] = substr($param[0], 0, strlen($param[0]) - 2);
+                        $this->POSTParameters[$param[0]][] = $param[1];
+                    } else if(substr($param[0], -1, 1) == ']' && $arrayBeginPos = strpos($param[0], '[')) {
+                        $indexName = substr($param[0], $arrayBeginPos + 1, strlen($param[0]) - $arrayBeginPos - 2);
+                        $param[0] = substr($param[0], 0, $arrayBeginPos);
+                        $this->POSTParameters[$param[0]][$indexName] = $param[1];
+                    } else
+                        $this->POSTParameters[$param[0]] = $param[1];*/
                 }
             // Check for uploaded files
             } else if(strpos($this->getRequestHeader('Content-Type'), 'multipart/form-data') !== false) {
@@ -338,26 +406,48 @@
                         $tmpFileName = tempnam(Pancake_Config::get('main.tmppath'), 'UPL');
                         file_put_contents($tmpFileName, $dispParts[1]);
                         
-                        if(strpos($data[1], '[]')) {
-                            $data[1] = str_replace('[]', null, $data[1]);
-                            $this->uploadedFiles[$data[1]][] = array(
-                                                                    'name' => $data[2],
-                                                                    'type' => $data[3],
-                                                                    'error' => UPLOAD_ERR_OK,
-                                                                    'size' => strlen($dispParts[1]),
-                                                                    'tmp_name' => $tmpFileName);
+                        $dataArray = array(
+                                            'name' => $data[2],
+                                            'type' => $data[3],
+                                            'error' => UPLOAD_ERR_OK,
+                                            'size' => strlen($dispParts[1]),
+                                            'tmp_name' => $tmpFileName);
+                        
+                        if(strpos($data[1], '[') < strpos($data[1], ']')) {
+                            preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $param[1], $parts);
+                            
+                            $paramDefinition = '$this->uploadedFiles[$parts[1][0]]';
+                            foreach((array) $parts[2] as $index => $arrayKey) {
+                                if($arrayKey == null)
+                                    $paramDefinition .= '[]';
+                                else
+                                    $paramDefinition .= '[$parts[2]['.$index.']]';
+                            }
+                            
+                            $paramDefinition .= ' = $dataArray;';
+                            eval($paramDefinition);
                         } else
-                            $this->uploadedFiles[$data[1]] = array(
-                                                                    'name' => $data[2],
-                                                                    'type' => $data[3],
-                                                                    'error' => UPLOAD_ERR_OK,
-                                                                    'size' => strlen($dispParts[1]),
-                                                                    'tmp_name' => $tmpFileName); 
+                            $this->uploadedFiles[$param[0]] = $dataArray;
+                        
+                        /*if(substr($data[1], strlen($data[1]) - 2, 2) == '[]') {
+                            $data[1] = substr($data[1], 0, strlen($data[1]) - 2);
+                            $this->uploadedFiles[$data[1]][] = $dataArray;
+                        } else if(substr($data[1], -1, 1) == ']' && $arrayBeginPos = strpos($data[1], '[')) {
+                            $indexName = substr($data[1], $arrayBeginPos + 1, strlen($data[1]) - $arrayBeginPos - 2);
+                            $data[1] = substr($data[1], 0, $arrayBeginPos);
+                            $this->uploadedFiles[$data[1]][$indexName] = $dataArray;
+                        } else
+                            $this->uploadedFiles[$data[1]] = $dataArray;*/
+                             
                         $this->uploadedFileTempNames[] = $tmpFileName;
                     } else {
-                        if(strpos($data[1], '[]')) {
-                            $data[1] = str_replace('[]', null, $data[1]);
+                        if(substr($data[1], strlen($data[1]) - 2, 2) == '[]') {
+                            $data[1] = substr($data[1], 0, strlen($data[1]) - 2);
                             $this->POSTParameters[$data[1]][] = $dispParts[1];
+                        } else if(substr($data[1], -1, 1) == ']' && $arrayBeginPos = strpos($data[1], '[')) {
+                            $indexName = substr($data[1], $arrayBeginPos + 1, strlen($data[1]) - $arrayBeginPos - 2);
+                            $data[1] = substr($data[1], 0, $arrayBeginPos);
+                            $this->POSTParameters[$data[1]][$indexName] = $dispParts[1];
                         } else
                             $this->POSTParameters[$data[1]] = $dispParts[1];
                     }
@@ -371,7 +461,7 @@
         * 
         * @param Pancake_InvalidHTTPRequestException $exception
         */
-        private function invalidRequest(Pancake_InvalidHTTPRequestException $exception) {
+        public function invalidRequest(Pancake_InvalidHTTPRequestException $exception) {
             $this->setHeader('Content-Type', 'text/html; charset=utf-8');
             $this->answerCode = $exception->getCode();
             $this->answerBody = '<!doctype html>';
@@ -388,8 +478,10 @@
                 $this->answerBody .= '<hr/>';
                 $this->answerBody .= '<strong>Your HTTP-Request was invalid.</strong> Error:<br/>';
                 $this->answerBody .= $exception->getMessage().'<br/><br/>';
-                $this->answerBody .= "<strong>Headers:</strong><br/>";
-                $this->answerBody .= nl2br($exception->getHeader());
+                if($exception->getHeader()) {
+                    $this->answerBody .= "<strong>Headers:</strong><br/>";
+                    $this->answerBody .= nl2br($exception->getHeader());
+                }
                 if(Pancake_Config::get('main.exposepancake') === true) {
                     $this->answerBody .= '<hr/>';
                     $this->answerBody .= 'Pancake ' . PANCAKE_VERSION;
@@ -431,8 +523,8 @@
             if(!$this->getAnswerHeader('Content-Length'))
                 $this->setHeader('Content-Length', strlen($this->getAnswerBody()));
             // Set Content-Type if not set
-            if(!$this->getAnswerHeader('Content-Type') && $this->getAnswerHeader('Content-Length'))
-                $this->setHeader('Content-Type', 'text/html');
+            if(!$this->getAnswerHeader('Content-Type', false) && $this->getAnswerHeader('Content-Length'))  
+                $this->setHeader('Content-Type', 'text/html');                                              
             // Set Date
             if(!$this->getAnswerHeader('Date'))
                 $this->setHeader('Date', date('r'));
@@ -450,9 +542,20 @@
         * 
         * @param string $headerName
         * @param string $headerValue
+        * @param boolean $replace
         */
-        public function setHeader($headerName, $headerValue) {
-            return $this->answerHeaders[$headerName] = $headerValue;
+        public function setHeader($headerName, $headerValue, $replace = true) {
+            if($replace) {
+                unset($this->answerHeaders[$headerName]);
+                $this->answerHeaders[$headerName] = $headerValue;
+            } else {
+                if($value = $this->answerHeaders[$headerName] && !is_array($this->answerHeaders[$headerName])) {
+                    unset($this->answerHeaders[$headerName]);
+                    $this->answerHeaders[$headerName][] = $value;
+                }
+                $this->answerHeaders[$headerName][] = $headerValue;
+            }
+            return true;
         }
         
         /**
@@ -497,15 +600,18 @@
         * 
         */
         public function createSERVER() {
+            if(is_dir($this->vHost->getDocumentRoot() . $this->requestFilePath) && substr($this->requestFilePath, -1, 1) != '/')
+                $appendSlash = '/';
+            
             $_SERVER['REQUEST_TIME'] = time();
             $_SERVER['USER'] = Pancake_Config::get('main.user');
             $_SERVER['REQUEST_METHOD'] = $this->requestType;
             $_SERVER['SERVER_PROTOCOL'] = 'HTTP/' . $this->protocolVersion;
             $_SERVER['SERVER_SOFTWARE'] = 'Pancake/' . PANCAKE_VERSION;
-            $_SERVER['PHP_SELF'] = $this->requestFilePath;
-            $_SERVER['SCRIPT_NAME'] = $this->requestFilePath;
-            $_SERVER['REQUEST_URI'] = $this->requestURI;
-            $_SERVER['SCRIPT_FILENAME'] = $this->vHost->getDocumentRoot() . $this->requestFilePath;
+            $_SERVER['PHP_SELF'] = $this->requestFilePath . $appendSlash;
+            $_SERVER['SCRIPT_NAME'] = $this->requestFilePath . $appendSlash;
+            $_SERVER['REQUEST_URI'] = $this->requestURI /*. (is_dir($this->vHost->getDocumentRoot() . $this->requestURI) && substr($this->requestURI, -1, 1) != '/' ? '/' : null)*/;
+            $_SERVER['SCRIPT_FILENAME'] = (substr($this->vHost->getDocumentRoot(), -1, 1) == '/' ? substr($this->vHost->getDocumentRoot(), 0, strlen($this->vHost->getDocumentRoot()) - 1) : $this->vHost->getDocumentRoot()) . $this->requestFilePath . $appendSlash;
             $_SERVER['REMOTE_ADDR'] = $this->remoteIP;
             $_SERVER['REMOTE_PORT'] = $this->remotePort;
             
@@ -566,8 +672,13 @@
         * 
         */
         public function getAnswerHeaders() {
-            foreach($this->answerHeaders as $headerName => $headerValue)
-                $headers .= $headerName.': '.$headerValue."\r\n";
+            foreach($this->answerHeaders as $headerName => $headerValue) {
+                if(is_array($headerValue)) {
+                    foreach($headerValue as $value)
+                        $headers .= $headerName.': '.$value."\r\n";
+                } else
+                    $headers .= $headerName.': '.$headerValue."\r\n";
+            }
             return $headers;
         }
         
@@ -576,8 +687,13 @@
         * 
         */
         public function getAnswerHeadersArray() {
-            foreach($this->answerHeaders as $headerName => $headerValue)
-                $headers[] = $headerName.': '.$headerValue;
+            foreach($this->answerHeaders as $headerName => $headerValue) {
+                if(is_array($headerValue)) {
+                    foreach($headerValue as $value)
+                        $headers[] = $headerName.': '.$value;
+                } else
+                    $headers[] = $headerName.': '.$headerValue;
+            }
             return $headers;
         }
         
@@ -585,9 +701,18 @@
         * Get a single AnswerHeader
         * 
         * @param string $headerName
+        * @param boolean $caseSensitive
         */
-        public function getAnswerHeader($headerName) {
-            return $this->answerHeaders[$headerName];
+        public function getAnswerHeader($headerName, $caseSensitive = true) {
+            if($caseSensitive)
+                return $this->answerHeaders[$headerName];
+            else {
+                $headerName = strtolower($headerName);
+                foreach($this->answerHeaders as $name => $value) {
+                    if(strtolower($name) == $headerName) 
+                        return $this->answerHeaders[$name];
+                }
+            }
         }
         
         /**

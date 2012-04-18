@@ -64,29 +64,34 @@
         }
         
         // Receive data from client
-        $bytes = socket_read($requestSocket, 1048576);
+        if($requests[$socketID] instanceof Pancake_HTTPRequest)
+            $bytes = socket_read($requestSocket, $requests[$socketID]->getRequestHeader('Content-Length') - strlen($postData[$socketID]) - 1);
+        else
+            $bytes = socket_read($requestSocket, 1048576);
         
-        if(!$bytes)
+        // We should not close the socket if socket_read() returns bool(false) - This might lead to problems with slow connections
+        if($bytes === "")
             goto close;
         
         // Check if request was already initialized and we are only reading POST-data
         if($requests[$socketID] instanceof Pancake_HTTPRequest) {
             $postData[$socketID] .= $bytes;
-            if(strlen($postData[$socketID]) >= $requests[$socketID]->getRequestHeader('Content-Length'))
+            if(strlen($postData[$socketID]) >= $requests[$socketID]->getRequestHeader('Content-Length')  - 1)
                 goto readData;
+            else
+                var_dump(strlen($postData[$socketID]), $requests[$socketID]->getRequestHeader('Content-Length'));
         } else {
             $socketData[$socketID] .= $bytes;
 
-            // Check for POST
+            // Check if all headers were received
             if(strpos($socketData[$socketID], "\r\n\r\n")) {
-                if(strpos($socketData[$socketID], "POST") !== 0)
-                    goto readData;
-                else {
+                // Check for POST
+                if(strpos($socketData[$socketID], "POST") === 0) {
                     $data = explode("\r\n\r\n", $socketData[$socketID], 2);
                     $socketData[$socketID] = $data[0];
                     $postData[$socketID] = $data[1];
-                    goto readData;
                 }
+                goto readData;
             }
         }
         // Event-based reading
@@ -111,9 +116,11 @@
         
         // Check for POST and get all POST-data
         if($requests[$socketID]->getRequestType() == 'POST') {
-            if(strlen($postData[$socketID]) >= $requests[$socketID]->getRequestHeader('Content-Length'))
+            if(strlen($postData[$socketID]) >= $requests[$socketID]->getRequestHeader('Content-Length') - 1) {
+                if(strlen($postData[$socketID]) > $requests[$socketID]->getRequestHeader('Content-Length'))
+                    $postData[$socketID] = substr($postData[$socketID], 0, $requests[$socketID]->getRequestHeader('Content-Length'));
                 $requests[$socketID]->readPOSTData($postData[$socketID]);
-            else {
+            } else {
                 // Event-based reading
                 $liveReadSockets[$requestSocket] = true;
                 $listenSocketsOrig[] = $requestSocket;
@@ -160,21 +167,25 @@
             $key = Pancake_PHPWorker::handleRequest($requests[$socketID]);
             
             // Wait for PHP-Worker to finish
-            Pancake_IPC::get();
+            $status = Pancake_IPC::get();
             
-            // Get updated request-object from Shared Memory
-            $requests[$socketID] = Pancake_SharedMemory::get($key);
-            if($requests[$socketID] === false) {
-                for($i = 0;$i < 10 && $requests[$socketID] === false;$i++) {
-                    usleep(1000);
-                    $requests[$socketID] = Pancake_SharedMemory::get($key);
+            if($status == 500)
+                $requests[$socketID]->invalidRequest(new Pancake_InvalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
+            else {
+                // Get updated request-object from Shared Memory
+                $requests[$socketID] = Pancake_SharedMemory::get($key);
+                if($requests[$socketID] === false) {
+                    for($i = 0;$i < 10 && $requests[$socketID] === false;$i++) {
+                        usleep(1000);
+                        $requests[$socketID] = Pancake_SharedMemory::get($key);
+                    }
+                    if($requests[$socketID] === false)
+                        continue;
                 }
-                if($requests[$socketID] === false)
-                    continue;
             }
             
             // Remove object from Shared Memory
-            Pancake_SharedMemory::delete($key);
+            @Pancake_SharedMemory::delete($key);
             
             goto write;
         }
@@ -315,7 +326,7 @@
             $writeBuffer[$socketID] .= $requests[$socketID]->getAnswerBody();          
         
         // Output request-information
-        Pancake_out('REQ '.$requests[$socketID]->getAnswerCode().' '.$requests[$socketID]->getRemoteIP().': '.$requests[$socketID]->getRequestLine().' on vHost '.(($requests[$socketID]->getvHost()) ? $requests[$socketID]->getvHost()->getName() : null).' (via '.$requests[$socketID]->getRequestHeader('Host').') - '.$requests[$socketID]->getRequestHeader('User-Agent'), PANCAKE_REQUEST);
+        Pancake_out('REQ '.$requests[$socketID]->getAnswerCode().' '.$requests[$socketID]->getRemoteIP().': '.$requests[$socketID]->getRequestLine().' on vHost '.(($requests[$socketID]->getvHost()) ? $requests[$socketID]->getvHost()->getName() : null).' (via '.$requests[$socketID]->getRequestHeader('Host').' from '.$requests[$socketID]->getRequestHeader('Referer').') - '.$requests[$socketID]->getRequestHeader('User-Agent'), PANCAKE_REQUEST);
         
         // Check if user wants keep-alive-connection
         if($requests[$socketID]->getAnswerHeader('Connection') == 'keep-alive')
@@ -323,6 +334,9 @@
         
         // Set socket to non-blocking so that we can dynamically write as much data as the client may receive at this time
         socket_set_nonblock($requestSocket);
+        
+        // Increment amount of processed requests
+        $processedRequests++;
         
         liveWrite:
         
@@ -378,7 +392,13 @@
         
         if(is_resource($requestFileHandle[$socketID]))
             fclose($requestFileHandle[$socketID]);
-                
+        
+        // Check if request-limit was reached 
+        if(Pancake_Config::get('main.requestworkerlimit') > 0 && $processedRequests >= Pancake_Config::get('main.requestworkerlimit') && !$socketData) {
+            Pancake_IPC::send(9999, 1);
+            exit;
+        }
+               
         clean:
         
         $listenSockets = $listenSocketsOrig;

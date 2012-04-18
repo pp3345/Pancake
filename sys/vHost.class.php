@@ -22,6 +22,7 @@
         private $phpCodeCache = array();
         private $phpCodeCacheExcludes = array();
         private $phpWorkers = 0;
+        private $phpWorkerLimit = 0;
         private $indexFiles = array();
         private $authDirectories = array();
         private $authFiles = array();
@@ -65,6 +66,7 @@
             $this->allowDirectoryListings = (bool) $config['allowdirectorylistings'];
             $this->gzipMinimum = (int) $config['gzipmin'];
             $this->gzipLevel = (int) $config['gziplevel'];
+            $this->phpWorkerLimit = (int) $config['phpworkerlimit'];
             $this->allowGZIP = (bool) $config['enablegzip'];
             $this->isDefault = (bool) $config['isdefault'];
             if($this->isDefault === true)
@@ -259,6 +261,14 @@
         */
         public function getID() {
             return $this->id;
+        }
+        
+        /**
+        * Returns the limit of requests a PHPWorker may process until it has to be restarted
+        * 
+        */
+        public function getPHPWorkerLimit() {
+            return $this->phpWorkerLimit;
         }
         
         /**

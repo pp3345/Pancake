@@ -13,6 +13,7 @@
 #    enablegzip: false                                           # Enable and disable GZIP-compression - We recommend leaving it disabled, it's better to precompress big files - GZIP-compression may produce very heavy CPU-load
 #    allowdirectorylistings: true                                # Enable directory listings
 #    isdefault: true                                             # Whether this vHost is the default vHost or not (one of your vHosts MUST have this settings enabled)
+#    phpworkerlimit: 100                                         # Limit of requests a PHPWorker may process until it has to be restarted
 #    index:                                                      # List of files allowed as directory-indexes
 #      - index.htm
 #      - index.html

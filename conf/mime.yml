@@ -13,6 +13,7 @@ mime:
     - php4
     - php3
     - phb
+    - inc
   - application/octet-stream:
     - exe
     - bin

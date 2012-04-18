@@ -41,6 +41,9 @@
                 continue;
         }
         
+        // Delete key from SharedMemory in order to reduce the risk of overfilling the SharedMemory while processing
+        Pancake_SharedMemory::delete($Pancake_message);
+        
         // Change directory to DocumentRoot of the vHost / requested file path
         chdir($Pancake_currentThread->vHost->getDocumentRoot() . dirname($Pancake_request->getRequestFilePath()));
         
@@ -54,8 +57,9 @@
         // Set environment vars
         $_GET = $Pancake_request->getGETParams();
         $_POST = $Pancake_request->getPOSTParams();
-        $_REQUEST = Pancake_array_merge($_GET, $_POST);
         $_COOKIE = $Pancake_request->getCookies();
+        $_REQUEST = Pancake_array_merge($_GET, $_POST);
+        $_REQUEST = Pancake_array_merge($_REQUEST, $_COOKIE);
         $_SERVER = $Pancake_request->createSERVER();
         $_FILES = $Pancake_request->getUploadedFiles();
         
@@ -76,9 +80,9 @@
                 unset($args);
                 $call = 'call_user_func($shutdownCall["callback"]';
                 foreach((array) @$shutdownCall['args'] as $arg) {
-                    $args[$i++] = $arg;
                     if($args)
                         $call .= ',';
+                    $args[$i++] = $arg;
                     $call .= '$args['.$i.']';
                 }
                 $call .= ');';
@@ -103,16 +107,23 @@
         // Get contents from output buffer
         $contents = ob_get_contents();
         
-        // Update request-object and send it to request-worker
+        if(session_id())
+            $Pancake_request->setCookie(session_name(), session_id(), ini_get('session.cookie_lifetime'), ini_get('session.cookie_path'), ini_get('session.cookie_domain'), ini_get('session.cookie_secure'), ini_get('session.cookie_httponly'));
+        
+        // Update RequestObject and send it to RequestWorker
         $Pancake_request->setAnswerBody($contents);
         Pancake_SharedMemory::put($Pancake_request, $Pancake_message);
         Pancake_IPC::send($Pancake_request->getRequestWorker()->IPCid, 1);
         
         // Clean
         Pancake_ob_end_clean_orig();
-        
+
+        @session_write_close();
+                                   
         // We're cleaning the globals here because PHP 5.4 is likely to crash when having an instance of a non-existant class
         Pancake_cleanGlobals();
+        
+        $Pancake_processedRequests++;
         
         $funcsPost = get_defined_functions();
         $constsPost = get_defined_constants(true);
@@ -132,8 +143,10 @@
         }
         
         foreach($classesPost as $class) {
-            if(!in_array($class, $Pancake_classesPre))
+            if(!in_array($class, $Pancake_classesPre)) {
+                //Pancake_out('Removing class ' . $class);
                 dt_remove_class($class);
+            }
         }
         
         if($constsPost['user'])
@@ -154,6 +167,12 @@
         unset($Pancake_constsPre);
         unset($Pancake_funcsPre);
         unset($Pancake_includesPre);
+        unset($Pancake_interfacesPre);
+        
+        if($Pancake_currentThread->vHost->getPHPWorkerLimit() && $Pancake_processedRequests >= $Pancake_currentThread->vHost->getPHPWorkerLimit()) {
+            Pancake_IPC::send(9999, 1);
+            exit;
+        }
         
         gc_collect_cycles();
     }

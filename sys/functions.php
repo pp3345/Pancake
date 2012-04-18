@@ -25,7 +25,7 @@
             return false;
         
         if(!$fileStream && $log === true) {
-            if(!($fileStream[PANCAKE_SYSTEM] = fopen(Pancake_Config::get('main.logging.system'), 'a+')) || !($fileStream[PANCAKE_REQUEST] = fopen(Pancake_Config::get('main.logging.request'), 'a+'))) {
+            if(!($fileStream[PANCAKE_SYSTEM] = @fopen(Pancake_Config::get('main.logging.system'), 'a+')) || !($fileStream[PANCAKE_REQUEST] = @fopen(Pancake_Config::get('main.logging.request'), 'a+'))) {
                 Pancake_out('Couldn\'t open file for logging - Check if it exists and is accessible for Pancake', PANCAKE_SYSTEM, false);
                 Pancake_abort();
             }
@@ -42,7 +42,7 @@
         
         if(PANCAKE_DAEMONIZED !== true)
             fwrite(STDOUT, $message);
-        if($log === true && !fwrite($fileStream[$type], $message))
+        if($log === true && is_resource($fileStream[$type]) && !fwrite($fileStream[$type], $message))
             trigger_error('Couldn\'t write to logfile', E_USER_WARNING);
         return $message;
     }
@@ -53,8 +53,6 @@
     function Pancake_abort() {
         global $Pancake_currentThread;
         global $Pancake_sockets;
-        global $phpWorkers;
-        global $requestWorkers;
         if($Pancake_currentThread) {
             $Pancake_currentThread->parentSignal(SIGUSR2);
             return;
@@ -66,18 +64,14 @@
             foreach($Pancake_sockets as $socket) 
                 socket_close($socket);
         }
-        if($requestWorkers)
-            foreach($requestWorkers as $worker) {
+        $threads = Pancake_Thread::getAll();
+        if($threads)
+            foreach($threads as $worker) {
                 $worker->stop();            
                 $worker->waitForExit();
             }
-        if($phpWorkers)
-            foreach($phpWorkers as $worker) {
-                $worker->stop();
-                $worker->waitForExit();
-            }
-        Pancake_SharedMemory::destroy();
-        Pancake_IPC::destroy();
+        @Pancake_SharedMemory::destroy();
+        @Pancake_IPC::destroy();
         exit;
     }                                    
     
@@ -86,10 +80,11 @@
     * 
     * @param array $array1
     * @param array $array2
+    * @return array Merged array
     */
     function Pancake_array_merge($array1, $array2) {
         $endArray = $array1;
-        foreach($array2 as $key => $value)
+        foreach((array) $array2 as $key => $value)
             if(is_array($value))
                 $endArray[$key] = Pancake_array_merge($array1[$key], $array2[$key]);
             else
@@ -143,7 +138,7 @@
             return true;
         if($errtype & PANCAKE_ERROR_REPORTING) {
             $message = 'An error ('.$errtype.') occured: '.$errstr.' in '.$errfile.' on line '.$errline;
-            $msg = Pancake_out($message, PANCAKE_SYSTEM, false, true);
+            $msg = Pancake_out($message, PANCAKE_SYSTEM, false);
             if(is_resource($fileStream))
                 fwrite($fileStream, $msg);
         }
@@ -172,13 +167,15 @@
     * Cleans all global and superglobal variables
     * 
     */
-    function Pancake_cleanGlobals() {
-        $_GET = $_SERVER = $_POST = $_COOKIE = $_ENV = $_REQUEST = $_FILES = array();
-        
+    function Pancake_cleanGlobals($excludeVars = null) {
+        $_GET = $_SERVER = $_POST = $_COOKIE = $_ENV = $_REQUEST = $_FILES = $_SESSION = array();
+    
         // We can't reset $GLOBALS like this because it would destroy its function of automatically adding all global vars
         foreach($GLOBALS as $globalName => $globalVar) {
             if($globalName != 'Pancake_currentThread'
             && $globalName != 'Pancake_vHosts'
+            && $globalName != 'Pancake_sockets'
+            && $globalName != 'Pancake_processedRequests'
             && $globalName != 'GLOBALS'
             && $globalName != '_GET'
             && $globalName != '_POST'
@@ -187,11 +184,13 @@
             && $globalName != '_SERVER'
             && $globalName != '_REQUEST'
             && $globalName != '_FILES'
+            && $globalName != '_SESSION'
             && $globalName != 'Pancake_constsPre'
             && $globalName != 'Pancake_includesPre'
             && $globalName != 'Pancake_classesPre'
             && $globalName != 'Pancake_funcsPre'
-            && $globalName != 'Pancake_interfacesPre') {
+            && $globalName != 'Pancake_interfacesPre'
+            && @!in_array($globalName, $excludeVars)) {
                 $GLOBALS[$globalName] = null;
                 
                 unset($GLOBALS[$globalName]);
