@@ -7,13 +7,15 @@
     /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
     /****************************************************************/
     
-    if(PANCAKE_HTTP !== true)
+    namespace Pancake;
+    
+    if(PANCAKE !== true)
         exit;
     
     /**
     * PHPWorker that runs PHP-scripts    
     */
-    class Pancake_PHPWorker extends Pancake_Thread {
+    class PHPWorker extends Thread {
         static private $instances = array();
         public $id = 0;
         public $IPCid = 0;
@@ -22,10 +24,10 @@
         /**
         * Creates a new PHPWorker
         * 
-        * @param Pancake_vHost $vHost
-        * @return Pancake_PHPWorker
+        * @param vHost $vHost
+        * @return PHPWorker
         */
-        public function __construct(Pancake_vHost $vHost) {
+        public function __construct(vHost $vHost) {
             $this->vHost = $vHost;
             
             // Save instance
@@ -33,13 +35,13 @@
             
             // Set address for IPC based on vHost-ID
             $this->id = max(array_keys(self::$instances));
-            $this->IPCid = PANCAKE_PHP_WORKER_TYPE.$this->vHost->getID();
+            $this->IPCid = PHP_WORKER_TYPE.$this->vHost->getID();
             
             $this->codeFile = 'threads/single/phpWorker.thread.php';
             $this->friendlyName = 'PHPWorker #'.($this->id+1).' ("'.$this->vHost->getName().'")';
             
             // Start worker
-            $this->startManually();
+            $this->start(false);
             
             usleep(10000);
         }
@@ -47,13 +49,13 @@
         /**
         * Let a PHPWorker handle a request
         *
-        * @param Pancake_HTTPRequest $request
+        * @param HTTPRequest $request
         * @return int SharedMem-key
         */
-        static public function handleRequest(Pancake_HTTPRequest $request) {
-            if(!($key = Pancake_SharedMemory::put($request)))
+        static public function handleRequest(HTTPRequest $request) {
+            if(!($key = SharedMemory::put($request)))
                 return false;
-            if(!Pancake_IPC::send(PANCAKE_PHP_WORKER_TYPE.$request->getvHost()->getID(), $key))
+            if(!IPC::send(PHP_WORKER_TYPE.$request->getvHost()->getID(), $key))
                 return false;
             return $key;
         }

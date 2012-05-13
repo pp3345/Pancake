@@ -7,13 +7,15 @@
     /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
     /****************************************************************/
     
-    if(PANCAKE_HTTP !== true)
+    namespace Pancake;
+    
+    if(PANCAKE !== true)
         exit;
     
     /**
     * Class for handling configuration
     */
-    class Pancake_Config {
+    class Config {
         const PATH = '../conf/config.yml';            // Path to main configuration file
         const SKELETON_PATH = '../conf/skeleton.yml'; // Path to skeleton configuration
         static private $configuration = array();
@@ -25,8 +27,8 @@
             if(!($skeletonData = file_get_contents(self::SKELETON_PATH))
             || !($configData = file_get_contents(self::PATH))
             || !(self::$configuration = yaml_parse($skeletonData)) 
-            || !(self::$configuration = Pancake_array_merge(self::$configuration, yaml_parse($configData)))) {
-                Pancake_out('Couldn\'t load configuration', PANCAKE_SYSTEM, false);
+            || !(self::$configuration = array_merge(self::$configuration, yaml_parse($configData)))) {
+                out('Couldn\'t load configuration', SYSTEM, false);
                 return false;
             }
             $includes = self::get('include');
@@ -36,14 +38,14 @@
                         $directory = scandir($include);
                         foreach($directory as $file) {
                             if($file != '.' && $file != '..') {
-                                if(!($includeData = file_get_contents($include.'/'.$file)) || !(self::$configuration = Pancake_array_merge(self::$configuration, yaml_parse($includeData))))
-                                    Pancake_out('Couldn\'t load configuration-include: '.$file);
+                                if(!($includeData = file_get_contents($include.'/'.$file)) || !(self::$configuration = array_merge(self::$configuration, yaml_parse($includeData))))
+                                    out('Couldn\'t load configuration-include: '.$file);
                             }
                         }
                         continue;
                     }
-                    if(!($includeData = file_get_contents($include)) || !(self::$configuration = Pancake_array_merge(self::$configuration, yaml_parse($includeData))))
-                        Pancake_out('Couldn\'t load configuration-include: '.$include);
+                    if(!($includeData = file_get_contents($include)) || !(self::$configuration = array_merge(self::$configuration, yaml_parse($includeData))))
+                        out('Couldn\'t load configuration-include: '.$include);
                 }
         }
         

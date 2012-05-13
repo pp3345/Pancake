@@ -7,13 +7,15 @@
     /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
     /****************************************************************/
     
-    if(PANCAKE_HTTP !== true)
+    namespace Pancake;
+    
+    if(PANCAKE !== true)
         exit;
     
     /**
     * Represents a single virtual host in Pancake    
     */
-    class Pancake_vHost {
+    class vHost {
         private static $vHosts = 0;
         private $id = 0;
         private $name = null;
@@ -32,13 +34,16 @@
         private $gzipLevel = -1;
         private $allowGZIP = false;
         private $isDefault = false;
+        private $phpInfoConfig = true;
+        private $phpInfovHosts = true;
+        private $onEmptyPage204 = true;
         static private $defaultvHost = null;
         
         /**
         * Loads a vHost
         * 
         * @param mixed $name Name of the vHost as configured
-        * @return Pancake_vHost
+        * @return vHost
         */
         public function __construct($name) {
             $this->name = $name;
@@ -47,13 +52,16 @@
             $this->id = self::$vHosts++;
             
             // Get configured settings
-            $config = Pancake_Config::get('vhosts.'.$this->name);
+            $config = Config::get('vhosts.'.$this->name);
             $this->documentRoot = $config['docroot'];
             
-            // Check if document root exists
-            if(!file_exists($this->documentRoot))
-                throw new Exception('DocumentRoot does not exist: '.$this->documentRoot);
+            // Check if document root exists and is a directory
+            if(!file_exists($this->documentRoot) || !is_dir($this->documentRoot))
+                throw new \Exception('DocumentRoot does not exist or is not a directory: '.$this->documentRoot);
                 
+            if(substr($this->documentRoot, -1, 1) != '/')
+                $this->documentRoot = $this->documentRoot . '/';
+                                 
             // Check for Hosts to listen on
             $this->listen = $config['listen'];
             if(count($this->listen) < 1)
@@ -69,6 +77,9 @@
             $this->phpWorkerLimit = (int) $config['phpworkerlimit'];
             $this->allowGZIP = (bool) $config['enablegzip'];
             $this->isDefault = (bool) $config['isdefault'];
+            $this->phpInfoConfig = (bool) $config['phpinfopancake'];
+            $this->phpInfovHosts = (bool) $config['phpinfopancakevhosts'];
+            $this->onEmptyPage204 = (bool) $config['204onemptypage'];
             if($this->isDefault === true)
                 self::$defaultvHost = $this;
             
@@ -103,12 +114,12 @@
             // Check PHP-CodeCache
             if($this->phpCodeCache) {
                 foreach($this->phpCodeCache as $id => $codeFile)
-                    if(!file_exists($this->documentRoot . '/' . $codeFile) || !is_readable($this->documentRoot . '/' . $codeFile)) {
+                    if(!file_exists($this->documentRoot . $codeFile) || !is_readable($this->documentRoot . $codeFile)) {
                         unset($this->phpCodeCache[$id]);
-                        throw new Exception('Specified CodeCache-File does not exist or isn\'t readable: '.$codeFile);
+                        throw new \Exception('Specified CodeCache-File does not exist or isn\'t readable: '.$codeFile);
                     }
                 if(!$this->phpWorkers)
-                    throw new Exception('The value for phpworkers must be greater or equal 1 if you want to use the CodeCache.');
+                    throw new \Exception('The value for phpworkers must be greater or equal 1 if you want to use the CodeCache.');
             }
         }
         
@@ -146,12 +157,12 @@
                 return false;
             if($this->authFiles[$filePath]) {
                 foreach($this->authFiles[$filePath]['authfiles'] as $authfile) {
-                    if(Pancake_AuthenticationFile::get($authfile)->isValid($user, $password))
+                    if(authenticationFile::get($authfile)->isValid($user, $password))
                         return true;
                 }
             } else if($this->authDirectories[$filePath]) {
                 foreach($this->authDirectories[$filePath]['authfiles'] as $authfile) {
-                    if(Pancake_AuthenticationFile::get($authfile)->isValid($user, $password))
+                    if(authenticationFile::get($authfile)->isValid($user, $password))
                         return true;
                 }
             } else {
@@ -159,7 +170,7 @@
                     $filePath = dirname($filePath);
                     if($this->authDirectories[$filePath])
                         foreach($this->authDirectories[$filePath]['authfiles'] as $authfile) {
-                            if(Pancake_AuthenticationFile::get($authfile)->isValid($user, $password))
+                            if(authenticationFile::get($authfile)->isValid($user, $password))
                                 return true;
                         }
                 }
@@ -289,8 +300,41 @@
         }
         
         /**
+        * Returns the first host to listen on
+        * 
+        */
+        public function getHost() {
+            return $this->listen[0];
+        }
+        
+        /**
+        * @return bool
+        * 
+        */
+        public function exposePancakeInPHPInfo() {
+            return $this->phpInfoConfig;
+        }
+        
+        /**
+        * @return bool
+        * 
+        */
+        public function exposePancakevHostsInPHPInfo() {
+            return $this->phpInfovHosts;
+        }
+        
+        /**
+        * @return bool
+        * 
+        */
+        public function send204OnEmptyPage() {
+            return $this->onEmptyPage204;
+        }
+        
+        /**
         * Returns the instance of the default virtual host
         * 
+        * @return vHost
         */
         public static function getDefault() {
             return self::$defaultvHost;

@@ -7,10 +7,12 @@
     /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
     /****************************************************************/
     
-    if(PANCAKE_HTTP !== true)
+    namespace Pancake;
+    
+    if(PANCAKE !== true)
         exit;
         
-    class Pancake_InvalidHTTPRequestException extends Exception {
+    class invalidHTTPRequestException extends \Exception {
         private $header = null;
         
         public function __construct($message, $code, $header = null) {

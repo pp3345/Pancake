@@ -7,13 +7,15 @@
     /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
     /****************************************************************/
     
-    if(PANCAKE_HTTP !== true)
+    namespace Pancake;
+    
+    if(PANCAKE !== true)
         exit;
   
     /**
     * InterProcess Communication for Pancake
     */
-    class Pancake_IPC {
+    class IPC {
         static private $IPC = null;
         
         /**
@@ -22,7 +24,7 @@
         */
         static public function create() {
             // Create temporary file 
-            $tempFile = tempnam(Pancake_Config::get('main.tmppath'), 'IPC');
+            $tempFile = tempnam(Config::get('main.tmppath'), 'IPC');
             
             // Create resource
             self::$IPC = msg_get_queue(ftok($tempFile, 'p'));

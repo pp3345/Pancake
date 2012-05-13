@@ -7,13 +7,15 @@
     /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
     /****************************************************************/
     
-    if(PANCAKE_HTTP !== true)
+    namespace Pancake;
+    
+    if(PANCAKE !== true)
         exit;
     
     /**
     * Shared Memory   
     */
-    class Pancake_SharedMemory {
+    class SharedMemory {
         static private $sharedMemory = null;
         
         /**
@@ -22,10 +24,10 @@
         */
         static public function create() {
             // Create temporary file
-            $tempFile = tempnam(Pancake_Config::get('main.tmppath'), 'SHMEM');
+            $tempFile = tempnam(Config::get('main.tmppath'), 'SHMEM');
             
             // Get filetoken for temporary file and attach Shared Memory
-            self::$sharedMemory = shm_attach(ftok($tempFile, 'p'), Pancake_Config::get('main.sharedmemory'));
+            self::$sharedMemory = shm_attach(ftok($tempFile, 'p'), Config::get('main.sharedmemory'));
         }
         
         /**
@@ -45,7 +47,7 @@
         static public function put($variable, $key = null) {
             // Set key if not given - Limit mt_rand() to 99 999 999 in order not to exhaust PHP_INT_MAX
             if(!$key)
-                $key = mt_rand(0, 99999999) . time();
+                $key = uniqid();
             $key = (int) $key;      
             
             // Add variable to Shared Memory
@@ -56,10 +58,12 @@
             return $key;
         }
         
+        // I'm setting the return value to HTTPRequest only to comfort my IDE
         /**
         * Gets a variable from Shared Memory
         * 
         * @param int $key Key of the variable
+        * 
         */
         static public function get($key) {
             return shm_get_var(self::$sharedMemory, (int) $key);

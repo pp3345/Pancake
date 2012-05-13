@@ -7,10 +7,12 @@
     /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
     /****************************************************************/
     
-    if(PANCAKE_HTTP !== true)
+    namespace Pancake;
+    
+    if(PANCAKE !== true)
         exit;
         
-    class Pancake_MIME {
+    class MIME {
         static private $mimeByExt = array();
         static private $mime = array();
         const DEFAULT_MIMETYPE = 'text/plain';
@@ -32,7 +34,7 @@
         }
         
         public static function load() {
-            $mime = Pancake_Config::get('mime');
+            $mime = Config::get('mime');
                 
             foreach($mime as $mimeConf) {
                 foreach($mimeConf as $index => $value) {

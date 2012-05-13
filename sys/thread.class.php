@@ -7,19 +7,20 @@
     /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
     /****************************************************************/
   
-    if(PANCAKE_HTTP !== true)
+    namespace Pancake;
+  
+    if(PANCAKE !== true)
         exit;
   
     /**
     * Multi-Threading in PHP.
     */
-    class Pancake_Thread {
+    class Thread {
         public $codeFile = null;
         public $pid = 0;
         public $ppid = 0;
         public $running = false;
         public $friendlyName = null;
-        public $startedManually = false;
         private static $threadCache = array();
         
         /**
@@ -49,8 +50,8 @@
         /**
         * Starts the Thread
         */
-        public function start() {
-            if(!$this->checkCodeFile())
+        public function start($loadCodeFile = true) {
+            if($loadCodeFile && !$this->checkCodeFile())
                 return false;
             
             $this->ppid = posix_getpid();
@@ -70,40 +71,13 @@
                 global $Pancake_currentThread;
                 $Pancake_currentThread = $this;
                 dt_set_proctitle('Pancake '.$this->friendlyName);
+                if(!$loadCodeFile)
+                    return true;
                 require $this->codeFile;
                 exit;
             }
         }
-        
-        /**
-        * Start the thread manually - A bit dirty, but works
-        */
-        public function startManually() {
-            if(!$this->checkCodeFile())
-                return false;
-            
-            $this->ppid = posix_getpid();
-            $this->pid = pcntl_fork();
-           
-            if($this->pid == -1)                // On error
-                return false;
-            else if($this->pid) {               // Parent 
-                if($key = array_search($this, self::$threadCache))
-                    unset(self::$threadCache[$key]);
-                self::$threadCache[$this->pid] = $this;
-                $this->running = true;
-                return true;
-            } else {                            // Child
-                $this->running = true;
-                $this->pid = posix_getpid();
-                global $Pancake_currentThread;
-                $Pancake_currentThread = $this;
-                dt_set_proctitle('Pancake '.$this->friendlyName);
-                $this->startedManually = true;
-                return true;
-            }
-        }
-        
+
         /**
         * Stops the Thread with SIGTERM, may stay alive in some cases
         */
@@ -140,12 +114,10 @@
         /**
         * Sends a signal to the parent of the thread
         * 
-        * @param int $signal The signal to be sent
+        * @param int $signal The signal that should be sent
         */
         public final function parentSignal($signal) {
-            if(!posix_kill($this->ppid, $signal))
-                return false;
-            return true;
+            return posix_kill($this->ppid, $signal);
         }
         
         /**
@@ -154,12 +126,12 @@
         */
         public final function waitForExit() {
             if(pcntl_waitpid($this->pid, $x, WNOHANG) === 0) {
-                Pancake_out('Waiting for ' . $this->friendlyName . ' to stop');
+                out('Waiting for ' . $this->friendlyName . ' to stop');
                 // Sleep maximum 1 second
                 for($i = 0;$i < 200 && pcntl_waitpid($this->pid, $x, WNOHANG) === 0; $i++)
                     usleep(10000);
                 if(pcntl_waitpid($this->pid, $x, WNOHANG) === 0) {
-                    Pancake_out('Killing worker');
+                    out('Killing worker');
                     $this->kill();
                 }
             }

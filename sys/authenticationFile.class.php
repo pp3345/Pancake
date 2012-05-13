@@ -7,13 +7,15 @@
     /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
     /****************************************************************/
     
-    if(PANCAKE_HTTP !== true)
+    namespace Pancake;
+    
+    if(PANCAKE !== true)
         exit;
         
     /**
     * Represents a file with authentication infos
     */
-    class Pancake_AuthenticationFile {
+    class authenticationFile {
         private $filePath = null;
         private $users = array();
         private static $files = array();
@@ -22,7 +24,7 @@
         * Loads an authentication file
         * 
         * @param string $filePath Path to the file
-        * @return Pancake_AuthenticationFile
+        * @return authenticationFile
         */
         private function __construct($filePath) {
             $this->filePath = $filePath;
@@ -64,11 +66,11 @@
         * Returns the instance of an authentication file for a given filepath
         * 
         * @param string $fileName Path to the authentication file
-        * @return Pancake_AuthenticationFile
+        * @return authenticationFile
         */
         static public function get($fileName) {
             if(!isset(self::$files[$fileName]))
-                self::$files[$fileName] = new Pancake_AuthenticationFile($fileName);
+                self::$files[$fileName] = new authenticationFile($fileName);
             return self::$files[$fileName];
         }
     } 

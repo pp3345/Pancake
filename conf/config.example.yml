@@ -5,7 +5,7 @@ main:
     request: ../log/requests.log                                # Path to Request-Log
     error: ../log/error.log                                     # Path to Error-Log
   dateformat: 'd.m.y H:i:s'                                     # Format for timestamps - See php.net/date for more information
-  debugmode: false                                              # Enable debugging
+  debugmode: false                                              # Enable debugging (debugging can also be enabled for a single run by setting the option --debug)
   user: www-data                                                # *NIX-User under which Pancake should run
   group: www-data                                               # *NIX-Group under which Pancake should run
   listenports:                                                  # List of ports to listen on (Recommended for HTTP: 80)
@@ -22,7 +22,8 @@ main:
   allowhead: true                                               # Whether to allow the "HEAD"-requestmethod
   allowtrace: true                                              # Whether to allow the "TRACE"-requestmethod
   allowoptions: true                                            # Whether to allow the "OPTIONS"-requestmethod
-  requestworkerlimit: 500                                       # Limit of requests a RequestWorker may process until it has to be restarted
+  requestworkerlimit: 50000                                     # Limit of requests a RequestWorker may process until it has to be restarted (0 for no limit)
+  maxconcurrent: 0                                              # Limit of concurrent connections a RequestWorker may hold open (0 for no limit)
 include:                                                        # Additional configuration-files to include
   - ../conf/vhosts/
   - ../conf/mime.yml

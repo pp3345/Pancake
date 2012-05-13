@@ -30,9 +30,28 @@ mime:
     - mime
   - application/powerpoint:
     - ppt
+  - application/msword:
+    - doc
+  - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+    - xlsx
+  - application/vnd.openxmlformats-officedocument.spreadsheetml.template:
+    - xltx
+  - application/vnd.openxmlformats-officedocument.presentationml.template:
+    - potx
+  - application/vnd.openxmlformats-officedocument.presentationml.slideshow:
+    - ppsx
+  - application/vnd.openxmlformats-officedocument.presentationml.presentation:
     - pptx
-    - ppz
-    - pps
+  - application/vnd.openxmlformats-officedocument.presentationml.slide:
+    - sldx
+  - application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+    - docx
+  - application/vnd.openxmlformats-officedocument.wordprocessingml.template:
+    - dotx
+  - application/vnd.ms-excel.addin.macroEnabled.12:
+    - xlam
+  - application/vnd.ms-excel.sheet.binary.macroEnabled.12:
+    - xlsb
   - text/x-script.python:
     - py
   - application/x-bytecode.python:

@@ -7,10 +7,12 @@
     /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
     /****************************************************************/
     
-    if(PANCAKE_HTTP !== true)
+    namespace Pancake;
+    
+    if(PANCAKE !== true)
         exit;                                                       
 
-    class Pancake_HTTPRequest {
+    class HTTPRequest {
         private $requestHeaders = array();
         private $answerHeaders = array();
         private $protocolVersion = '1.0';
@@ -31,9 +33,14 @@
         private $requestURI = null;
         private $remoteIP = null;
         private $remotePort = 0;
+        private $localIP = null;
+        private $localPort = 0;
         private $mimeType = null;
         private $uploadedFiles = array();
         private $uploadedFileTempNames = array();
+        private $queryString = null;
+        private $requestTime = 0;
+        private $requestMicrotime = 0;
         private static $answerCodes = array(
                                             100 => 'Continue',
                                             101 => 'Switching Protocols',
@@ -91,20 +98,26 @@
         /**
         * Creates a new HTTPRequest-Object
         * 
-        * @param Pancake_RequestWorker $worker
-        * @return Pancake_HTTPRequest
+        * @param RequestWorker $worker
+        * @param string $remoteIP
+        * @param int $remotePort
+        * @param string $localIP
+        * @param int $localPort
+        * @return HTTPRequest
         */
-        public function __construct(Pancake_RequestWorker $worker, $remoteIP = null, $remotePort = null) {
+        public function __construct(RequestWorker $worker, $remoteIP = null, $remotePort = null, $localIP = null, $localPort = null) {
             $this->requestWorker = $worker;
             $this->remoteIP = $remoteIP;
             $this->remotePort = $remotePort;
-            $this->vHost = Pancake_vHost::getDefault();
+            $this->localIP = $localIP;
+            $this->localPort = $localPort;
+            $this->vHost = vHost::getDefault();
         }
         
         /**
-        * Initialize RequestObject
+        * Initialize request
         *  
-        * @param string $requestHeader Headers of the request
+        * @param string $requestHeader Headers, as received from the client
         */
         public function init($requestHeader) { 
             try {
@@ -120,19 +133,19 @@
                 $this->requestLine = $requestHeaders[0];
                 
                 // HyperText CoffeePot Control Protocol :-)
-                if(($firstLine[0] == 'BREW' || $firstLine[0] == 'WHEN' || $firstLine[2] == 'HTCPCP/1.0') && Pancake_Config::get('main.exposepancake') === true)
-                    throw new Pancake_InvalidHTTPRequestException('It seems like you were trying to make coffee via HTCPCP, but I\'m a Pancake, not a Coffee Pot.', 418, $requestHeader);
+                if(($firstLine[0] == 'BREW' || $firstLine[0] == 'WHEN' || $firstLine[2] == 'HTCPCP/1.0') && Config::get('main.exposepancake') === true)
+                    throw new invalidHTTPRequestException('No coffee here. I\'m a Pancake. Try again at 256.256.133.7', 418, $requestHeader);
                 
                 // Check request-method
                 if($firstLine[0] != 'GET' && $firstLine[0] != 'POST' && $firstLine[0] != 'HEAD' && $firstLine[0] != 'OPTIONS' && $firstLine[0] != 'TRACE')
-                    throw new Pancake_InvalidHTTPRequestException('Invalid request-method: '.$firstLine[0], 501, $requestHeader);
+                    throw new invalidHTTPRequestException('Invalid request-method: '.$firstLine[0], 501, $requestHeader);
                 $this->requestType = $firstLine[0];
                 
                 // Check if request-method is allowed
-                if(($this->requestType == 'HEAD'    && Pancake_Config::get('main.allowhead')    !== true)
-                || ($this->requestType == 'TRACE'   && Pancake_Config::get('main.allowtrace')   !== true)
-                || ($this->requestType == 'OPTIONS' && Pancake_Config::get('main.allowoptions') !== true)) 
-                    throw new Pancake_InvalidHTTPRequestException('The request-method you are trying to use is not allowed: '.$this->requestType, 405, $requestHeader); 
+                if(($this->requestType == 'HEAD'    && Config::get('main.allowhead')    !== true)
+                || ($this->requestType == 'TRACE'   && Config::get('main.allowtrace')   !== true)
+                || ($this->requestType == 'OPTIONS' && Config::get('main.allowoptions') !== true)) 
+                    throw new invalidHTTPRequestException('The request-method you are trying to use is not allowed: '.$this->requestType, 405, $requestHeader); 
                 
                 // Check protocol version
                 if(strtoupper($firstLine[2]) == 'HTTP/1.1')
@@ -140,7 +153,7 @@
                 else if(strtoupper($firstLine[2]) == 'HTTP/1.0')
                     $this->protocolVersion = '1.0';
                 else
-                    throw new Pancake_InvalidHTTPRequestException('Unsupported protocol: '.$firstLine[2], 505, $requestHeader);
+                    throw new invalidHTTPRequestException('Unsupported protocol: '.$firstLine[2], 505, $requestHeader);
                 unset($requestHeaders[0]);
                 
                 // Read Headers
@@ -156,9 +169,9 @@
                     global $Pancake_postMaxSize;
                     
                     if($this->getRequestHeader('Content-Length') > $Pancake_postMaxSize)
-                        throw new Pancake_InvalidHTTPRequestException('The uploaded content is too large.', 413, $requestHeader);
+                        throw new invalidHTTPRequestException('The uploaded content is too large.', 413, $requestHeader);
                     if($this->getRequestHeader('Content-Length') === null)
-                        throw new Pancake_InvalidHTTPRequestException('Your request can\'t be processed without a given Content-Length', 411, $requestHeader);
+                        throw new invalidHTTPRequestException('Your request can\'t be processed without a given Content-Length', 411, $requestHeader);
                 } 
                 
                 // Enough informations for TRACE gathered
@@ -167,7 +180,7 @@
                 
                 // Check for Host-Header
                 if(!$this->getRequestHeader('Host') && $this->protocolVersion == '1.1')
-                    throw new Pancake_InvalidHTTPRequestException('Missing required header: Host', 400, $requestHeader);
+                    throw new invalidHTTPRequestException('Missing required header: Host', 400, $requestHeader);
                 
                 // Search for vHost
                 global $Pancake_vHosts;
@@ -176,9 +189,10 @@
                  
                 $this->requestURI = $firstLine[1]; 
                  
-                // Split address from request-parameters
+                // Split address from query string
                 $path = explode('?', $firstLine[1], 2);
                 $this->requestFilePath = $path[0];
+                $this->queryString = $path[1];
                 
                 // Check if path begins with /
                 if(substr($this->requestFilePath, 0, 1) != '/')
@@ -186,7 +200,7 @@
                 
                 // Do not allow requests to lower paths
                 if(strpos($this->requestFilePath, '../'))
-                    throw new Pancake_InvalidHTTPRequestException('You are not allowed to open the requested file: '.$this->requestFilePath, 403, $requestHeader);
+                    throw new invalidHTTPRequestException('You are not allowed to open the requested file: '.$this->requestFilePath, 403, $requestHeader);
                 
                 // Check for index-files    
                 if(is_dir($this->vHost->getDocumentRoot().$this->requestFilePath)) {
@@ -197,16 +211,16 @@
                         }
                     // No index file found, check if vHost allows directory listings
                     if($this->vHost->allowDirectoryListings() !== true)
-                        throw new Pancake_InvalidHTTPRequestException('You\'re not allowed to view the listing of the requested directory: '.$this->requestFilePath, 403, $requestHeader);
+                        throw new invalidHTTPRequestException('You\'re not allowed to view the listing of the requested directory: '.$this->requestFilePath, 403, $requestHeader);
                 }
 
                 checkRead:
                 
                 // Check if requested file exists and is accessible
                 if(!file_exists($this->vHost->getDocumentRoot() . $this->requestFilePath))
-                    throw new Pancake_InvalidHTTPRequestException('File does not exist: '.$this->requestFilePath, 404, $requestHeader);
+                    throw new invalidHTTPRequestException('File does not exist: '.$this->requestFilePath, 404, $requestHeader);
                 if(!is_readable($this->vHost->getDocumentRoot() . $this->requestFilePath))
-                    throw new Pancake_InvalidHTTPRequestException('You\'re not allowed to see the requested file: '.$this->requestFilePath, 403, $requestHeader);
+                    throw new invalidHTTPRequestException('You\'re not allowed to access the requested file: '.$this->requestFilePath, 403, $requestHeader);
                 
                 // Check if requested path needs authentication
                 if($authData = $this->vHost->requiresAuthentication($this->requestFilePath)) {
@@ -222,7 +236,7 @@
                     }
                     if($authData['type'] == 'basic') {
                         $this->setHeader('WWW-Authenticate', 'Basic realm="'.$authData['realm'].'"');
-                        throw new Pancake_InvalidHTTPRequestException('You need to authorize in order to view this file.', 401, $requestHeader);
+                        throw new invalidHTTPRequestException('You need to authorize in order to access this file.', 401, $requestHeader);
                     }
                 }
                 
@@ -231,7 +245,7 @@
                 // Check for If-Unmodified-Since
                 if($this->getRequestHeader('If-Unmodified-Since')) {
                     if(filemtime($this->vHost->getDocumentRoot().$this->requestFilePath) != strtotime($this->getRequestHeader('If-Unmodified-Since')))
-                        throw new Pancake_InvalidHTTPRequestException('File was modified since requested time.', 412, $requestHeader);
+                        throw new invalidHTTPRequestException('File was modified since requested time.', 412, $requestHeader);
                 }
                 
                 // Check for accepted compressions
@@ -251,7 +265,7 @@
                 }
                 
                 // Get MIME-type of the requested file
-                $this->mimeType = Pancake_MIME::typeOf($this->vHost->getDocumentRoot() . $this->requestFilePath);
+                $this->mimeType = MIME::typeOf($this->vHost->getDocumentRoot() . $this->requestFilePath);
                 
                 // Split GET-parameters
                 $get = explode('&', $path[1]);
@@ -265,8 +279,10 @@
                     $param[1] = urldecode($param[1]);
                     
                     if(strpos($param[0], '[') < strpos($param[0], ']')) {
+                        // Split array dimensions
                         preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $param[0], $parts);
                         
+                        // Build and evaluate parameter definition
                         $paramDefinition = '$this->GETParameters[$parts[1][0]]';
                         foreach((array) $parts[2] as $index => $arrayKey) {
                             if($arrayKey == null)
@@ -328,7 +344,14 @@
                         $this->cookies[urldecode($cookie[0])] = urldecode($cookie[1]);*/
                     }
                 }  
-            } catch (Pancake_InvalidHTTPRequestException $e) {
+                
+                $this->requestTime = time();
+                $this->requestMicrotime = microtime(true);
+                
+                // Set default host
+                if(!$this->getRequestHeader('Host'))
+                    $this->requestHeaders['Host'] = $this->vHost->getHost();
+            } catch (invalidHTTPRequestException $e) {
                 $this->invalidRequest($e);
                 throw $e;
             }                          
@@ -340,8 +363,6 @@
         * @param string $postData The RequestBody received by the client
         */
         public function readPOSTData($postData) {
-            // ~(.*?)(?:\[([^\]]*)\])~
-            
             // Check for url-encoded parameters
             if(strpos($this->getRequestHeader('Content-Type'), 'application/x-www-form-urlencoded') !== false) {
                 // Split POST-parameters
@@ -382,7 +403,7 @@
                     } else
                         $this->POSTParameters[$param[0]] = $param[1];*/
                 }
-            // Check for uploaded files
+            // Check for multipart-data
             } else if(strpos($this->getRequestHeader('Content-Type'), 'multipart/form-data') !== false) {
                 // Get boundary string that splits the dispositions
                 preg_match('~boundary=(.*)~', $this->getRequestHeader('Content-Type'), $boundary);
@@ -403,7 +424,7 @@
                     preg_match('~Content-Disposition: form-data;[ ]?name="(.*?)";?[ ]?(?:filename="(.*?)")?(?:\r\n)?(?:Content-Type: (.*))?~', $dispParts[0], $data);
                     // [ 0 => string, 1 => name, 2 => filename, 3 => Content-Type ]
                     if(isset($data[2]) && isset($data[3])) {
-                        $tmpFileName = tempnam(Pancake_Config::get('main.tmppath'), 'UPL');
+                        $tmpFileName = tempnam(Config::get('main.tmppath'), 'UPL');
                         file_put_contents($tmpFileName, $dispParts[1]);
                         
                         $dataArray = array(
@@ -459,9 +480,9 @@
         /**
         * Set answer on invalid request
         * 
-        * @param Pancake_InvalidHTTPRequestException $exception
+        * @param invalidHTTPRequestException $exception
         */
-        public function invalidRequest(Pancake_InvalidHTTPRequestException $exception) {
+        public function invalidRequest(invalidHTTPRequestException $exception) {
             $this->setHeader('Content-Type', 'text/html; charset=utf-8');
             $this->answerCode = $exception->getCode();
             $this->answerBody = '<!doctype html>';
@@ -476,15 +497,15 @@
             $this->answerBody .= '<body>';
                 $this->answerBody .= '<h1>'.$this->answerCode.' '.$this->getCodeString($this->answerCode).'</h1>';
                 $this->answerBody .= '<hr/>';
-                $this->answerBody .= '<strong>Your HTTP-Request was invalid.</strong> Error:<br/>';
+                $this->answerBody .= '<strong>'.($this->answerCode >= 500 ? 'Your HTTP-Request could not be processed' : 'Your HTTP-Request was invalid').'.</strong> Error description:<br/>';
                 $this->answerBody .= $exception->getMessage().'<br/><br/>';
                 if($exception->getHeader()) {
                     $this->answerBody .= "<strong>Headers:</strong><br/>";
                     $this->answerBody .= nl2br($exception->getHeader());
                 }
-                if(Pancake_Config::get('main.exposepancake') === true) {
+                if(Config::get('main.exposepancake') === true) {
                     $this->answerBody .= '<hr/>';
-                    $this->answerBody .= 'Pancake ' . PANCAKE_VERSION;
+                    $this->answerBody .= 'Pancake ' . VERSION;
                 }
             $this->answerBody .= '</body>';
             $this->answerBody .= '</html>';
@@ -504,15 +525,15 @@
             
             // Set AnswerCode if not set
             if(!$this->getAnswerCode())
-                ($this->getAnswerBody() || $this->getAnswerHeader('Content-Length')) ? $this->setAnswerCode(200) : $this->setAnswerCode(204);
+                (!$this->getAnswerHeader('Content-Length') && !$this->getAnswerBody() && $this->vHost->send204OnEmptyPage()) ? $this->setAnswerCode(204) : $this->setAnswerCode(200);
             // Set Connection-Header
             if($this->getAnswerCode() >= 200 && $this->getAnswerCode() < 400 && strtolower($this->getRequestHeader('Connection')) == 'keep-alive')
                 $this->setHeader('Connection', 'keep-alive');
             else
                 $this->setHeader('Connection', 'close');
             // Add Server-Header
-            if(Pancake_Config::get('main.exposepancake') === true)
-                $this->setHeader('Server', 'Pancake/' . PANCAKE_VERSION);
+            if(Config::get('main.exposepancake') === true)
+                $this->setHeader('Server', 'Pancake/' . VERSION);
             // Set cookies
             foreach($this->setCookies as $cookie) {
                 $setCookie .= ($setCookie) ? "\r\nSet-Cookie: ".$cookie : $cookie;
@@ -603,18 +624,23 @@
             if(is_dir($this->vHost->getDocumentRoot() . $this->requestFilePath) && substr($this->requestFilePath, -1, 1) != '/')
                 $appendSlash = '/';
             
-            $_SERVER['REQUEST_TIME'] = time();
-            $_SERVER['USER'] = Pancake_Config::get('main.user');
+            $_SERVER['REQUEST_TIME'] = $this->requestTime;
+            $_SERVER['REQUEST_TIME_FLOAT'] = $this->requestMicrotime;
+            $_SERVER['USER'] = Config::get('main.user');
             $_SERVER['REQUEST_METHOD'] = $this->requestType;
             $_SERVER['SERVER_PROTOCOL'] = 'HTTP/' . $this->protocolVersion;
-            $_SERVER['SERVER_SOFTWARE'] = 'Pancake/' . PANCAKE_VERSION;
-            $_SERVER['PHP_SELF'] = $this->requestFilePath . $appendSlash;
-            $_SERVER['SCRIPT_NAME'] = $this->requestFilePath . $appendSlash;
-            $_SERVER['REQUEST_URI'] = $this->requestURI /*. (is_dir($this->vHost->getDocumentRoot() . $this->requestURI) && substr($this->requestURI, -1, 1) != '/' ? '/' : null)*/;
+            $_SERVER['SERVER_SOFTWARE'] = 'Pancake/' . VERSION;
+            $_SERVER['PHP_SELF'] = $_SERVER['SCRIPT_NAME'] = $_SERVER['DOCUMENT_URI'] = $this->requestFilePath . $appendSlash;
+            $_SERVER['REQUEST_URI'] = $this->requestURI;
             $_SERVER['SCRIPT_FILENAME'] = (substr($this->vHost->getDocumentRoot(), -1, 1) == '/' ? substr($this->vHost->getDocumentRoot(), 0, strlen($this->vHost->getDocumentRoot()) - 1) : $this->vHost->getDocumentRoot()) . $this->requestFilePath . $appendSlash;
             $_SERVER['REMOTE_ADDR'] = $this->remoteIP;
             $_SERVER['REMOTE_PORT'] = $this->remotePort;
-            
+            $_SERVER['QUERY_STRING'] = $this->queryString;         
+            $_SERVER['DOCUMENT_ROOT'] = $this->vHost->getDocumentRoot();
+            $_SERVER['SERVER_NAME'] = $this->getRequestHeader('Host') ? $this->getRequestHeader('Host') : $this->vHost->getHost();
+            $_SERVER['SERVER_ADDR'] = $this->localIP;
+            $_SERVER['SERVER_PORT'] = $this->localPort;
+                        
             foreach($this->requestHeaders as $name => $value)
                 $_SERVER['HTTP_'.str_replace('-', '_', strtoupper($name))] = $value;
                 
@@ -760,7 +786,7 @@
         /**
         * Get the vHost for this request
         * 
-        * @return Pancake_vHost
+        * @return vHost
         */
         public function getvHost() {
             return $this->vHost;
