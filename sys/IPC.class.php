@@ -17,6 +17,7 @@
     */
     class IPC {
         static private $IPC = null;
+        static private $tempFile = null;
         
         /**
         * Create IPC-resource
@@ -24,10 +25,10 @@
         */
         static public function create() {
             // Create temporary file 
-            $tempFile = tempnam(Config::get('main.tmppath'), 'IPC');
+            self::$tempFile = tempnam(Config::get('main.tmppath'), 'IPC');
             
             // Create resource
-            self::$IPC = msg_get_queue(ftok($tempFile, 'p'));
+            self::$IPC = msg_get_queue(ftok(self::$tempFile, 'p'));
         }
         
         static public function getResource() {
@@ -39,6 +40,7 @@
         * 
         */
         static public function destroy() {
+            unlink(self::$tempFile);
             return msg_remove_queue(self::$IPC);
         }
         

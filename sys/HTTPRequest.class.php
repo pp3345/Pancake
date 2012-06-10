@@ -117,173 +117,201 @@
         /**
         * Initialize request
         *  
-        * @param string $requestHeader Headers, as received from the client
+        * @param string $requestHeader Headers received from the client
+        * @throws invalidHTTPRequestException
         */
         public function init($requestHeader) { 
-            try {
-                // Split headers from body
-                $requestParts = explode("\r\n\r\n", $requestHeader, 2);
+            // Get single header lines
+            $requestHeaders = explode("\r\n", $requestHeader);
+            
+            // Split first line
+            $firstLine = explode(" ", $requestHeaders[0]);
+            
+            $this->requestLine = $requestHeaders[0];
+            
+            // HyperText CoffeePot Control Protocol :-)
+            if(($firstLine[0] == 'BREW' || $firstLine[0] == 'WHEN' || $firstLine[2] == 'HTCPCP/1.0') && Config::get('main.exposepancake') === true)
+                throw new invalidHTTPRequestException('No coffee here. I\'m a Pancake. Try again at 256.256.133.7', 418, $requestHeader);
+            
+            // Check protocol version
+            if(strtoupper($firstLine[2]) == 'HTTP/1.1')
+                $this->protocolVersion = '1.1';
+            else if(strtoupper($firstLine[2]) == 'HTTP/1.0')
+                $this->protocolVersion = '1.0';
+            else
+                throw new invalidHTTPRequestException('Unsupported protocol: '.$firstLine[2], strpos($firstLine[2], 'HTTP') !== false ? 505 : 400, $requestHeader);
+            unset($requestHeaders[0]);
+            
+            // Check request method
+            if($firstLine[0] != 'GET' && $firstLine[0] != 'POST' && $firstLine[0] != 'HEAD' && $firstLine[0] != 'OPTIONS' && $firstLine[0] != 'TRACE')
+                throw new invalidHTTPRequestException('Invalid request method: '.$firstLine[0], 501, $requestHeader);
+            $this->requestType = $firstLine[0];
+            
+            // Check if request method is allowed
+            if(($this->requestType == 'HEAD'    && Config::get('main.allowhead')    !== true)
+            || ($this->requestType == 'TRACE'   && Config::get('main.allowtrace')   !== true)
+            || ($this->requestType == 'OPTIONS' && Config::get('main.allowoptions') !== true)) 
+                throw new invalidHTTPRequestException('The request method is not allowed: '.$this->requestType, 405, $requestHeader); 
+            
+            // Read Headers
+            foreach($requestHeaders as $header) {
+                if(trim($header) == null)
+                    continue;
+                $header = explode(':', $header, 2);
+                $this->requestHeaders[$header[0]] = trim($header[1]);
+            }
+            
+            // Check if Content-Length is given and not too large on POST
+            if($this->requestType == 'POST') {
+                global $Pancake_postMaxSize;
                 
-                // Get single header lines
-                $requestHeaders = explode("\r\n", $requestParts[0]);
-                
-                // Split first line
-                $firstLine = explode(" ", $requestHeaders[0]);
-                
-                $this->requestLine = $requestHeaders[0];
-                
-                // HyperText CoffeePot Control Protocol :-)
-                if(($firstLine[0] == 'BREW' || $firstLine[0] == 'WHEN' || $firstLine[2] == 'HTCPCP/1.0') && Config::get('main.exposepancake') === true)
-                    throw new invalidHTTPRequestException('No coffee here. I\'m a Pancake. Try again at 256.256.133.7', 418, $requestHeader);
-                
-                // Check request-method
-                if($firstLine[0] != 'GET' && $firstLine[0] != 'POST' && $firstLine[0] != 'HEAD' && $firstLine[0] != 'OPTIONS' && $firstLine[0] != 'TRACE')
-                    throw new invalidHTTPRequestException('Invalid request-method: '.$firstLine[0], 501, $requestHeader);
-                $this->requestType = $firstLine[0];
-                
-                // Check if request-method is allowed
-                if(($this->requestType == 'HEAD'    && Config::get('main.allowhead')    !== true)
-                || ($this->requestType == 'TRACE'   && Config::get('main.allowtrace')   !== true)
-                || ($this->requestType == 'OPTIONS' && Config::get('main.allowoptions') !== true)) 
-                    throw new invalidHTTPRequestException('The request-method you are trying to use is not allowed: '.$this->requestType, 405, $requestHeader); 
-                
-                // Check protocol version
-                if(strtoupper($firstLine[2]) == 'HTTP/1.1')
-                    $this->protocolVersion = '1.1';
-                else if(strtoupper($firstLine[2]) == 'HTTP/1.0')
-                    $this->protocolVersion = '1.0';
-                else
-                    throw new invalidHTTPRequestException('Unsupported protocol: '.$firstLine[2], 505, $requestHeader);
-                unset($requestHeaders[0]);
-                
-                // Read Headers
-                foreach($requestHeaders as $header) {
-                    if(trim($header) == null)
-                        continue;
-                    $header = explode(':', $header, 2);
-                    $this->requestHeaders[$header[0]] = trim($header[1]);
-                }
-                
-                // Check if Content-Length is given and not too large on POST
-                if($this->requestType == 'POST') {
-                    global $Pancake_postMaxSize;
-                    
-                    if($this->getRequestHeader('Content-Length') > $Pancake_postMaxSize)
-                        throw new invalidHTTPRequestException('The uploaded content is too large.', 413, $requestHeader);
-                    if($this->getRequestHeader('Content-Length') === null)
-                        throw new invalidHTTPRequestException('Your request can\'t be processed without a given Content-Length', 411, $requestHeader);
-                } 
-                
-                // Enough informations for TRACE gathered
-                if($this->requestType == 'TRACE')
-                    return;
-                
-                // Check for Host-Header
-                if(!$this->getRequestHeader('Host') && $this->protocolVersion == '1.1')
-                    throw new invalidHTTPRequestException('Missing required header: Host', 400, $requestHeader);
-                
-                // Search for vHost
-                global $Pancake_vHosts;
-                if(isset($Pancake_vHosts[$this->getRequestHeader('Host')]))
-                    $this->vHost = $Pancake_vHosts[$this->getRequestHeader('Host')];
-                 
-                $this->requestURI = $firstLine[1]; 
-                 
-                // Split address from query string
-                $path = explode('?', $firstLine[1], 2);
-                $this->requestFilePath = $path[0];
-                $this->queryString = $path[1];
-                
-                // Check if path begins with /
-                if(substr($this->requestFilePath, 0, 1) != '/')
-                    $this->requestFilePath = '/' . $this->requestFilePath;
-                
-                // Do not allow requests to lower paths
-                if(strpos($this->requestFilePath, '../'))
-                    throw new invalidHTTPRequestException('You are not allowed to open the requested file: '.$this->requestFilePath, 403, $requestHeader);
-                
-                // Check for index-files    
-                if(is_dir($this->vHost->getDocumentRoot().$this->requestFilePath)) {
-                    foreach($this->vHost->getIndexFiles() as $file)
-                        if(file_exists($this->vHost->getDocumentRoot().$this->requestFilePath.'/'.$file)) {
-                            $this->requestFilePath .= (substr($this->requestFilePath, -1, 1) == '/' ? null : '/') . $file;
-                            goto checkRead;
-                        }
-                    // No index file found, check if vHost allows directory listings
-                    if($this->vHost->allowDirectoryListings() !== true)
-                        throw new invalidHTTPRequestException('You\'re not allowed to view the listing of the requested directory: '.$this->requestFilePath, 403, $requestHeader);
-                }
+                if($this->getRequestHeader('Content-Length') > $Pancake_postMaxSize)
+                    throw new invalidHTTPRequestException('The uploaded content is too large.', 413, $requestHeader);
+                if($this->getRequestHeader('Content-Length') === null)
+                    throw new invalidHTTPRequestException('Your request can\'t be processed without a given Content-Length', 411, $requestHeader);
+            } 
+            
+            // Enough informations for TRACE gathered
+            if($this->requestType == 'TRACE')
+                return;
+            
+            // Check for Host-Header
+            if(!$this->getRequestHeader('Host') && $this->protocolVersion == '1.1')
+                throw new invalidHTTPRequestException('Missing required header: Host', 400, $requestHeader);
+            
+            // Search for vHost
+            global $Pancake_vHosts;
+            if(isset($Pancake_vHosts[$this->getRequestHeader('Host')]))
+                $this->vHost = $Pancake_vHosts[$this->getRequestHeader('Host')];
+            
+            $this->requestURI = $firstLine[1] = $this->vHost->rewrite($firstLine[1]);
+             
+            // Split address from query string
+            $path = explode('?', $firstLine[1], 2);
+            $this->requestFilePath = $path[0];
+            $this->queryString = $path[1];
+            
+            // Check if path begins with /
+            if(substr($this->requestFilePath, 0, 1) != '/')
+                $this->requestFilePath = '/' . $this->requestFilePath;
+            
+            // Do not allow requests to lower paths
+            if(strpos($this->requestFilePath, '../'))
+                throw new invalidHTTPRequestException('You are not allowed to access the requested file: '.$this->requestFilePath, 403, $requestHeader);
+            
+            // Check for index-files    
+            if(is_dir($this->vHost->getDocumentRoot().$this->requestFilePath)) {
+                foreach($this->vHost->getIndexFiles() as $file)
+                    if(file_exists($this->vHost->getDocumentRoot().$this->requestFilePath.'/'.$file)) {
+                        $this->requestFilePath .= (substr($this->requestFilePath, -1, 1) == '/' ? null : '/') . $file;
+                        goto checkRead;
+                    }
+                // No index file found, check if vHost allows directory listings
+                if($this->vHost->allowDirectoryListings() !== true)
+                    throw new invalidHTTPRequestException('You\'re not allowed to view the listing of the requested directory: '.$this->requestFilePath, 403, $requestHeader);
+            }
 
-                checkRead:
-                
-                // Check if requested file exists and is accessible
-                if(!file_exists($this->vHost->getDocumentRoot() . $this->requestFilePath))
-                    throw new invalidHTTPRequestException('File does not exist: '.$this->requestFilePath, 404, $requestHeader);
-                if(!is_readable($this->vHost->getDocumentRoot() . $this->requestFilePath))
-                    throw new invalidHTTPRequestException('You\'re not allowed to access the requested file: '.$this->requestFilePath, 403, $requestHeader);
-                
-                // Check if requested path needs authentication
-                if($authData = $this->vHost->requiresAuthentication($this->requestFilePath)) {
-                    if($this->getRequestHeader('Authorization')) {
-                        if($authData['type'] == 'basic') {
-                            $auth = explode(" ", $this->getRequestHeader('Authorization'));
-                            $userPassword = explode(":", base64_decode($auth[1]));
-                            if($this->vHost->isValidAuthentication($this->requestFilePath, $userPassword[0], $userPassword[1]))
-                                goto valid;
-                        } else {
-                             
-                        }
-                    }
+            checkRead:
+            
+            // Check if requested file exists and is accessible
+            if(!file_exists($this->vHost->getDocumentRoot() . $this->requestFilePath))
+                throw new invalidHTTPRequestException('File does not exist: '.$this->requestFilePath, 404, $requestHeader);
+            if(!is_readable($this->vHost->getDocumentRoot() . $this->requestFilePath))
+                throw new invalidHTTPRequestException('You\'re not allowed to access the requested file: '.$this->requestFilePath, 403, $requestHeader);
+            
+            // Check if requested path needs authentication
+            if($authData = $this->vHost->requiresAuthentication($this->requestFilePath)) {
+                if($this->getRequestHeader('Authorization')) {
                     if($authData['type'] == 'basic') {
-                        $this->setHeader('WWW-Authenticate', 'Basic realm="'.$authData['realm'].'"');
-                        throw new invalidHTTPRequestException('You need to authorize in order to access this file.', 401, $requestHeader);
+                        $auth = explode(" ", $this->getRequestHeader('Authorization'));
+                        $userPassword = explode(":", base64_decode($auth[1]));
+                        if($this->vHost->isValidAuthentication($this->requestFilePath, $userPassword[0], $userPassword[1]))
+                            goto valid;
+                    } //else {
+                         
+                    //}
+                }
+                if($authData['type'] == 'basic') {
+                    $this->setHeader('WWW-Authenticate', 'Basic realm="'.$authData['realm'].'"');
+                    throw new invalidHTTPRequestException('You need to authorize in order to access this file.', 401, $requestHeader);
+                }
+            }
+            
+            valid:
+            
+            // Check for If-Unmodified-Since
+            if($this->getRequestHeader('If-Unmodified-Since')) {
+                if(filemtime($this->vHost->getDocumentRoot().$this->requestFilePath) != strtotime($this->getRequestHeader('If-Unmodified-Since')))
+                    throw new invalidHTTPRequestException('File was modified since requested time.', 412, $requestHeader);
+            }
+            
+            // Check for accepted compressions
+            if($this->getRequestHeader('Accept-Encoding')) {
+                $accepted = explode(',', $this->getRequestHeader('Accept-Encoding'));
+                foreach($accepted as $format) {
+                    $format = strtolower(trim($format));
+                    $this->acceptedCompressions[$format] = true;
+                }
+            }
+            
+            // Check for Range-header
+            if($this->getRequestHeader('Range')) {
+                preg_match('~([0-9]+)-([0-9]+)?~', $this->getRequestHeader('Range'), $range);
+                $this->rangeFrom = $range[1];
+                $this->rangeTo = $range[2];
+            }
+            
+            // Get MIME-type of the requested file
+            $this->mimeType = MIME::typeOf($this->vHost->getDocumentRoot() . $this->requestFilePath);
+            
+            // Split GET-parameters
+            $get = explode('&', $path[1]);
+            
+            // Read GET-parameters
+            foreach($get as $param) {
+                if($param == null)
+                    break;
+                $param = explode('=', $param, 2);
+                $param[0] = urldecode($param[0]);
+                $param[1] = urldecode($param[1]);
+                
+                if(strpos($param[0], '[') < strpos($param[0], ']')) {
+                    // Split array dimensions
+                    preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $param[0], $parts);
+                    
+                    // Build and evaluate parameter definition
+                    $paramDefinition = '$this->GETParameters[$parts[1][0]]';
+                    foreach((array) $parts[2] as $index => $arrayKey) {
+                        if($arrayKey == null)
+                            $paramDefinition .= '[]';
+                        else
+                            $paramDefinition .= '[$parts[2]['.$index.']]';
                     }
-                }
+                    
+                    $paramDefinition .= ' = $param[1];';
+                    eval($paramDefinition);
+                } else
+                    $this->GETParameters[$param[0]] = $param[1];
+            }
+             
+            // Check for cookies
+            if($this->getRequestHeader('Cookie')) {
+                // Split cookies
+                $cookies = explode(';', $this->getRequestHeader('Cookie'));
                 
-                valid:
-                
-                // Check for If-Unmodified-Since
-                if($this->getRequestHeader('If-Unmodified-Since')) {
-                    if(filemtime($this->vHost->getDocumentRoot().$this->requestFilePath) != strtotime($this->getRequestHeader('If-Unmodified-Since')))
-                        throw new invalidHTTPRequestException('File was modified since requested time.', 412, $requestHeader);
-                }
-                
-                // Check for accepted compressions
-                if($this->getRequestHeader('Accept-Encoding')) {
-                    $accepted = explode(',', $this->getRequestHeader('Accept-Encoding'));
-                    foreach($accepted as $format) {
-                        $format = strtolower(trim($format));
-                        $this->acceptedCompressions[$format] = true;
-                    }
-                }
-                
-                // Check for Range-header
-                if($this->getRequestHeader('Range')) {
-                    preg_match('~([0-9]+)-([0-9]+)?~', $this->getRequestHeader('Range'), $range);
-                    $this->rangeFrom = $range[1];
-                    $this->rangeTo = $range[2];
-                }
-                
-                // Get MIME-type of the requested file
-                $this->mimeType = MIME::typeOf($this->vHost->getDocumentRoot() . $this->requestFilePath);
-                
-                // Split GET-parameters
-                $get = explode('&', $path[1]);
-                
-                // Read GET-parameters
-                foreach($get as $param) {
-                    if($param == null)
+                // Read cookies
+                foreach($cookies as $cookie) {
+                    if($cookie == null)
                         break;
-                    $param = explode('=', $param, 2);
+                        
+                    $param = explode('=', trim($cookie), 2);
                     $param[0] = urldecode($param[0]);
                     $param[1] = urldecode($param[1]);
                     
                     if(strpos($param[0], '[') < strpos($param[0], ']')) {
-                        // Split array dimensions
                         preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $param[0], $parts);
                         
-                        // Build and evaluate parameter definition
-                        $paramDefinition = '$this->GETParameters[$parts[1][0]]';
+                        $paramDefinition = '$this->cookies[$parts[1][0]]';
                         foreach((array) $parts[2] as $index => $arrayKey) {
                             if($arrayKey == null)
                                 $paramDefinition .= '[]';
@@ -294,73 +322,22 @@
                         $paramDefinition .= ' = $param[1];';
                         eval($paramDefinition);
                     } else
-                        $this->GETParameters[$param[0]] = $param[1];
-                    
-                    // GET and POST Parameters can be arrays
-                    /*if(substr($param[0], strlen($param[0]) - 2, 2) == '[]') {
-                        $param[0] = substr($param[0], 0, strlen($param[0]) - 2);
-                        $this->GETParameters[$param[0]][] = $param[1];
-                    } else if(substr($param[0], -1, 1) == ']' && $arrayBeginPos = strpos($param[0], '[')) {
-                        $indexName = substr($param[0], $arrayBeginPos + 1, strlen($param[0]) - $arrayBeginPos - 2);
-                        $param[0] = substr($param[0], 0, $arrayBeginPos);
-                        $this->GETParameters[$param[0]][$indexName] = $param[1];
-                    } else
-                        $this->GETParameters[$param[0]] = $param[1];*/
-                    
+                        $this->cookies[$param[0]] = $param[1];
                 }
-                 
-                // Check for cookies
-                if($this->getRequestHeader('Cookie')) {
-                    // Split cookies
-                    $cookies = explode(';', $this->getRequestHeader('Cookie'));
-                    
-                    // Read cookies
-                    foreach($cookies as $cookie) {
-                        if($cookie == null)
-                            break;
-                            
-                        $param = explode('=', trim($cookie), 2);
-                        $param[0] = urldecode($param[0]);
-                        $param[1] = urldecode($param[1]);
-                        
-                        if(strpos($param[0], '[') < strpos($param[0], ']')) {
-                            preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $param[0], $parts);
-                            
-                            $paramDefinition = '$this->cookies[$parts[1][0]]';
-                            foreach((array) $parts[2] as $index => $arrayKey) {
-                                if($arrayKey == null)
-                                    $paramDefinition .= '[]';
-                                else
-                                    $paramDefinition .= '[$parts[2]['.$index.']]';
-                            }
-                            
-                            $paramDefinition .= ' = $param[1];';
-                            eval($paramDefinition);
-                        } else
-                            $this->cookies[$param[0]] = $param[1];
-                        
-                        /*$cookie = trim($cookie);
-                        $cookie = explode('=', $cookie, 2);
-                        $this->cookies[urldecode($cookie[0])] = urldecode($cookie[1]);*/
-                    }
-                }  
-                
-                $this->requestTime = time();
-                $this->requestMicrotime = microtime(true);
-                
-                // Set default host
-                if(!$this->getRequestHeader('Host'))
-                    $this->requestHeaders['Host'] = $this->vHost->getHost();
-            } catch (invalidHTTPRequestException $e) {
-                $this->invalidRequest($e);
-                throw $e;
-            }                          
+            }  
+            
+            $this->requestTime = time();
+            $this->requestMicrotime = microtime(true);
+            
+            // Set default host
+            if(!$this->getRequestHeader('Host'))
+                $this->requestHeaders['Host'] = $this->vHost->getHost();                  
         }
         
         /**
-        * Processes the POST RequestBody
+        * Processes the POST request body
         * 
-        * @param string $postData The RequestBody received by the client
+        * @param string $postData The request body received from the client
         */
         public function readPOSTData($postData) {
             // Check for url-encoded parameters
@@ -391,24 +368,12 @@
                         eval($paramDefinition);
                     } else
                         $this->POSTParameters[$param[0]] = $param[1];
-                    
-                    /*
-                    if(substr($param[0], strlen($param[0]) - 2, 2) == '[]') {
-                        $param[0] = substr($param[0], 0, strlen($param[0]) - 2);
-                        $this->POSTParameters[$param[0]][] = $param[1];
-                    } else if(substr($param[0], -1, 1) == ']' && $arrayBeginPos = strpos($param[0], '[')) {
-                        $indexName = substr($param[0], $arrayBeginPos + 1, strlen($param[0]) - $arrayBeginPos - 2);
-                        $param[0] = substr($param[0], 0, $arrayBeginPos);
-                        $this->POSTParameters[$param[0]][$indexName] = $param[1];
-                    } else
-                        $this->POSTParameters[$param[0]] = $param[1];*/
                 }
             // Check for multipart-data
             } else if(strpos($this->getRequestHeader('Content-Type'), 'multipart/form-data') !== false) {
                 // Get boundary string that splits the dispositions
                 preg_match('~boundary=(.*)~', $this->getRequestHeader('Content-Type'), $boundary);
-                $boundary = $boundary[1];
-                if(!$boundary)
+                if(!($boundary = $boundary[1]))
                     return false;
                 
                 // For some strange reason the actual boundary string is -- + the specified boundary string
@@ -435,9 +400,38 @@
                                             'tmp_name' => $tmpFileName);
                         
                         if(strpos($data[1], '[') < strpos($data[1], ']')) {
-                            preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $param[1], $parts);
+                            preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $data[1], $parts);
                             
-                            $paramDefinition = '$this->uploadedFiles[$parts[1][0]]';
+                            $paramDefinition = '$file[$parts[1][0]]';
+                            foreach((array) $parts[2] as $index => $arrayKey) {
+                                if($arrayKey != null)
+                                    $paramDefinition .= '[$parts[2]['.$index.']]';
+                                else
+                                    $multi = true;
+                            }
+                            
+                            if($multi) {
+                                $paramDefinitions[$paramDefinition]++;
+                                $dataArray = array( 'name' => array( $paramDefinitions[$paramDefinition] - 1 => $data[2]),
+                                                    'type' => array( $paramDefinitions[$paramDefinition] - 1 => $data[3]),
+                                                    'error' => array( $paramDefinitions[$paramDefinition] - 1 => UPLOAD_ERR_OK),
+                                                    'size' => array( $paramDefinitions[$paramDefinition] - 1 => strlen($dispParts[1])),
+                                                    'tmp_name' => array( $paramDefinitions[$paramDefinition] - 1 => $tmpFileName));
+                            }
+                            
+                            $paramDefinition .= ' = $dataArray;';
+                            eval($paramDefinition);
+                            
+                            $this->uploadedFiles = array_merge($file, $this->uploadedFiles);
+                        } else
+                            $this->uploadedFiles[$data[1]] = $dataArray;  
+                             
+                        $this->uploadedFileTempNames[] = $tmpFileName;
+                    } else {
+                        if(strpos($data[1], '[') < strpos($data[1], ']')) {
+                            preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $data[1], $parts);
+                            
+                            $paramDefinition = '$this->POSTParameters[$parts[1][0]]';
                             foreach((array) $parts[2] as $index => $arrayKey) {
                                 if($arrayKey == null)
                                     $paramDefinition .= '[]';
@@ -445,33 +439,13 @@
                                     $paramDefinition .= '[$parts[2]['.$index.']]';
                             }
                             
-                            $paramDefinition .= ' = $dataArray;';
+                            $paramDefinition .= ' = $dispParts[1];';
                             eval($paramDefinition);
-                        } else
-                            $this->uploadedFiles[$param[0]] = $dataArray;
-                        
-                        /*if(substr($data[1], strlen($data[1]) - 2, 2) == '[]') {
-                            $data[1] = substr($data[1], 0, strlen($data[1]) - 2);
-                            $this->uploadedFiles[$data[1]][] = $dataArray;
-                        } else if(substr($data[1], -1, 1) == ']' && $arrayBeginPos = strpos($data[1], '[')) {
-                            $indexName = substr($data[1], $arrayBeginPos + 1, strlen($data[1]) - $arrayBeginPos - 2);
-                            $data[1] = substr($data[1], 0, $arrayBeginPos);
-                            $this->uploadedFiles[$data[1]][$indexName] = $dataArray;
-                        } else
-                            $this->uploadedFiles[$data[1]] = $dataArray;*/
-                             
-                        $this->uploadedFileTempNames[] = $tmpFileName;
-                    } else {
-                        if(substr($data[1], strlen($data[1]) - 2, 2) == '[]') {
-                            $data[1] = substr($data[1], 0, strlen($data[1]) - 2);
-                            $this->POSTParameters[$data[1]][] = $dispParts[1];
-                        } else if(substr($data[1], -1, 1) == ']' && $arrayBeginPos = strpos($data[1], '[')) {
-                            $indexName = substr($data[1], $arrayBeginPos + 1, strlen($data[1]) - $arrayBeginPos - 2);
-                            $data[1] = substr($data[1], 0, $arrayBeginPos);
-                            $this->POSTParameters[$data[1]][$indexName] = $dispParts[1];
                         } else
                             $this->POSTParameters[$data[1]] = $dispParts[1];
                     }
+                    
+                    unset($multi);
                 }
             }
             return true;
@@ -619,6 +593,7 @@
         /**
         * Creates the $_SERVER-variable
         * 
+        * @return array $_SERVER
         */
         public function createSERVER() {
             if(is_dir($this->vHost->getDocumentRoot() . $this->requestFilePath) && substr($this->requestFilePath, -1, 1) != '/')
@@ -747,6 +722,8 @@
         * @param int $value A valid HTTP-Answer-Code, for example 200 or 404
         */
         public function setAnswerCode($value) {
+            if(!array_key_exists($value, self::$answerCodes))
+                return false;
             return $this->answerCode = $value;
         }
         

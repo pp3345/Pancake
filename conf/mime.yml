@@ -1,116 +1,117 @@
 mime:
-  - text/plain:
+  text/plain:
     - txt
     - log
     - sql
     - ini
-  - text/html:
+  text/html:
     - html
     - htm
-  - text/x-php:
+  text/x-php:
     - php
     - php5
     - php4
     - php3
     - phb
     - inc
-  - application/octet-stream:
+  application/octet-stream:
     - exe
     - bin
-  - application/x-javascript:
+    - so
+  application/x-javascript:
     - js
-  - text/css:
+  text/css:
     - css
-  - image/png:
+  image/png:
     - png
-  - image/jpeg:
+  image/jpeg:
     - jpeg
     - jpg
-  - www/mime:
+  www/mime:
     - mime
-  - application/powerpoint:
+  application/vnd.ms-powerpoint:
     - ppt
-  - application/msword:
+  application/msword:
     - doc
-  - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+  application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
     - xlsx
-  - application/vnd.openxmlformats-officedocument.spreadsheetml.template:
+  application/vnd.openxmlformats-officedocument.spreadsheetml.template:
     - xltx
-  - application/vnd.openxmlformats-officedocument.presentationml.template:
+  application/vnd.openxmlformats-officedocument.presentationml.template:
     - potx
-  - application/vnd.openxmlformats-officedocument.presentationml.slideshow:
+  application/vnd.openxmlformats-officedocument.presentationml.slideshow:
     - ppsx
-  - application/vnd.openxmlformats-officedocument.presentationml.presentation:
+  application/vnd.openxmlformats-officedocument.presentationml.presentation:
     - pptx
-  - application/vnd.openxmlformats-officedocument.presentationml.slide:
+  application/vnd.openxmlformats-officedocument.presentationml.slide:
     - sldx
-  - application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+  application/vnd.openxmlformats-officedocument.wordprocessingml.document:
     - docx
-  - application/vnd.openxmlformats-officedocument.wordprocessingml.template:
+  application/vnd.openxmlformats-officedocument.wordprocessingml.template:
     - dotx
-  - application/vnd.ms-excel.addin.macroEnabled.12:
+  application/vnd.ms-excel.addin.macroEnabled.12:
     - xlam
-  - application/vnd.ms-excel.sheet.binary.macroEnabled.12:
+  application/vnd.ms-excel.sheet.binary.macroEnabled.12:
     - xlsb
-  - text/x-script.python:
+  text/x-script.python:
     - py
-  - application/x-bytecode.python:
+  application/x-bytecode.python:
     - pyc
-  - image/bmp:
+  image/bmp:
     - bmp
-  - application/pdf:
+  application/pdf:
     - pdf
-  - application/zip:
+  application/zip:
     - zip
-  - application/x-rar-compressed:
+  application/x-rar-compressed:
     - rar
-  - image/gif:
+  image/gif:
     - gif
-  - image/x-paintnet:
+  image/x-paintnet:
     - pdn
-  - application/x-iso-image:
+  application/x-iso-image:
     - iso
-  - text/yaml:
+  text/yaml:
     - yml
     - yaml
-  - application/x-jar:
+  application/x-jar:
     - jar
-  - audio/mpeg:
+  audio/mpeg:
     - mp3
-  - video/mp4:
+  video/mp4:
     - mp4
-  - audio/x-flac:
+  audio/x-flac:
     - flac
-  - application/x-xpinstall:
+  application/x-xpinstall:
     - xpi
-  - application/x-7z-compressed:
+  application/x-7z-compressed:
     - 7z
-  - application/vnd.oasis.opendocument.p:
+  application/vnd.oasis.opendocument.p:
     - odp
-  - application/vnd.oasis.opendocument.t:
+  application/vnd.oasis.opendocument.t:
     - odt
-  - application/x-msdownload:
+  application/x-msdownload:
     - dll
-  - application/bat:
+  application/bat:
     - bat
-  - application/msexcel:
+  application/vnd.ms-excel:
     - xls
     - xla
-  - application/x-gzip:
+  application/x-gzip:
     - gz
     - tgz
-  - application/x-httpd-cgi:
+  application/x-httpd-cgi:
     - cgi
-  - application/vnd.ms-cab-compressed:
+  application/vnd.ms-cab-compressed:
     - cab
-  - application/x-msi:
+  application/x-msi:
     - msi
-  - application/x-tar:
+  application/x-tar:
     - tar
-  - application/x-bzip:
+  application/x-bzip:
     - bz2
-  - text/x-script.perl:
+  text/x-script.perl:
     - pl
-  - image/svg+xml:
+  image/svg+xml:
     - svg
     - svgz

@@ -19,7 +19,7 @@
     const PHP_WORKER_TYPE = 2;
     const SYSTEM = 1;
     const REQUEST = 2;
-    define('ERROR_REPORTING', E_COMPILE_ERROR | E_COMPILE_WARNING | E_CORE_ERROR | E_CORE_WARNING | E_ERROR | E_PARSE | E_RECOVERABLE_ERROR | E_USER_ERROR | E_USER_WARNING | E_WARNING);
+    define('Pancake\ERROR_REPORTING', \E_COMPILE_ERROR | \E_COMPILE_WARNING | \E_CORE_ERROR | \E_CORE_WARNING | \E_ERROR | \E_PARSE | \E_RECOVERABLE_ERROR | \E_USER_ERROR | \E_USER_WARNING | \E_WARNING);
     
     // Include files necessary to run Pancake
     require_once 'configuration.class.php';
@@ -84,6 +84,12 @@
         abort();
     }
     
+    // Check if socket-extension is available
+    if(!extension_loaded('sockets')) {
+        out('You need to compile PHP with support for sockets (--enable-sockets) in order to run Pancake.', SYSTEM, false);
+        abort();
+    }
+    
     // Check for DeepTrace
     if(!extension_loaded('DeepTrace')) {
         out('You need to run Pancake with the DeepTrace-extension, which is delivered with Pancake. Just run pancake.sh.', SYSTEM, false);
@@ -98,6 +104,7 @@
     
     // Load configuration
     Config::load();
+    
     // Remove some PHP-functions and -constants in order to provide ability to run PHP under Pancake
     dt_remove_function('php_sapi_name');
     dt_remove_function('setcookie');
@@ -108,19 +115,22 @@
     dt_remove_function('header_remove');
     dt_remove_function('is_uploaded_file');
     dt_remove_function('move_uploaded_file');
-    dt_remove_function('register_shutdown_function');
     dt_remove_function('filter_input');
     dt_remove_function('filter_has_var');
     dt_remove_function('filter_input_array');
     if(function_exists('http_response_code')) dt_remove_function('http_response_code');
     if(function_exists('header_register_callback')) dt_remove_function('header_register_callback');
-    dt_rename_function('phpinfo', 'Pancake_phpinfo_orig');  
-    dt_rename_function('ob_get_level', 'Pancake_ob_get_level_orig');
-    dt_rename_function('ob_end_clean', 'Pancake_ob_end_clean_orig');
-    dt_rename_function('ob_end_flush', 'Pancake_ob_end_flush_orig');
-    dt_rename_function('ob_flush', 'Pancake_ob_flush_orig');
-    dt_rename_function('ob_get_flush', 'Pancake_ob_get_flush_orig');
-    dt_rename_function('session_start', 'Pancake_session_start_orig');
+    dt_rename_function('phpinfo', 'Pancake\PHPFunctions\phpinfo');  
+    dt_rename_function('ob_get_level', 'Pancake\PHPFunctions\OutputBuffering\getLevel');
+    dt_rename_function('ob_end_clean', 'Pancake\PHPFunctions\OutputBuffering\endClean');
+    dt_rename_function('ob_end_flush', 'Pancake\PHPFunctions\OutputBuffering\endFlush');
+    dt_rename_function('ob_flush', 'Pancake\PHPFunctions\OutputBuffering\flush');
+    dt_rename_function('ob_get_flush', 'Pancake\PHPFunctions\OutputBuffering\getFlush');
+    dt_rename_function('session_start', 'Pancake\PHPFunctions\sessionStart');
+    dt_rename_function('ini_set', 'Pancake\PHPFunctions\setINI');
+    dt_rename_function('debug_backtrace', 'Pancake\PHPFunctions\debugBacktrace');
+    dt_rename_function('debug_print_backtrace', 'Pancake\PHPFunctions\debugPrintBacktrace');
+    dt_rename_function('register_shutdown_function', 'Pancake\PHPFunctions\registerShutdownFunction');
     dt_remove_constant('PHP_SAPI'); 
     
     dt_show_plain_info(false);
@@ -130,14 +140,15 @@
     
     // Set PANCAKE_DEBUG_MODE
     if(isset($startOptions['debug']) || Config::get('main.debugmode') === true)
-        define('PANCAKE_DEBUG_MODE', true);
+        define('Pancake\DEBUG_MODE', true);
     else
-        define('PANCAKE_DEBUG_MODE', false);
-    
-    out('Basic configuration loaded', SYSTEM, true, true);
-    if(PANCAKE_DEBUG_MODE === true)
-        out('Running in debugmode');
+        define('Pancake\DEBUG_MODE', false);
         
+    if(DEBUG_MODE === true)
+        out('Debugging enabled');
+        
+    out('Basic configuration initialized', SYSTEM, true, true);
+           
     // Check if configured user exists
     if(posix_getpwnam(Config::get('main.user')) === false || posix_getgrnam(Config::get('main.group')) === false) {
         out('The configured user/group doesn\'t exist.', SYSTEM, false);
@@ -153,15 +164,15 @@
     if(isset($startOptions['daemon'])) {
         ignore_user_abort(true);
         
-        if(is_resource(STDIN))  fclose(STDIN);
-        if(is_resource(STDOUT)) fclose(STDOUT);
-        if(is_resource(STDERR)) fclose(STDERR);
+        if(is_resource(\STDIN))  fclose(\STDIN);
+        if(is_resource(\STDOUT)) fclose(\STDOUT);
+        if(is_resource(\STDERR)) fclose(\STDERR);
         fopen('/dev/null', 'r');
         fopen('/dev/null', 'r');
         fopen('/dev/null', 'r');
-        define('PANCAKE_DAEMONIZED', true);
+        define('Pancake\DAEMONIZED', true);
     } else
-        define('PANCAKE_DAEMONIZED', false);
+        define('Pancake\DAEMONIZED', false);
     
     // Check for ports to listen on
     if(!Config::get('main.listenports')) {
@@ -189,21 +200,21 @@
     MIME::load();
     
     // Dirty workaround for error-logging (else may get permission denied)
-    trigger_error('Nothing', E_USER_NOTICE);
+    trigger_error('Nothing', \E_USER_NOTICE);
     
     // Create sockets
     // IPv6
     foreach((array) Config::get('main.ipv6') as $interface) { 
         foreach(Config::get('main.listenports') as $listenPort) {
             // Create socket
-            $socket = socket_create(AF_INET6, SOCK_STREAM, SOL_TCP);
+            $socket = socket_create(\AF_INET6, \SOCK_STREAM, \SOL_TCP);
             
             // Set option to reuse local address
-            socket_set_option($socket, SOL_SOCKET, SO_REUSEADDR, 1);
+            socket_set_option($socket, \SOL_SOCKET, \SO_REUSEADDR, 1);
             
             // Bind to interface
             if(!socket_bind($socket, $interface, $listenPort)) {
-                trigger_error('Failed to create socket for '.$interface.' (IPv4) on port '.$listenPort, E_USER_WARNING);
+                trigger_error('Failed to create socket for '.$interface.' (IPv6) on port '.$listenPort, \E_USER_WARNING);
                 continue;
             } 
             
@@ -220,14 +231,14 @@
     foreach((array) Config::get('main.ipv4') as $interface) {
         foreach(Config::get('main.listenports') as $listenPort) {
             // Create socket
-            $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+            $socket = socket_create(\AF_INET, \SOCK_STREAM, \SOL_TCP);
             
             // Set option to reuse local address
-            socket_set_option($socket, SOL_SOCKET, SO_REUSEADDR, 1);
+            socket_set_option($socket, \SOL_SOCKET, \SO_REUSEADDR, 1);
             
             // Bind to interface
             if(!socket_bind($socket, $interface, $listenPort)) {
-                trigger_error('Failed to create socket for '.$interface.' (IPv6) on port '.$listenPort, E_USER_WARNING);
+                trigger_error('Failed to create socket for '.$interface.' (IPv4) on port '.$listenPort, \E_USER_WARNING);
                 continue;
             } 
             
@@ -242,7 +253,7 @@
     
     // Check if any sockets are available
     if(!$Pancake_sockets) {
-        trigger_error('No sockets available to listen on', E_USER_ERROR);
+        trigger_error('No sockets available to listen on', \E_USER_ERROR);
         abort();
     }
     
@@ -252,13 +263,13 @@
             $vHosts[$name] = new vHost($name);
         } catch(\Exception $exception) {
             unset($vHosts[$name]);
-            trigger_error('Configuration of vHost "'.$name.'" is invalid: '.$exception->getMessage(), E_USER_WARNING);
+            trigger_error('Configuration of vHost "'.$name.'" is invalid: '.$exception->getMessage(), \E_USER_WARNING);
         }
     }
     
     // Check if any vHosts are available
     if(!$vHosts) {
-        trigger_error('No vHosts available.', E_USER_ERROR);
+        trigger_error('No vHosts available.', \E_USER_ERROR);
         abort();
     }
     
@@ -274,6 +285,8 @@
             $Pancake_vHosts[$address] = $vHost;
     }
     
+    pcntl_sigprocmask(\SIG_BLOCK, array(\SIGUSR1));
+    
     // We're doing this in two steps so that all vHosts will be displayed in phpinfo()
     foreach($vHosts as $vHost) {
         for($i = 0;$i < $vHost->getPHPWorkerAmount();$i++) {
@@ -283,7 +296,13 @@
                 require $thread->codeFile;
                 exit;
             }
-            $phpWorkers[] = $thread;
+            pcntl_sigtimedwait(array(\SIGUSR1), $x, Config::get('main.workerboottime'));
+            if(!$x) {
+                $thread->kill();
+                out('Failed to boot worker ' . $thread->friendlyName . ' in time - Aborting');
+                abort();
+            }
+            //$phpWorkers[] = $thread;
         }
     }
     
@@ -294,32 +313,39 @@
     
     // Create RequestWorkers
     for($i = 0;$i < Config::get('main.requestworkers');$i++) {
-        
-        $requestWorkers[] = new RequestWorker(); 
+        $thread = new RequestWorker(); 
+        pcntl_sigtimedwait(array(\SIGUSR1), $x, Config::get('main.workerboottime'));
+        if(!$x) {
+            $thread->kill();
+            out('Failed to boot worker ' . $thread->friendlyName . ' in time - Aborting');
+            abort();
+        }
+        //$requestWorkers[] = $thread;
     }
+        
     out('Created '.Config::get('main.requestworkers').' RequestWorkers', SYSTEM, true, true);
     
-    out('Ready for connections');
+    out('Ready');
     
     // Clean
     cleanGlobals();
     gc_collect_cycles();
     
     // Set blocking mode for some signals
-    pcntl_sigprocmask(SIG_BLOCK, array(SIGCHLD, SIGINT, SIGUSR2, SIGTERM));
+    pcntl_sigprocmask(\SIG_BLOCK, array(\SIGCHLD, \SIGINT, \SIGUSR2, \SIGTERM));
     
     // Don't do anything except one of the children died
     while(true) {
-        pcntl_sigwaitinfo(array(SIGCHLD, SIGINT, SIGUSR2, SIGTERM), $info);
+        pcntl_sigwaitinfo(array(\SIGCHLD, \SIGINT, \SIGUSR2, \SIGTERM), $info);
         
-        // pcntl_sigwaitinfo() might be interrupted by system calls
+        // pcntl_sigwaitinfo() might be interrupted in some cases
         if(!$info)
             continue;
         
         switch($info['signo']) {
-            case SIGCHLD:
+            case \SIGCHLD:
                 // Destroy zombies
-                pcntl_wait($x, WNOHANG);
+                pcntl_wait($x, \WNOHANG);
                 
                 $thread = Thread::get($info['pid']);
                 if(IPC::get(MSG_IPC_NOWAIT, 9999)) {
@@ -327,7 +353,7 @@
                 } else
                     out('Detected crash of worker ' . $thread->friendlyName . ' - Rebooting worker');
                 
-                // PHPWorkers need to be started manually
+                // PHPWorkers need to be run in global scope
                 if($thread instanceof PHPWorker) {
                     $thread->start(false);
                     if($Pancake_currentThread) {
@@ -342,9 +368,9 @@
                 } else
                     $thread->start();
             break;
-            case SIGINT:
-            case SIGTERM:
-            case SIGUSR2:
+            case \SIGINT:
+            case \SIGTERM:
+            case \SIGUSR2:
                 abort();
             break;
         }

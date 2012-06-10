@@ -1,10 +1,10 @@
 vhosts:
   default:                                                      # Name of the vHost
-    docroot: /usr/lcoal/Pancake/vhosts/default/                 # Path to DocumentRoot
+    docroot: ../vhosts/default/                                 # Path to DocumentRoot
     listen:                                                     # Hosts to listen on
       - 127.0.0.1
       - localhost
-      - ::1
+      - [::1]
     phpworkers: 3                                               # Amount of PHP-Workers to run
     writelimit: 1048576                                         # Limits the maximum data to be sent to the client at a time - Low value = less RAM-usage, but slower - High value = faster, but more RAM-usage
     gzipmin: 1048576                                            # Minimum static filesize to use GZIP-compression
@@ -16,12 +16,31 @@ vhosts:
     phpworkerlimit: 100                                         # Limit of requests a PHPWorker may process until it has to be restarted (0 for no limit)
     phpinfopancake: true                                        # Expose information about Pancake's configuration in phpinfo()
     phpinfopancakevhosts: true                                  # Expose information about Pancake's vHosts in phpinfo() (requires phpinfopancake to be true)
-#    phpcache:                                                   # Files or directories that should be cached by Pancake
+    autodelete:                                                 # Automatically delete non-cached PHP elements after a request
+      classes: true
+      functions: true
+      interfaces: true
+      constants: true
+      traits: true
+      includes: true
+    forcedelete:                                                # Force deletion of the specified PHP elements after a request
+    excludedelete:                                              # Exclude the specified PHP elements from automatic deletion after a request
+#    phpcache:                                                  # Files or directories that should be cached by Pancake
 #      - my.class.php
 #      - inc/functions.php
 #      - inc/
-#    phpcacheexclude:                                            # Files that should be excluded from caching (useful when caching complete directories that contain a few files that should not be cached)
+#    phpcacheexclude:                                           # Files that should be excluded from caching (useful when caching complete directories that contain a few files that should not be cached)
 #      - inc/functions.old.php
+#    auth:                                                      # Files and directories that should require authentication
+#      /index.html:
+#        type: basic
+#        realm: "Authorization required"
+#        authfiles: 
+#          - /usr/local/Pancake/vhosts/passwords
+#    rewrite:                                                    # Rewrite URLs
+#      - location: /users/
+#        pattern: ~^/users/(.*)$~
+#        replace: /user.php?id=$1
     index:                                                      # List of files allowed as directory-indexes
       - index.php
       - index.html

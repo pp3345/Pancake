@@ -13,7 +13,7 @@
         exit;
     
     /**
-    * RequestWorker which retrieves requests from SocketWorkers    
+    * A request worker processes requests.
     */
     class RequestWorker extends Thread {
         static private $instances = array();
@@ -29,12 +29,12 @@
             // Add instance
             self::$instances[] = $this;
             
-            // Set RequestWorker-ID and address for IPC
+            // Set id and address for IPC
             $this->id = max(array_keys(self::$instances));
-            $this->IPCid = REQUEST_WORKER_TYPE.$this->id;
+            $this->IPCid = REQUEST_WORKER_TYPE . $this->id;
             
             $this->codeFile = 'threads/single/requestWorker.thread.php';
-            $this->friendlyName = 'RequestWorker #'.($this->id+1);
+            $this->friendlyName = 'RequestWorker #' . ($this->id+1);
             
             // Start worker
             $this->start();

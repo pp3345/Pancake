@@ -97,10 +97,10 @@
         
         // Get original phpinfo
         ob_start();
-        if(!Pancake_phpinfo_orig($what))
+        if(!Pancake\PHPFunctions\phpinfo($what))
             return false;
         $phpInfo = ob_get_contents();
-        Pancake_ob_end_clean_orig();
+        Pancake\PHPFunctions\OutputBuffering\endClean();
         
         // Modify it
         $phpInfo = str_replace('<td class="v">Command Line Interface </td>', '<td class="v">Pancake Embedded SAPI </td>', $phpInfo);
@@ -248,46 +248,46 @@
     }
     
     function ob_get_level() {
-        return Pancake_ob_get_level_orig() - 1;
+        return Pancake\PHPFunctions\OutputBuffering\getLevel() - 1;
     }
     
     function ob_end_clean() {
         if(ob_get_level() > 0)
-            return Pancake_ob_end_clean_orig();
+            return Pancake\PHPFunctions\OutputBuffering\endClean();
         trigger_error('ob_end_clean(): failed to delete buffer. No buffer to delete', E_USER_NOTICE);
         return false;
     }
     
     function ob_end_flush() {
         if(ob_get_level() > 0)
-            return Pancake_ob_end_flush_orig();
+            return Pancake\PHPFunctions\OutputBuffering\endFlush();
         trigger_error('ob_end_flush(): failed to delete and flush buffer. No buffer to delete or flush', E_USER_NOTICE);
         return false;
     }
     
     function ob_get_flush() {
         if(ob_get_level() > 0)
-            return Pancake_ob_get_flush_orig();
+            return Pancake\PHPFunctions\OutputBuffering\getFlush();
         trigger_error('ob_get_flush(): failed to delete and flush buffer. No buffer to delete or flush', E_USER_NOTICE);
         return false;
     }
     
     function ob_flush() {
         if(ob_get_level() > 0)
-            return Pancake_ob_flush_orig();      
+            return Pancake\PHPFunctions\OutputBuffering\flush();      
     }
     
     function session_start() {
         if(session_id()) {
-            return Pancake_session_start_orig();
+            return Pancake\PHPFunctions\sessionStart();
         } else if($_GET[session_name()]) {
             session_id($_GET[session_name()]);
-            return Pancake_session_start_orig();
+            return Pancake\PHPFunctions\sessionStart();
         } else if($_COOKIE[session_name()]) {
             session_id($_COOKIE[session_name()]);
-            return Pancake_session_start_orig();
+            return Pancake\PHPFunctions\sessionStart();
         } else {
-            if(!Pancake_session_start_orig())
+            if(!Pancake\PHPFunctions\sessionStart())
                 return false;
             return true;
         }
@@ -410,6 +410,51 @@
             default:
                 return false;
         }
+    }
+    
+    function ini_set($varname, $newvalue, $reset = false) {
+        static $settings = array();
+        if($reset === true) {
+            foreach($settings as $varname => $newvalue)
+                Pancake\PHPFunctions\setINI($varname, $newvalue);
+            $settings = array();
+            return true;
+        }
+        if(!$settings[$varname])
+            $settings[$varname] = ini_get($varname);
+        return Pancake\PHPFunctions\setINI($varname, $newvalue); 
+    }
+    
+    if(PHP_MINOR_VERSION == 3 && PHP_RELEASE_VERSION < 6) {
+        function debug_backtrace($provide_object = true) {
+            $backtrace = Pancake\PHPFunctions\debugBacktrace($provide_object);
+            return Pancake\workBacktrace($backtrace);
+        }
+    } else {
+        function debug_backtrace($options = DEBUG_BACKTRACE_PROVIDE_OBJECT, $limit = 0) {
+            $backtrace = Pancake\PHPFunctions\debugBacktrace($options, $limit);
+            return Pancake\workBacktrace($backtrace);
+        }
+    }
+    
+    function debug_print_backtrace($options = 0, $limit = 0) {
+        ob_start();
+        Pancake\PHPFunctions\debugPrintBacktrace($options, $limit);
+        $backtrace = ob_get_contents();
+        Pancake\PHPFunctions\OutputBuffering\endClean();
+        foreach(explode("\n", $backtrace) as $index => $tracePart) {
+            if(!$index)
+                continue;
+            if(strpos($tracePart, '/sys/threads/single/phpWorker.thread.php'))
+                break;
+            if($index-1)
+                $trace .= "\n";
+            $tracePart = explode(" ", $tracePart, 2);
+            $tracePart[0] = (int) substr($tracePart[0], 1) - 1;
+            
+            $trace .= "#" . $tracePart[0] . " " . $tracePart[1];
+        }
+        echo $trace;
     }
     
     /*function Pancake_lockVariable($varName, $unlock = false) {

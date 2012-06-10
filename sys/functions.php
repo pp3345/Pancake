@@ -18,6 +18,7 @@
     * @param int $type SYSTEM or REQUEST 
     * @param bool $log Whether the text may be logged or not
     * @param bool $debugMode Whether the text should only be output in debugmode
+    * @return false|string false on error; message on success
     */
     function out($text, $type = SYSTEM, $log = true, $debugMode = false) {
         static $fileStream = array();
@@ -33,19 +34,19 @@
             }
         }
     
-        $friendlyName = (!$Pancake_currentThread) ? 'Master' : $Pancake_currentThread->friendlyName;
+        $friendlyName = ($Pancake_currentThread) ? $Pancake_currentThread->friendlyName : 'Master';
         
         $message = '['.$friendlyName.'] '
                     .date(Config::get('main.dateformat')).' '
                     .$text."\n";
         
-        if($debugMode && PANCAKE_DEBUG_MODE !== true)
+        if($debugMode && DEBUG_MODE !== true)
             return $message;
         
-        if(PANCAKE_DAEMONIZED !== true)
-            fwrite(STDOUT, $message);
+        if(DAEMONIZED !== true)
+            fwrite(\STDOUT, $message);
         if($log === true && is_resource($fileStream[$type]) && !fwrite($fileStream[$type], $message))
-            trigger_error('Couldn\'t write to logfile', E_USER_WARNING);
+            trigger_error('Couldn\'t write to logfile', \E_USER_WARNING);
         return $message;
     }
     
@@ -67,6 +68,13 @@
         $threads = Thread::getAll();
         if($threads)
             foreach($threads as $worker) {
+                /**
+                * @var Thread
+                */
+                $worker;
+                
+                if(!$worker->running)
+                    continue;
                 $worker->stop();            
                 $worker->waitForExit();
             }
@@ -76,7 +84,7 @@
     }                                    
     
     /**
-    * Like array_merge(). But not so stupid.
+    * Like \array_merge() with the difference that this function overrides keys instead of adding them.
     * 
     * @param array $array1
     * @param array $array2
@@ -167,7 +175,7 @@
     * Cleans all global and superglobal variables
     * 
     */
-    function cleanGlobals($excludeVars = null, $listOnly = false) {
+    function cleanGlobals($excludeVars = array(), $listOnly = false) {
         $_GET = $_SERVER = $_POST = $_COOKIE = $_ENV = $_REQUEST = $_FILES = $_SESSION = array();
     
         // We can't reset $GLOBALS like this because it would destroy its function of automatically adding all global vars

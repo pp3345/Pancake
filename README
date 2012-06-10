@@ -2,10 +2,10 @@ Pancake is a fast, simple and lightweight HTTP-Server written in PHP with accele
 
 System requirements:
 
-POSIX-compliant operating system (should run fine on Linux, BSD, Apple Mac OS X, etc. but won't run under any version of Microsoft Windows)
+Linux (should also run other unixoid, POSIX-compliant operating systems with some work)
 PHP 5.3.0 or newer compiled with --enable-pcntl --enable-sysvshm --enable-sysvmsg --enable-sockets (PHP 5.4 recommended!)
 PECL yaml 1.1.0 or newer
-DeepTrace 1.3.1 or newer (DeepTrace is bundled with Pancake for some common processor architectures and PHP versions)
+DeepTrace 1.3.3 or newer (DeepTrace is bundled with Pancake for some common processor architectures and PHP versions)
 
 Installing Pancake:
 
@@ -13,7 +13,12 @@ Installing Pancake:
 2. git clone git://github.com/pp3345/Pancake/
 3. cd Pancake/conf
 4. cp config.example.yml config.yml
-5. cp vhost.example.yml vhosts/default.yml
+5. mkdir vhosts
+6. cp vhost.example.yml vhosts/default.yml
+7. cd ../sys
+8. chmod +x pancake.sh
+9. cd ext
+10. chmod +x *
 
 Running Pancake:
 
@@ -22,7 +27,7 @@ Running Pancake:
 (as root, you may use sudo)
 
 Compiling DeepTrace:
-
+                                   
 1. cd
 2. git clone git://github.com/NeoXiD/DeepTrace
 3. cd DeepTrace

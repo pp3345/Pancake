@@ -17,6 +17,7 @@
     */
     class SharedMemory {
         static private $sharedMemory = null;
+        static private $tempFile = null;
         
         /**
         * Creates SharedMemory-resource
@@ -24,10 +25,10 @@
         */
         static public function create() {
             // Create temporary file
-            $tempFile = tempnam(Config::get('main.tmppath'), 'SHMEM');
+            self::$tempFile = tempnam(Config::get('main.tmppath'), 'SHMEM');
             
             // Get filetoken for temporary file and attach Shared Memory
-            self::$sharedMemory = shm_attach(ftok($tempFile, 'p'), Config::get('main.sharedmemory'));
+            self::$sharedMemory = shm_attach(ftok(self::$tempFile, 'p'), Config::get('main.sharedmemory'));
         }
         
         /**
@@ -35,6 +36,7 @@
         * 
         */
         static public function destroy() {
+            unlink(self::$tempFile);
             return shm_remove(self::$sharedMemory);
         }
         
@@ -45,7 +47,6 @@
         * @param int $key Key for variable in Shared Memory
         */
         static public function put($variable, $key = null) {
-            // Set key if not given - Limit mt_rand() to 99 999 999 in order not to exhaust PHP_INT_MAX
             if(!$key)
                 $key = uniqid();
             $key = (int) $key;      

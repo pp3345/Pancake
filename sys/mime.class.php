@@ -14,7 +14,6 @@
         
     class MIME {
         static private $mimeByExt = array();
-        static private $mime = array();
         const DEFAULT_MIMETYPE = 'text/plain';
         
         /**
@@ -36,12 +35,9 @@
         public static function load() {
             $mime = Config::get('mime');
                 
-            foreach($mime as $mimeConf) {
-                foreach($mimeConf as $index => $value) {
-                    foreach($value as $ext)
-                        self::$mimeByExt[$ext] = $index;
-                }
-            }
+            foreach($mime as $type => $exts)
+                foreach($exts as $ext)
+                    self::$mimeByExt[$ext] = $type;
         }
     }
 ?>

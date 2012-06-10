@@ -1,7 +1,7 @@
 <?php
   
     /****************************************************************/
-    /* Pancake                                                    */
+    /* Pancake                                                      */
     /* configuration.class.php                                      */
     /* 2012 Yussuf "pp3345" Khalil                                  */
     /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
@@ -13,7 +13,7 @@
         exit;
     
     /**
-    * Class for handling configuration
+    * Class for handling the configuration
     */
     class Config {
         const PATH = '../conf/config.yml';            // Path to main configuration file
@@ -24,29 +24,37 @@
         * Loads the configuration
         */
         static public function load() {
-            if(!($skeletonData = file_get_contents(self::SKELETON_PATH))
-            || !($configData = file_get_contents(self::PATH))
-            || !(self::$configuration = yaml_parse($skeletonData)) 
-            || !(self::$configuration = array_merge(self::$configuration, yaml_parse($configData)))) {
-                out('Couldn\'t load configuration', SYSTEM, false);
+            if(!self::loadFile(self::SKELETON_PATH) || !self::loadFile(self::PATH)) {
+                out('Couldn\'t load configuration');
+                abort();
+            }
+            
+            $includes = self::get('include');
+            
+            foreach((array) $includes as $include)
+                self::loadFile($include);
+        }
+        
+        /**
+        * Loads a single configuration file
+        * 
+        * @param string $fileName
+        */
+        static private function loadFile($fileName) {
+            if(is_dir($fileName)) {
+                $dir = scandir($fileName);
+                foreach($dir as $file) {
+                    if($file != '.' && $file != '..')
+                        self::loadFile($fileName . '/' . $file);
+                }
+                return true;
+            }
+            if(!($data = file_get_contents($fileName)) || !($config = yaml_parse($data))) {
+                out('Failed to load configuration file ' . $fileName);
                 return false;
             }
-            $includes = self::get('include');
-            if($includes)
-                foreach($includes as $include) {
-                    if(is_dir($include)) {
-                        $directory = scandir($include);
-                        foreach($directory as $file) {
-                            if($file != '.' && $file != '..') {
-                                if(!($includeData = file_get_contents($include.'/'.$file)) || !(self::$configuration = array_merge(self::$configuration, yaml_parse($includeData))))
-                                    out('Couldn\'t load configuration-include: '.$file);
-                            }
-                        }
-                        continue;
-                    }
-                    if(!($includeData = file_get_contents($include)) || !(self::$configuration = array_merge(self::$configuration, yaml_parse($includeData))))
-                        out('Couldn\'t load configuration-include: '.$include);
-                }
+            self::$configuration = array_merge(self::$configuration, $config);
+            return true;
         }
         
         /**

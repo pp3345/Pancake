@@ -66,6 +66,7 @@
                 $this->running = true;
                 return true;
             } else {                            // Child
+                pcntl_sigprocmask(\SIG_SETMASK, array());
                 $this->running = true;
                 $this->pid = posix_getpid();
                 global $Pancake_currentThread;
@@ -82,7 +83,7 @@
         * Stops the Thread with SIGTERM, may stay alive in some cases
         */
         public function stop() {
-            if(!posix_kill($this->pid, SIGTERM))
+            if(!posix_kill($this->pid, \SIGTERM))
                 return false;
             $this->running = false;
             return true;
@@ -92,7 +93,7 @@
         * Kills the Thread with SIGKILL, Thread can't resist being killed
         */
         public final function kill() {
-            if(!posix_kill($this->pid, SIGKILL))
+            if(!posix_kill($this->pid, \SIGKILL))
                 return false;
             $this->running = false;
             return true;
@@ -104,7 +105,7 @@
         * @param int $signal The signal to be sent
         */
         public final function signal($signal) {
-            if($signal == SIGKILL || $signal == SIGTERM)
+            if($signal == \SIGKILL || $signal == \SIGTERM)
                 return false;
             if(!posix_kill($this->pid, $signal))
                 return false;
@@ -125,22 +126,33 @@
         * 
         */
         public final function waitForExit() {
-            if(pcntl_waitpid($this->pid, $x, WNOHANG) === 0) {
+            if(pcntl_waitpid($this->pid, $x, \WNOHANG) === 0) {
                 out('Waiting for ' . $this->friendlyName . ' to stop');
                 // Sleep maximum 1 second
-                for($i = 0;$i < 200 && pcntl_waitpid($this->pid, $x, WNOHANG) === 0; $i++)
+                for($i = 0;$i < 200 && pcntl_waitpid($this->pid, $x, \WNOHANG) === 0; $i++)
                     usleep(10000);
-                if(pcntl_waitpid($this->pid, $x, WNOHANG) === 0) {
+                if(pcntl_waitpid($this->pid, $x, \WNOHANG) === 0) {
                     out('Killing worker');
                     $this->kill();
                 }
             }
         }       
         
+        /**
+        * Return the worker with the given pid
+        * 
+        * @param int $pid
+        * @return Thread
+        */
         public final static function get($pid) {
             return self::$threadCache[$pid];
         }
         
+        /**
+        * Returns all workers
+        * 
+        * @return array
+        */
         public final static function getAll() {
             return self::$threadCache;
         }

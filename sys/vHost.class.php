@@ -37,12 +37,16 @@
         private $phpInfoConfig = true;
         private $phpInfovHosts = true;
         private $onEmptyPage204 = true;
+        private $rewriteRules = array();
+        private $autoDelete = array();
+        private $autoDeleteExcludes = array();
+        private $forceDeletes = array();
         static private $defaultvHost = null;
         
         /**
         * Loads a vHost
         * 
-        * @param mixed $name Name of the vHost as configured
+        * @param mixed $name Name of the vHost that should be loaded
         * @return vHost
         */
         public function __construct($name) {
@@ -57,15 +61,11 @@
             
             // Check if document root exists and is a directory
             if(!file_exists($this->documentRoot) || !is_dir($this->documentRoot))
-                throw new \Exception('DocumentRoot does not exist or is not a directory: '.$this->documentRoot);
+                throw new \Exception('Document root does not exist or is not a directory: '.$this->documentRoot);
                 
             if(substr($this->documentRoot, -1, 1) != '/')
                 $this->documentRoot = $this->documentRoot . '/';
                                  
-            // Check for Hosts to listen on
-            $this->listen = $config['listen'];
-            if(count($this->listen) < 1)
-                throw new Exception('You need to specify at least one address to listen on');
             $this->phpCodeCache = $config['phpcache'];
             $this->phpCodeCacheExcludes = $config['phpcacheexclude'];
             $this->phpWorkers = $config['phpworkers'];
@@ -80,21 +80,40 @@
             $this->phpInfoConfig = (bool) $config['phpinfopancake'];
             $this->phpInfovHosts = (bool) $config['phpinfopancakevhosts'];
             $this->onEmptyPage204 = (bool) $config['204onemptypage'];
+            
+            // Check for Hosts to listen on
+            $this->listen = $config['listen'];
+            if(count($this->listen) < 1 && !$this->isDefault)
+                throw new \Exception('You need to specify at least one address to listen on');
+            
+            if($config['autodelete'])
+                $this->autoDelete = (array) $config['autodelete'];
+            else
+                $this->autoDelete = true;
+            $this->autoDeleteExcludes = (array) $config['excludedelete'];
+            foreach((array) $config['forcedelete'] as $type => $deletes) {
+                foreach((array) $deletes as $delete)
+                    $this->forceDeletes[] = array('type' => $type, 'name' => $delete);
+            }
             if($this->isDefault === true)
                 self::$defaultvHost = $this;
+                
+            // Load rewrite rules
+            foreach((array) $config['rewrite'] as $rewriteRule) {
+                if(substr($rewriteRule['location'], 0, 1) != '/' && $rewriteRule['location'])
+                    $rewriteRule['location'] = '/' . $rewriteRule['location'];
+                $rewriteRule['location'] = strtolower($rewriteRule['location']);
+                $this->rewriteRules[] = array(  'location' => $rewriteRule['location'],
+                                                'if' => $rewriteRule['if'],
+                                                'pattern' => $rewriteRule['pattern'],
+                                                'replacement' => $rewriteRule['replace']);
+            }
             
             // Load files and directories that need authentication
             if($config['auth']) {
-                foreach($config['auth'] as $authFileConfig) {
-                    // Dirty workaround for bug in PECL yaml
-                    foreach($authFileConfig as $index => $value) {
-                        if($index != 'type' && $index != 'realm' && $index != 'authfiles') {
-                            $authFile = $index;
-                            break;
-                        }
-                    }
+                foreach($config['auth'] as $authFile => $authFileConfig) {
                     if(!is_array($authFileConfig['authfiles']) || ($authFileConfig['type'] != 'basic' && $authFileConfig['type'] != 'digest')) {
-                        trigger_error('Invalid Authentication configuration for "'.$authFile.'"', E_USER_WARNING);
+                        trigger_error('Invalid authentication configuration for "'.$authFile.'"', E_USER_WARNING);
                         continue;
                     }
                     if(is_dir($this->documentRoot.$authFile)) {
@@ -116,10 +135,10 @@
                 foreach($this->phpCodeCache as $id => $codeFile)
                     if(!file_exists($this->documentRoot . $codeFile) || !is_readable($this->documentRoot . $codeFile)) {
                         unset($this->phpCodeCache[$id]);
-                        throw new \Exception('Specified CodeCache-File does not exist or isn\'t readable: '.$codeFile);
+                        throw new \Exception('Specified CodeCache-file does not exist or isn\'t readable: '.$codeFile);
                     }
                 if(!$this->phpWorkers)
-                    throw new \Exception('The value for phpworkers must be greater or equal 1 if you want to use the CodeCache.');
+                    throw new \Exception('The amount of PHPWorkers must be greater or equal 1 if you want to use the CodeCache.');
             }
         }
         
@@ -176,6 +195,60 @@
                 }
             }
             return false;
+        }
+        
+        /**
+        * Applies the vHost's rewrite rules to a URI
+        * 
+        * @param string $uri
+        * @return string
+        */
+        public function rewrite($uri) {
+            foreach($this->rewriteRules as $rule) {
+                if($rule['location'] && $rule['if']) {
+                    if(strpos(strtolower($uri), $rule['location']) !== 0 && preg_match($rule['if'], $uri))
+                        $uri = preg_replace($rule['pattern'], $rule['replacement'], $uri);
+                } else if($rule['location']) {
+                    if(strpos(strtolower($uri), $rule['location']) !== false)
+                        $uri = preg_replace($rule['pattern'], $rule['replacement'], $uri);
+                } else if($rule['if']) {
+                    if(preg_match($rule['if'], $uri))
+                        $uri = preg_replace($rule['pattern'], $rule['replacement'], $uri);
+                } else
+                    $uri = preg_replace($rule['pattern'], $rule['replacement'], $uri);
+            }
+            //var_dump($uri);
+            return $uri;
+        }
+        
+        /**
+        * Determines whether a specific type of PHP elements should be automatically deleted
+        * 
+        * @param string $type
+        * @return bool
+        */
+        public function shouldAutoDelete($type) {
+            return $this->autoDelete === true ? true : (bool) $this->autoDelete[$type];
+        }
+        
+        /**
+        * Determines whether a specific element should be excluded from automatic deletion
+        * 
+        * @param string $name
+        * @param string $type
+        * @return bool
+        */
+        public function isAutoDeleteExclude($name, $type) {
+            return (bool) $this->autoDeleteExludes[$type][$name];
+        }
+        
+        /**
+        * Returns PHP elements that should be deleted
+        * 
+        * @return array
+        */
+        public function getForcedDeletes() {
+            return (array) $this->forceDeletes;
         }
         
         /**

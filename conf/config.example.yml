@@ -24,6 +24,7 @@ main:
   allowoptions: true                                            # Whether to allow the "OPTIONS"-requestmethod
   requestworkerlimit: 50000                                     # Limit of requests a RequestWorker may process until it has to be restarted (0 for no limit)
   maxconcurrent: 0                                              # Limit of concurrent connections a RequestWorker may hold open (0 for no limit)
+  workerboottime: 5                                             # The upper timelimit for a worker to boot (raise this when you're for example caching files that take long to load)
 include:                                                        # Additional configuration-files to include
   - ../conf/vhosts/
   - ../conf/mime.yml

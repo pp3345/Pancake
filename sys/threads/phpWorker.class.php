@@ -42,18 +42,17 @@
             
             // Start worker
             $this->start(false);
-            
-            usleep(10000);
         }
         
         /**
         * Let a PHPWorker handle a request
         *
         * @param HTTPRequest $request
+        * @param int $key SharedMem-key
         * @return int SharedMem-key
         */
-        static public function handleRequest(HTTPRequest $request) {
-            if(!($key = SharedMemory::put($request)))
+        static public function handleRequest(HTTPRequest $request, $key) {
+            if(!SharedMemory::put($request, $key))
                 return false;
             if(!IPC::send(PHP_WORKER_TYPE.$request->getvHost()->getID(), $key))
                 return false;
