@@ -140,6 +140,8 @@
             if(strlen($postData[$socketID]) >= $requests[$socketID]->getRequestHeader('Content-Length')) {
                 if(strlen($postData[$socketID]) > $requests[$socketID]->getRequestHeader('Content-Length'))
                     $postData[$socketID] = substr($postData[$socketID], 0, $requests[$socketID]->getRequestHeader('Content-Length'));
+                if($key = array_search($requestSocket, $listenSocketsOrig))
+                    unset($listenSocketsOrig[$key]);
                 $requests[$socketID]->readPOSTData($postData[$socketID]);
             } else {
                 // Event-based reading
@@ -149,7 +151,8 @@
                 }
                 goto clean;
             }
-        }
+        } else if($key = array_search($requestSocket, $listenSocketsOrig))
+            unset($listenSocketsOrig[$key]);
         
         if($requests[$socketID]->getRequestType() == 'TRACE')
             goto write;
@@ -413,48 +416,44 @@
                 $liveWriteSocketsOrig[] = $requestSocket;
             goto clean;
         }
-        // Remove Socket from LiveWrite after finishing
-        if(($index = @array_search($requestSocket, $liveWriteSocketsOrig)) !== false)
-            unset($liveWriteSocketsOrig[$index]);
                
         close:
         
         // Close socket
-        if(!($requests[$socketID] instanceof HTTPRequest) || strtolower($requests[$socketID]->getAnswerHeader('Connection')) != 'keep-alive') {
+        if(!($requests[$socketID] instanceof HTTPRequest) || $requests[$socketID]->getAnswerHeader('Connection') != 'keep-alive') {
             @socket_shutdown($requestSocket);
             socket_close($requestSocket);
             
             if($key = array_search($requestSocket, $listenSocketsOrig))
                 unset($listenSocketsOrig[$key]);
-            if($key = array_search($requestSocket, $liveWriteSocketsOrig))
-                unset($liveWriteSocketsOrig[$key]);
         }
         
-        next:
-        
         if($requests[$socketID] instanceof HTTPRequest) {
-            if($requests[$socketID] && !in_array($requestSocket, $listenSocketsOrig, true) && strtolower($requests[$socketID]->getAnswerHeader('Connection')) == 'keep-alive')
+            if(!in_array($requestSocket, $listenSocketsOrig, true) && $requests[$socketID]->getAnswerHeader('Connection') == 'keep-alive')
                 $listenSocketsOrig[] = $requestSocket;
-            
-            if($requests[$socketID]->getUploadedFiles())    
-                foreach($requests[$socketID]->getUploadedFiles() as $file)
-                    @unlink($file['tmp_name']); 
+               
+            foreach((array) $requests[$socketID]->getUploadedFiles() as $file)
+                @unlink($file['tmp_name']); 
         }
         
         unset($socketData[$socketID]);
         unset($postData[$socketID]);
         unset($requests[$socketID]);
         unset($writeBuffer[$socketID]);
-        if($gzipPath[$socketID])
+        if($gzipPath[$socketID]) {
             unlink($gzipPath[$socketID]);
-        unset($gzipPath[$socketID]);
+            unset($gzipPath[$socketID]);
+        }
         //unset($requestBeginTime[$socketID]);
         unset($liveReadSockets[$socketID]);
+        
+        if(($key = array_search($requestSocket, $liveWriteSocketsOrig)) !== false)
+            unset($liveWriteSocketsOrig[$key]);
         
         if(is_resource($requestFileHandle[$socketID]))
             fclose($requestFileHandle[$socketID]);
         
-        // Check if request-limit was reached 
+        // Check if request-limit is reached 
         if(Config::get('main.requestworkerlimit') > 0 && $processedRequests >= Config::get('main.requestworkerlimit') && !$socketData && !$postData && !$requests) {
             IPC::send(9999, 1);
             exit;
@@ -462,9 +461,8 @@
                
         clean:
         
-        if($decliningNewRequests && Config::get('main.maxconcurrent') > count($listenSocketsOrig)) {
+        if($decliningNewRequests && Config::get('main.maxconcurrent') > count($listenSocketsOrig))
             $listenSocketsOrig = array_merge($Pancake_sockets, $listenSocketsOrig);
-        }
         
         if(Config::get('main.maxconcurrent') < count($listenSocketsOrig) - count($Pancake_sockets) && Config::get('main.maxconcurrent') != 0) {
             foreach($Pancake_sockets as $index => $socket)

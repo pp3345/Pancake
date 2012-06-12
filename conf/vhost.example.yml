@@ -4,7 +4,7 @@ vhosts:
     listen:                                                     # Hosts to listen on
       - 127.0.0.1
       - localhost
-      - [::1]
+      - "[::1]"
     phpworkers: 3                                               # Amount of PHP-Workers to run
     writelimit: 1048576                                         # Limits the maximum data to be sent to the client at a time - Low value = less RAM-usage, but slower - High value = faster, but more RAM-usage
     gzipmin: 1048576                                            # Minimum static filesize to use GZIP-compression

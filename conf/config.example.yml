@@ -12,9 +12,9 @@ main:
     - 80
   ipv4:                                                         # IPv4 network interfaces to listen on (use 0 to listen on all available interfaces)
     - 0
-  ipv6:                                                         # IPv6 network interfaces to listen on (use 0 to listen on all available interfaces)
-    - 0
-  requestworkers: 10                                            # Amount of RequestWorkers to run
+  ipv6:                                                         # IPv6 network interfaces to listen on (use ::0 to listen on all available interfaces)
+    - ::0
+  requestworkers: 4                                             # Amount of RequestWorkers to run
   readtimeout: 200000                                           # Timelimit until Pancake will decline a request in µs
   exposepancake: true                                           # If true, Pancake will send a "Server"-Header with Information about Pancake
   sharedmemory: 10000000                                        # Size of SharedMemory in Bytes
