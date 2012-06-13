@@ -410,7 +410,7 @@
         // Remove written data from buffer
         $writeBuffer[$socketID] = substr($writeBuffer[$socketID], $writtenLength);
         // Check if more data is available
-        if(strlen($writeBuffer[$socketID]) || (!@feof($requestFileHandle[$socketID]) && is_resource($requestFileHandle[$socketID]))) {
+        if(strlen($writeBuffer[$socketID]) || (!@feof($requestFileHandle[$socketID]) && is_resource($requestFileHandle[$socketID]) && $requests[$socketID]->getRequestType() != 'HEAD')) {
             // Event-based writing - In the time the client is still downloading we can process other requests
             if(!@in_array($requestSocket, $liveWriteSocketsOrig))
                 $liveWriteSocketsOrig[] = $requestSocket;
