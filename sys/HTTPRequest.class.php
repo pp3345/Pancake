@@ -509,9 +509,9 @@
             if(Config::get('main.exposepancake') === true)
                 $this->setHeader('Server', 'Pancake/' . VERSION);
             // Set cookies
-            foreach($this->setCookies as $cookie) {
+            foreach($this->setCookies as $cookie)
                 $setCookie .= ($setCookie) ? "\r\nSet-Cookie: ".$cookie : $cookie;
-            }
+            
             if($setCookie)
                 $this->setHeader('Set-Cookie', $setCookie);
             // Set Content-Length

@@ -334,7 +334,7 @@
     // Set blocking mode for some signals
     pcntl_sigprocmask(\SIG_BLOCK, array(\SIGCHLD, \SIGINT, \SIGUSR2, \SIGTERM));
     
-    // Don't do anything except one of the children died
+    // Don't do anything except if one of the children died
     while(true) {
         pcntl_sigwaitinfo(array(\SIGCHLD, \SIGINT, \SIGUSR2, \SIGTERM), $info);
         

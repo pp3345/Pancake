@@ -23,41 +23,33 @@
     }
     
     function setcookie($name, $value = null, $expire = 0, $path = null, $domain = null, $secure = false, $httponly = false) {
-        global $Pancake_request;
-        
-        return $Pancake_request->setCookie($name, $value, $expire, $path, $domain, $secure, $httponly); 
+        return Pancake\vars::$Pancake_request->setCookie($name, $value, $expire, $path, $domain, $secure, $httponly); 
     }
     
     function setrawcookie($name, $value = null, $expire = 0, $path = null, $domain = null, $secure = false, $httponly = false) {
-        global $Pancake_request;
-        
-        return $Pancake_request->setCookie($name, $value, $expire, $path, $domain, $secure, $httponly, true); 
+        return Pancake\vars::$Pancake_request->setCookie($name, $value, $expire, $path, $domain, $secure, $httponly, true); 
     }
     
     function header($string, $replace = true, $http_response_code = 0) {
-        global $Pancake_request;
-        
         if(strtoupper(substr($string, 0, 5)) == 'HTTP/') {
             $data = explode(' ', $string);
-            $Pancake_request->setAnswerCode($data[1]);
+            Pancake\vars::$Pancake_request->setAnswerCode($data[1]);
         } else {
             $header = explode(':', $string, 2);
-            $Pancake_request->setHeader($header[0], trim($header[1]), $replace);
-            if($header[0] == 'Location' && $Pancake_request->getAnswerCode() != 201 && substr($Pancake_request->getAnswerCode(), 0, 1) != 3)
-                $Pancake_request->setAnswerCode(302);
+            Pancake\vars::$Pancake_request->setHeader($header[0], trim($header[1]), $replace);
+            if($header[0] == 'Location' && Pancake\vars::$Pancake_request->getAnswerCode() != 201 && substr(Pancake\vars::$Pancake_request->getAnswerCode(), 0, 1) != 3)
+                Pancake\vars::$Pancake_request->setAnswerCode(302);
         }
         
         if($http_response_code)
-            $Pancake_request->setAnswerCode($http_response_code);
+            Pancake\vars::$Pancake_request->setAnswerCode($http_response_code);
     }
     
     function header_remove($name = null) {
-        global $Pancake_request;
-        
         if($name)
-            $Pancake_request->removeHeader($name);
+            Pancake\vars::$Pancake_request->removeHeader($name);
         else
-            $Pancake_request->removeAllHeaders();
+            Pancake\vars::$Pancake_request->removeAllHeaders();
     }
     
     function headers_sent() {
@@ -65,35 +57,27 @@
     }
     
     function headers_list() { 
-        global $Pancake_request;
-        
-        return $Pancake_request->getAnswerHeadersArray();
+        return Pancake\vars::$Pancake_request->getAnswerHeadersArray();
     }
     
     if(PHP_MINOR_VERSION >= 4) {
         function http_response_code($response_code = 0) {  
-            global $Pancake_request; 
             
             if($response_code)
-                $Pancake_request->setAnswerCode($response_code);
-            return $Pancake_request->getAnswerCode();
+                Pancake\vars::$Pancake_request->setAnswerCode($response_code);
+            return Pancake\vars::$Pancake_request->getAnswerCode();
         }
         
         function header_register_callback($callback) {
-            global $Pancake_headerCallback;
             if(!is_callable($callback))
                 return false;
-            $Pancake_headerCallback = $callback;
+            Pancake\vars::$Pancake_headerCallback = $callback;
             return true;
         }
     }
     
     function phpinfo($what = INFO_ALL) {
-        global $Pancake_currentThread;
-        global $Pancake_request;
-        global $Pancake_vHosts;
-        
-        $Pancake_request->setHeader('Content-Type', 'text/html; charset=utf-8');
+        Pancake\vars::$Pancake_request->setHeader('Content-Type', 'text/html; charset=utf-8');
         
         // Get original phpinfo
         ob_start();
@@ -105,7 +89,7 @@
         // Modify it
         $phpInfo = str_replace('<td class="v">Command Line Interface </td>', '<td class="v">Pancake Embedded SAPI </td>', $phpInfo);
         
-        if($Pancake_request->getvHost()->exposePancakeInPHPInfo() && $what == INFO_ALL) {
+        if(Pancake\vars::$Pancake_request->getvHost()->exposePancakeInPHPInfo() && $what == INFO_ALL) {
             $pancakeAdd =  '<table border="0" cellpadding="3" width="600">';
             $pancakeAdd .= '<tr class="h"><td>';
             $pancakeAdd .= '<a href="http://www.pancakehttp.net">';
@@ -134,7 +118,7 @@
             $pancakeAdd .= '<tr><td class="e">Sizeprefixes</td><td class="v">' . (Pancake\Config::get('main.sizeprefix') == 'si' ? 'SI' : 'binary') . '</td></tr>';
             $pancakeAdd .= '<tr><td class="e">Shared Memory</td><td class="v">' . Pancake\formatFilesize(Pancake\Config::get('main.sharedmemory')) . '</td></tr>';
             $pancakeAdd .= '<tr><td class="e">Timeout for read actions</td><td class="v">' . Pancake\Config::get('main.readtimeout') . ' µs</td></tr>';
-            $pancakeAdd .= '<tr><td class="e">Current vHost</td><td class="v">' . $Pancake_currentThread->vHost->getName() . '</td></tr>';
+            $pancakeAdd .= '<tr><td class="e">Current vHost</td><td class="v">' . Pancake\vars::$Pancake_currentThread->vHost->getName() . '</td></tr>';
             $pancakeAdd .= '<tr><td class="e">Path for temporary files</td><td class="v">' . Pancake\Config::get('main.tmppath') . '</td></tr>';
             $pancakeAdd .= '<tr><td class="e">Path to requestlog</td><td class="v">' . Pancake\Config::get('main.logging.request') . '</td></tr>';
             $pancakeAdd .= '<tr><td class="e">Path to systemlog</td><td class="v">' . Pancake\Config::get('main.logging.system') . '</td></tr>';
@@ -149,10 +133,10 @@
             $pancakeAdd .= '</td></tr>';  
             $pancakeAdd .= '</table><br/>';
             
-            if($Pancake_request->getvHost()->exposePancakevHostsInPHPInfo()) {
+            if(Pancake\vars::$Pancake_request->getvHost()->exposePancakevHostsInPHPInfo()) {
                 $pancakeAdd .= '<h1>Virtual Hosts</h1>';
                 
-                foreach($Pancake_vHosts as $vHost) {
+                foreach(Pancake\vars::$Pancake_vHosts as $vHost) {
                     if(@in_array($vHost->getID(), $vHostsDone))
                         continue;
                     
@@ -219,8 +203,7 @@
     }
     
     function is_uploaded_file($filename) {
-        global $Pancake_request;
-        return in_array($filename, $Pancake_request->getUploadedFileNames());
+        return in_array($filename, Pancake\vars::$Pancake_request->getUploadedFileNames());
     }
     
     function move_uploaded_file($filename, $destination) {
@@ -234,7 +217,6 @@
     }
     
     function register_shutdown_function($callback) {
-        global $Pancake_shutdownCalls;
         $shutdownCall['callback'] = $callback;
         
         $args = func_get_args();
@@ -242,7 +224,7 @@
         foreach($args as $arg)
             $shutdownCall['args'][] = $arg;
         
-        $Pancake_shutdownCalls[] = $shutdownCall;
+        Pancake\vars::$Pancake_shutdownCalls[] = $shutdownCall;
         
         return true;
     }
@@ -294,8 +276,6 @@
     }
     
     function filter_input($type, $variable_name, $filter = FILTER_DEFAULT, $options = FILTER_FLAG_NONE) {
-        global $Pancake_request; 
-        
         // Create bitmask of flags
         if(is_array($options)) {
             foreach((array) $options['flags'] as $option)
@@ -306,25 +286,25 @@
         // Get variable
         switch($type) {
             case INPUT_GET:
-                $GET = $Pancake_request->getGETParams();   
+                $GET = Pancake\vars::$Pancake_request->getGETParams();   
                 if(!array_key_exists($variable_name, $GET))
                     return $flags & FILTER_NULL_ON_FAILURE ? false : null;
                 $var = $GET[$variable_name];
                 break;
             case INPUT_POST:
-                $POST = $Pancake_request->getPOSTParams();   
+                $POST = Pancake\vars::$Pancake_request->getPOSTParams();   
                 if(!array_key_exists($variable_name, $POST))
                     return $flags & FILTER_NULL_ON_FAILURE ? false : null;
                 $var = $POST[$variable_name];
                 break;
             case INPUT_COOKIE:
-                $COOKIE = $Pancake_request->getCookies();   
+                $COOKIE = Pancake\vars::$Pancake_request->getCookies();   
                 if(!array_key_exists($variable_name, $COOKIE))
                     return $flags & FILTER_NULL_ON_FAILURE ? false : null;
                 $var = $COOKIE[$variable_name];
                 break;
             case INPUT_SERVER:
-                $SERVER = $Pancake_request->createSERVER();   
+                $SERVER = Pancake\vars::$Pancake_request->createSERVER();   
                 if(!array_key_exists($variable_name, $SERVER))
                     return $flags & FILTER_NULL_ON_FAILURE ? false : null;
                 $var = $SERVER[$variable_name];
@@ -340,12 +320,10 @@
     }
     
     function filter_input_array($type, $definition = null) {
-        global $Pancake_request;
-        
         foreach($definition as $key => $options) {
             switch($type) {
                 case INPUT_GET:
-                    $GET = $Pancake_request->getGETParams();   
+                    $GET = Pancake\vars::$Pancake_request->getGETParams();   
                     if(!array_key_exists($key, $GET)) {
                         $endArray[$key] = $options['flags'] & FILTER_NULL_ON_FAILURE ? false : null;
                         continue 2;
@@ -353,7 +331,7 @@
                     $var = $GET[$key];
                     break;
                 case INPUT_POST:
-                    $POST = $Pancake_request->getPOSTParams();   
+                    $POST = Pancake\vars::$Pancake_request->getPOSTParams();   
                     if(!array_key_exists($key, $POST)) {
                         $endArray[$key] = $options['flags'] & FILTER_NULL_ON_FAILURE ? false : null;
                         continue 2;
@@ -361,7 +339,7 @@
                     $var = $POST[$key];
                     break;
                 case INPUT_COOKIE:
-                    $COOKIE = $Pancake_request->getCookies();   
+                    $COOKIE = Pancake\vars::$Pancake_request->getCookies();   
                     if(!array_key_exists($key, $COOKIE)) {
                         $endArray[$key] = $options['flags'] & FILTER_NULL_ON_FAILURE ? false : null;
                         continue 2;
@@ -369,7 +347,7 @@
                     $var = $COOKIE[$key];
                     break;
                 case INPUT_SERVER:
-                    $SERVER = $Pancake_request->createSERVER();   
+                    $SERVER = Pancake\vars::$Pancake_request->createSERVER();   
                     if(!array_key_exists($key, $SERVER)) {
                         $endArray[$key] = $options['flags'] & FILTER_NULL_ON_FAILURE ? false : null;
                         continue 2;
@@ -394,17 +372,15 @@
     }
     
     function filter_has_var($type, $variable_name) {
-        global $Pancake_request;
-        
         switch($type) {
             case INPUT_GET:
-                return array_key_exists($variable_name, $Pancake_request->getGETParams());
+                return array_key_exists($variable_name, Pancake\vars::$Pancake_request->getGETParams());
             case INPUT_POST:
-                return array_key_exists($variable_name, $Pancake_request->getPOSTParams());
+                return array_key_exists($variable_name, Pancake\vars::$Pancake_request->getPOSTParams());
             case INPUT_COOKIE:
-                return array_key_exists($variable_name, $Pancake_request->getCookies());
+                return array_key_exists($variable_name, Pancake\vars::$Pancake_request->getCookies());
             case INPUT_SERVER:
-                return array_key_exists($variable_name, $Pancake_request->createSERVER());
+                return array_key_exists($variable_name, Pancake\vars::$Pancake_request->createSERVER());
             case INPUT_ENV:
                 return array_key_exists($variable_name, $_ENV);
             default:
@@ -456,12 +432,4 @@
         }
         echo $trace;
     }
-    
-    /*function Pancake_lockVariable($varName, $unlock = false) {
-        static $lock;
-        if($unlock) {
-            return $GLOBALS[$varName] = $lock[$varName];
-        }
-        $lock[$varName] = $GLOBALS[$varName];
-    }*/
 ?>

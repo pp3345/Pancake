@@ -24,6 +24,9 @@
         static $fileStream = array();
         global $Pancake_currentThread;
         
+        if(!$Pancake_currentThread && class_exists('Pancake\vars'))
+            $Pancake_currentThread = vars::$Pancake_currentThread;
+        
         if($type !== SYSTEM && $type !== REQUEST)
             return false;
         
@@ -56,7 +59,8 @@
     function abort() {
         global $Pancake_currentThread;
         global $Pancake_sockets;
-        if($Pancake_currentThread)
+        
+        if($Pancake_currentThread || (class_exists('Pancake\vars') && $Pancake_currentThread = vars::$Pancake_currentThread))
             return $Pancake_currentThread->parentSignal(SIGTERM);
         
         out('Stopping...');
@@ -137,7 +141,6 @@
     * @param int $errline The line in which the error occured
     */
     function errorHandler($errtype, $errstr, $errfile = null, $errline = null) {
-        global $Pancake_currentThread;
         static $fileStream;                                                                                                                                    
         if(!$fileStream)
             $fileStream = @fopen(Config::get('main.logging.error'), 'a+');
@@ -193,11 +196,6 @@
             && $globalName != '_REQUEST'
             && $globalName != '_FILES'
             && $globalName != '_SESSION'
-            && $globalName != 'Pancake_constsPre'
-            && $globalName != 'Pancake_includesPre'
-            && $globalName != 'Pancake_classesPre'
-            && $globalName != 'Pancake_funcsPre'
-            && $globalName != 'Pancake_interfacesPre'
             && @!in_array($globalName, $excludeVars)) {
                 if($listOnly)
                     $list[] = $globalName;

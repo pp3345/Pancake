@@ -68,7 +68,7 @@
         */
         static public function get($flags = null, $to = null) {
             global $Pancake_currentThread;
-            if(!$Pancake_currentThread && !$to)
+            if(!$Pancake_currentThread && !$to && (class_exists('Pancake\vars') && !$Pancake_currentThread = vars::$Pancake_currentThread))
                 return false;
             if(!msg_receive(self::$IPC, $to ? $to : $Pancake_currentThread->IPCid, $msgtype, 1000000, $message, true, $flags))
                 return false;

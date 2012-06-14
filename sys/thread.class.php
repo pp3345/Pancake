@@ -60,7 +60,7 @@
             if($this->pid == -1)                // On error
                 return false;
             else if($this->pid) {               // Parent 
-                if($key = array_search($this, self::$threadCache))
+                if(($key = array_search($this, self::$threadCache)) !== false)
                     unset(self::$threadCache[$key]);
                 self::$threadCache[$this->pid] = $this;
                 $this->running = true;
@@ -113,9 +113,9 @@
         }
         
         /**
-        * Sends a signal to the parent of the thread
+        * Send a signal to the parent of the thread
         * 
-        * @param int $signal The signal that should be sent
+        * @param int $signal The signal to send
         */
         public final function parentSignal($signal) {
             return posix_kill($this->ppid, $signal);
@@ -128,7 +128,7 @@
         public final function waitForExit() {
             if(pcntl_waitpid($this->pid, $x, \WNOHANG) === 0) {
                 out('Waiting for ' . $this->friendlyName . ' to stop');
-                // Sleep maximum 1 second
+                // Sleep up to 2 seconds
                 for($i = 0;$i < 200 && pcntl_waitpid($this->pid, $x, \WNOHANG) === 0; $i++)
                     usleep(10000);
                 if(pcntl_waitpid($this->pid, $x, \WNOHANG) === 0) {

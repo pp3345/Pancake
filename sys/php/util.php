@@ -84,4 +84,24 @@
             $newBacktrace[] = $tracePart;
         return $newBacktrace;
     }
+    
+    /**
+    * All Pancake PHP executor variables will be stored in this class
+    */
+    class vars {
+        public static $Pancake_request;
+        public static $Pancake_message;
+        public static $Pancake_currentThread;
+        public static $Pancake_constsPre;
+        public static $Pancake_funcsPre;
+        public static $Pancake_includesPre;
+        public static $Pancake_classesPre;
+        public static $Pancake_interfacesPre;
+        public static $Pancake_traitsPre;
+        public static $Pancake_exclude;
+        public static $Pancake_vHosts;
+        public static $Pancake_processedRequests;
+        public static $Pancake_headerCallback;
+        public static $Pancake_shutdownCalls;
+    }
 ?>
