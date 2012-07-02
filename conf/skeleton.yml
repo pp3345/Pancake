@@ -1,20 +1,25 @@
 # DO NOT EDIT THIS SKELETON-CONFIGURATION
 main:
-  tmppath: /usr/local/Pancake/tmp/                            
+  tmppath: ../tmp/
   logging:
-    system: /usr/local/Pancake/log/system.log                   
-    request: /usr/local/Pancake/log/requests.log                
-    error: /usr/local/Pancake/log/error.log                     
-  dateformat: 'd.m.y H:i:s'                                     
-  debugmode: false                                              
+    system: ../log/system.log
+    request: ../log/requests.log
+    error: ../log/error.log
+  dateformat: 'd.m.y H:i:s'
+  debugmode: false
   user: www-data
   group: www-data
   requestworkers: 10
   readtimeout: 200000
   exposepancake: true
-  sharedmemory: 10000000
   sizeprefix: bin
-  mimeencoding: false
   allowhead: true
   allowtrace: true
-  allowoptions: true           
+  allowoptions: true
+  requestworkerlimit: 50000
+  maxconcurrent: 0
+  workerboottime: 5
+  writebuffermin: 10240
+  writebuffersoftmaxconcurrent: 50
+  writebufferhardmaxconcurrent: 2000
+  waitphpworkerboot: true

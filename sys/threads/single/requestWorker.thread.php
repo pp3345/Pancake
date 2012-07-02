@@ -48,21 +48,38 @@
     setUser();
     
     // Wait for incoming requests     
-    while(socket_select($listenSockets, $liveWriteSockets, $x, 31536000) !== false) { 
-        if($liveWriteSockets) {
-            foreach($liveWriteSockets as $socket) {
-                $socketID = (int) $socket;
-                $requestSocket = $socket;
-                goto liveWrite;
-            }
+    while(socket_select($listenSockets, $liveWriteSockets, $x, 31536000) !== false) {
+        foreach((array) $liveWriteSockets as $socket) {
+        	$socketID = (int) $socket;
+            $requestSocket = $socket;
+            goto liveWrite;
         }
         
         // Accept connection
         foreach($listenSockets as $socket) {
-            if($liveReadSockets[(int) $socket] === true || socket_get_option($socket, \SOL_SOCKET, \SO_KEEPALIVE) == 1) {
+            if($liveReadSockets[(int) $socket] || socket_get_option($socket, \SOL_SOCKET, \SO_KEEPALIVE)) {
                 $socketID = (int) $socket;
                 $requestSocket = $socket;
                 break;
+            }
+            if(isset($phpSockets[(int) $socket])) {
+                $requestSocket = $phpSockets[(int) $socket];
+                $socketID = (int) $requestSocket;
+                
+                $obj = unserialize(socket_read($socket, hexdec(socket_read($socket, 8))));
+                
+                if($obj instanceof HTTPRequest)
+                	$requests[$socketID] = $obj;
+                else
+                	$requests[$socketID]->invalidRequest(new invalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
+                
+                unset($listenSocketsOrig[array_search($socket, $listenSocketsOrig)]);
+                unset($phpSockets[(int) $socket]);
+                
+                socket_close($socket);
+                unset($socket);
+                
+                goto write;
             }
             if((Config::get('main.maxconcurrent') < count($listenSocketsOrig) - count($Pancake_sockets) && Config::get('main.maxconcurrent') != 0) || !($requestSocket = @socket_accept($socket)))
                 goto clean;
@@ -159,7 +176,6 @@
         
         // Check for "OPTIONS"-requestmethod
         if($requests[$socketID]->getRequestType() == 'OPTIONS') {
-            // We can add OPTIONS here without checking if it is allowed because Pancake would already have aborted the request if it wasn't allowed
             $allow = 'GET, POST, OPTIONS';
             if(Config::get('main.allowhead') === true)
                 $allow .= ', HEAD';
@@ -225,32 +241,22 @@
         
         // Check for PHP
         if($requests[$socketID]->getMIMEType() == 'text/x-php' && $requests[$socketID]->getvHost()->getPHPWorkerAmount()) {
-            // Search Available PHP-Worker
-            $key = ($Pancake_currentThread->IPCid << 22) + $socketID;
-            PHPWorker::handleRequest($requests[$socketID], $key);
+            $socket = socket_create(AF_UNIX, SOCK_SEQPACKET, 0);
+            socket_connect($socket, $requests[$socketID]->getvHost()->getSocketName());
             
-            // Wait for PHP-Worker to finish
-            $status = IPC::get();
+            $data = serialize($requests[$socketID]);
+            $len = dechex(strlen($data));
+            while(strlen($len) < 8)
+                $len = "0" . $len;
             
-            if($status == 500)
-                $requests[$socketID]->invalidRequest(new invalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
-            else {         
-                // Get updated request-object from Shared Memory
-                $requests[$socketID] = SharedMemory::get($key);
-                if($requests[$socketID] === false) {
-                    for($i = 0;$i < 10 && $requests[$socketID] === false;$i++) {
-                        usleep(1000);
-                        $requests[$socketID] = SharedMemory::get($key);
-                    }
-                    if($requests[$socketID] === false)
-                        $requests[$socketID]->invalidRequest(new invalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
-                }
-            }
+            // First transmit the length of the serialized object, then the object itself
+            socket_write($socket, $len);
+            socket_write($socket, $data);
             
-            // Remove object from Shared Memory
-            @SharedMemory::delete($key);
+            $listenSocketsOrig[] = $socket;
+            $phpSockets[(int) $socket] = $requestSocket;
             
-            goto write;
+            goto clean;
         }
         
         // Get time of last modification
@@ -349,7 +355,7 @@
             // Check if GZIP-compression should be used  
             if($requests[$socketID]->acceptsCompression('gzip') && $requests[$socketID]->getvHost()->allowGZIPCompression() === true && filesize($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath()) >= $requests[$socketID]->getvHost()->getGZIPMimimum()) {
                 // Set encoding-header
-                $requests[$socketID]->setHeader('Transfer-Encoding', 'gzip');
+                $requests[$socketID]->setHeader('Content-Encoding', 'gzip');
                 // Create temporary file
                 $gzipPath[$socketID] = tempnam(Config::get('main.tmppath'), 'GZIP');
                 $gzipFileHandle = gzopen($gzipPath[$socketID], 'w' . $requests[$socketID]->getvHost()->getGZIPLevel());
@@ -380,35 +386,45 @@
         }
         
         write:
-        
+
         // Get Answer Headers
         $writeBuffer[$socketID] = $requests[$socketID]->buildAnswerHeaders(); 
-    
+
         // Get Answer Body if set and request method isn't HEAD
         if($requests[$socketID]->getRequestType() != 'HEAD')
             $writeBuffer[$socketID] .= $requests[$socketID]->getAnswerBody();          
-        
+
         // Output request information
         out('REQ '.$requests[$socketID]->getAnswerCode().' '.$requests[$socketID]->getRemoteIP().': '.$requests[$socketID]->getRequestLine().' on vHost '.(($requests[$socketID]->getvHost()) ? $requests[$socketID]->getvHost()->getName() : null).' (via '.$requests[$socketID]->getRequestHeader('Host').' from '.$requests[$socketID]->getRequestHeader('Referer').') - '.$requests[$socketID]->getRequestHeader('User-Agent'), REQUEST);
-        
+
         // Check if user wants keep-alive connection
         if($requests[$socketID]->getAnswerHeader('Connection') == 'keep-alive')
             socket_set_option($requestSocket, \SOL_SOCKET, \SO_KEEPALIVE, 1);
-        
+
         // Increment amount of processed requests
         $processedRequests++;
         
+        // Clean some data now to improve RAM usage
+        unset($socketData[$socketID]);
+        unset($postData[$socketID]);
+        unset($liveReadSockets[$socketID]);
+
         liveWrite:
         
-        // Add data to buffer if not all data was sent yet
-        if(strlen($writeBuffer[$socketID]) < $requests[$socketID]->getvHost()->getWriteLimit() && !@feof($requestFileHandle[$socketID]) && is_resource($requestFileHandle[$socketID]) && $requests[$socketID]->getRequestType() != 'HEAD')
-            $writeBuffer[$socketID] .= fread($requestFileHandle[$socketID], $requests[$socketID]->getvHost()->getWriteLimit() - strlen($writeBuffer[$socketID]));
+        // The buffer should usually only be empty if the hard limit was reached - In this case Pancake won't allocate any buffers except when the client really IS ready to receive data
+        if(!strlen($writeBuffer[$socketID]))
+        	$writeBuffer[$socketID] = fread($requestedFileHandle[$socketID], Config::get('main.writebuffermin'));
         
-        // Write data to socket   
+        // Write data to socket
         if(($writtenLength = @socket_write($requestSocket, $writeBuffer[$socketID])) === false)
             goto close;
         // Remove written data from buffer
         $writeBuffer[$socketID] = substr($writeBuffer[$socketID], $writtenLength);
+        
+        // Add data to buffer if not all data was sent yet
+        if(strlen($writeBuffer[$socketID]) < Config::get('main.writebuffermin') && is_resource($requestFileHandle[$socketID]) && !feof($requestFileHandle[$socketID]) && !(count($writeBuffer) > Config::get('main.writebufferhardmaxconcurrent') && Config::get('main.writebufferhardmaxconcurrent')) && $requests[$socketID]->getRequestType() != 'HEAD' && $writtenLength)
+        	$writeBuffer[$socketID] .= fread($requestFileHandle[$socketID], (count($writeBuffer) > Config::get('main.writebuffersoftmaxconcurrent') && Config::get('main.writebuffersoftmaxconcurrent') ? Config::get('main.writebuffermin') : $requests[$socketID]->getvHost()->getWriteLimit()) - strlen($writeBuffer[$socketID]));
+
         // Check if more data is available
         if(strlen($writeBuffer[$socketID]) || (!@feof($requestFileHandle[$socketID]) && is_resource($requestFileHandle[$socketID]) && $requests[$socketID]->getRequestType() != 'HEAD')) {
             // Event-based writing - In the time the client is still downloading we can process other requests
@@ -416,14 +432,14 @@
                 $liveWriteSocketsOrig[] = $requestSocket;
             goto clean;
         }
-               
+
         close:
-        
+
         // Close socket
         if(!($requests[$socketID] instanceof HTTPRequest) || $requests[$socketID]->getAnswerHeader('Connection') != 'keep-alive') {
             @socket_shutdown($requestSocket);
             socket_close($requestSocket);
-            
+
             if($key = array_search($requestSocket, $listenSocketsOrig))
                 unset($listenSocketsOrig[$key]);
         }
@@ -438,6 +454,7 @@
         
         unset($socketData[$socketID]);
         unset($postData[$socketID]);
+        unset($liveReadSockets[$socketID]);
         unset($requests[$socketID]);
         unset($writeBuffer[$socketID]);
         if($gzipPath[$socketID]) {
@@ -445,7 +462,6 @@
             unset($gzipPath[$socketID]);
         }
         //unset($requestBeginTime[$socketID]);
-        unset($liveReadSockets[$socketID]);
         
         if(($key = array_search($requestSocket, $liveWriteSocketsOrig)) !== false)
             unset($liveWriteSocketsOrig[$key]);
@@ -468,7 +484,7 @@
             foreach($Pancake_sockets as $index => $socket)
                 unset($listenSocketsOrig[$index]);
             $decliningNewRequests = true;
-        }  
+        }
           
         $listenSockets = $listenSocketsOrig;
         $liveWriteSockets = $liveWriteSocketsOrig;
@@ -486,6 +502,8 @@
         unset($add);
         unset($continue);
         unset($index);
+        
+        //var_dump(count($writeBuffer));
         
         gc_collect_cycles();
         

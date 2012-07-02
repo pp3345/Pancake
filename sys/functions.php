@@ -14,15 +14,19 @@
     
     /**
     * Function for output and logging
+    * 
     * @param string $text The string to be logged
     * @param int $type SYSTEM or REQUEST 
-    * @param bool $log Whether the text may be logged or not
+    * @param bool $log Whether the text should be logged to a file or not
     * @param bool $debugMode Whether the text should only be output in debugmode
     * @return false|string false on error; message on success
     */
     function out($text, $type = SYSTEM, $log = true, $debugMode = false) {
         static $fileStream = array();
         global $Pancake_currentThread;
+        
+        if(defined('PANCAKE_PHP') && DEBUG_MODE !== true)
+        	return false;
         
         if(!$Pancake_currentThread && class_exists('Pancake\vars'))
             $Pancake_currentThread = vars::$Pancake_currentThread;
@@ -59,33 +63,38 @@
     function abort() {
         global $Pancake_currentThread;
         global $Pancake_sockets;
+        global $Pancake_phpSockets;
         
         if($Pancake_currentThread || (class_exists('Pancake\vars') && $Pancake_currentThread = vars::$Pancake_currentThread))
             return $Pancake_currentThread->parentSignal(SIGTERM);
         
         out('Stopping...');
             
-        if($Pancake_sockets) { 
-            foreach($Pancake_sockets as $socket) 
-                socket_close($socket);
+        foreach((array) $Pancake_sockets as $socket) 
+            socket_close($socket);
+        foreach((array) $Pancake_phpSockets as $socket) {
+            socket_getsockname($socket, $addr);
+            socket_close($socket);
+            unlink($addr);
         }
-        $threads = Thread::getAll();
-        if($threads)
-            foreach($threads as $worker) {
-                /**
-                * @var Thread
-                */
-                $worker;
                 
-                if(!$worker->running)
-                    continue;
-                $worker->stop();            
-                $worker->waitForExit();
-            }
-        @SharedMemory::destroy();
+        $threads = Thread::getAll();
+        
+        foreach((array) $threads as $worker) {
+            /**
+            * @var Thread
+            */
+            $worker;
+            
+            if(!$worker->running)
+                continue;
+            $worker->stop();            
+            $worker->waitForExit();
+        }
+            
         @IPC::destroy();
         exit;
-    }                                    
+    }
     
     /**
     * Like \array_merge() with the difference that this function overrides keys instead of adding them.
@@ -141,7 +150,7 @@
     * @param int $errline The line in which the error occured
     */
     function errorHandler($errtype, $errstr, $errfile = null, $errline = null) {
-        static $fileStream;                                                                                                                                    
+        static $fileStream = null;                                                                                                                                    
         if(!$fileStream)
             $fileStream = @fopen(Config::get('main.logging.error'), 'a+');
         // Check for @

@@ -139,6 +139,14 @@
         }       
         
         /**
+         * Clears the thread-cache
+         * 
+         */
+        public final static function clearCache() {
+        	self::$threadCache = array();
+        }
+        
+        /**
         * Return the worker with the given pid
         * 
         * @param int $pid

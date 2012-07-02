@@ -16,17 +16,41 @@
     require_once 'php/sapi.php';
     require_once 'php/util.php';    
         
-    /**
-    * @var PHPWorker
-    */
     vars::$Pancake_currentThread = $Pancake_currentThread;
+    unset($Pancake_currentThread);
     
     // Clean
     cleanGlobals();
     
+    unset($Pancake_sockets);
+    
+    get_included_files(true);
+    
+    PHPFunctions\registerShutdownFunction('Pancake\PHPShutdownHandler');
+    
+    dt_remove_function('Pancake\PHPFunctions\registerShutdownFunction');
+    
     // Set exit handler so that Pancake won't die when a script calls exit() oder die()
-    dt_set_exit_handler('Pancake\PHPExitHandler');     
+    dt_set_exit_handler('Pancake\PHPExitHandler');
     dt_throw_exit_exception(true);
+    
+    // Clear thread cache
+    Thread::clearCache();
+    
+    // Don't allow scripts to get information about other vHosts
+    if(vars::$Pancake_currentThread->vHost->exposePancakevHostsInPHPInfo())
+    	vars::$Pancake_vHosts = $Pancake_vHosts;
+    unset($Pancake_vHosts);
+    
+    foreach(vars::$Pancake_currentThread->vHost->getDisabledFunctions() as $function) {
+    	if(function_exists($function)) {
+    		dt_remove_function($function);
+    		eval('function ' . $function . '() { return Pancake\PHPDisabledFunction(__FUNCTION__); }');
+    	}
+    }
+    
+    memory_get_usage(null, true);
+    memory_get_peak_usage(null, true);
     
     // Get a list of files to cache
     foreach((array) vars::$Pancake_currentThread->vHost->getCodeCacheFiles() as $cacheFile)
@@ -37,11 +61,6 @@
         
     unset($cacheFile);
     unset($Pancake_cacheFiles);
-    
-    // Don't allow scripts to get information about other vHosts
-    if(vars::$Pancake_currentThread->vHost->exposePancakevHostsInPHPInfo())
-        vars::$Pancake_vHosts = $Pancake_vHosts;
-    unset($Pancake_vHosts);
     
     // Get variables to exclude from deletion (probably set by cached files)
     vars::$Pancake_exclude = cleanGlobals(array(), true);
@@ -54,23 +73,11 @@
     setUser();
     
     // Wait for requests    
-    while(vars::$Pancake_message = IPC::get()) {        
-        // Get request object from Shared Memory
+    while(vars::$requestSocket = socket_accept(vars::$Pancake_currentThread->vHost->getSocket())) {
         /**
         * @var HTTPRequest
         */
-        vars::$Pancake_request = SharedMemory::get(vars::$Pancake_message);
-        if(vars::$Pancake_request === false) {
-            for($i = 0;$i < 10 && vars::$Pancake_request === false;$i++) {
-                usleep(1000);
-                vars::$Pancake_request = SharedMemory::get(vars::$Pancake_message);
-            }
-            if(vars::$Pancake_request === false)
-                continue;
-        }
-        
-        // Delete key from SharedMemory in order to reduce the risk of overfilling the SharedMemory while processing
-        SharedMemory::delete(vars::$Pancake_message);
+        vars::$Pancake_request = unserialize(socket_read(vars::$requestSocket, hexdec(socket_read(vars::$requestSocket, 8))));
         
         // Change directory to DocumentRoot of the vHost / requested file path
         chdir(vars::$Pancake_currentThread->vHost->getDocumentRoot() . dirname(vars::$Pancake_request->getRequestFilePath()));
@@ -93,6 +100,9 @@
         $_SERVER = vars::$Pancake_request->createSERVER();
         $_FILES = vars::$Pancake_request->getUploadedFiles();
         
+        if(ini_get('expose_php') == true)
+        	vars::$Pancake_request->setHeader('X-Powered-By', 'PHP/' . PHP_VERSION);
+        
         define('PANCAKE_PHP', true);
         
         // Start output buffer
@@ -100,70 +110,103 @@
         
         // Set error-handling
         error_reporting(ini_get('error_reporting'));
-        set_error_handler('Pancake\PHPErrorHandler');
+        PHPFunctions\setErrorHandler('Pancake\PHPErrorHandler');
         
         // Script will throw an exception when trying to exit, this way we can handle it easily
         try {
             include vars::$Pancake_request->getvHost()->getDocumentRoot() . vars::$Pancake_request->getRequestFilePath();
             
-            // Run header callback
-            if(@vars::$Pancake_headerCallback)
-                call_user_func(vars::$Pancake_headerCallback);
+            runShutdown:
             
-            //Pancake_lockVariable('Pancake_shutdownCalls', true);
+            vars::$executedShutdown = true;
+            
+            // Run header callbacks
+            foreach((array) vars::$Pancake_headerCallbacks as $callback)
+                call_user_func($callback);
+                        
             // Run Registered Shutdown Functions
             foreach((array) vars::$Pancake_shutdownCalls as $shutdownCall) {
                 unset($args);
                 $call = 'call_user_func($shutdownCall["callback"]';
+                
+                $i = 0;
+                
                 foreach((array) @$shutdownCall['args'] as $arg) {
-                    if($args)
+                    if(isset($args))
                         $call .= ',';
                     $args[$i++] = $arg;
                     $call .= '$args['.$i.']';
                 }
                 $call .= ');';
+                
                 eval($call);
             }
-            vars::$Pancake_shutdownCalls = null;
+            
+            goto postShutdown;
         } catch(\DeepTraceExitException $e) {
         } catch(\Exception $exception) {
+        	$fatal = false;
+        	
             if(($oldHandler = set_exception_handler('Pancake\dummy')) !== null) {
-                call_user_func($oldHandler, $exception); 
-            } else {
-                while(ob_get_level())
+            	try {
+                	call_user_func($oldHandler, $exception);
+            	} catch(\DeepTraceExitException $e) {
+            	} catch(\Exception $e) {
+            		$fatal = true;
+            	}
+            } else 
+            	$fatal = true;
+            
+            if($fatal) {
+                while(PHPFunctions\OutputBuffering\getLevel() > 1)
                     PHPFunctions\OutputBuffering\endFlush();
                 if(ini_get('display_errors')) {
-                    echo "\n";
-                    echo 'Fatal error: Uncaught exception \'' . get_class($exception) . '\'';
+                    $i = 0;
+                    
+                    $errorText = 'Uncaught exception \'' . get_class($exception) . '\'';
                     if($exception->getMessage())
-                        echo ' with message \'' . $exception->getMessage() . '\'';
-                    echo ' in ' . $exception->getFile() . ':' . $exception->getLine();
-                    echo "\n";
-                    echo "Stack trace:";
-                    echo "\n";
+                        $errorText .= ' with message \'' . $exception->getMessage() . '\'';
+                    $errorText .= ' in ' . $exception->getFile() . ':' . $exception->getLine();
+                    $errorText .= "\n";
+                    $errorText .= "Stack trace:";
+                    $errorText .= "\n";
                     $trace = explode("\n", $exception->getTraceAsString());
                     
                     // Output trace elements
                     foreach($trace as $traceElement) {
-                        if(strpos($traceElement, 'sys/threads/single/phpWorker.thread.php'))
+                        if(strpos($traceElement, 'phpWorker.thread.php'))
                             break;
-                        echo $traceElement . "\n";
+                        $errorText .= $traceElement . "\n";
                         $i++;
                     }
-                    echo '#' . $i . ' {main}';
-                    echo "\n";
-                    echo "  thrown in " . $exception->getFile() . ' on line ' . $exception->getLine();
+                    $errorText .= '#' . $i . ' {main}';
+                    $errorText .= "\n";
+                    $errorText .= "  thrown";
+                    
+                    PHPErrorHandler(\E_ERROR, $errorText, $exception->getFile(), $exception->getLine());
                 // Send 500 if no content
-                } else if(!ob_get_contents()) {
-                    $invalidRequest = true;
-                    vars::$Pancake_request->invalidRequest(new invalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
-                }
+                } else if(!ob_get_contents())
+                    vars::$invalidRequest = true;
             }
+        }
+        
+        // If a shutdown function throws an exception, it will be executed again, so we must make sure, we only execute the shutdown functions once...
+        if(!vars::$executedShutdown)
+        	goto runShutdown;
+        
+        postShutdown:
+        
+        // After $invalidRequest is set to true it might still happen that the registered shutdown functions do some output
+        if(vars::$invalidRequest) {
+        	if(!ob_get_contents())
+        		vars::$Pancake_request->invalidRequest(new invalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
+        	else
+        		vars::$invalidRequest = false;
         }
         
         // Reset error-handling
         error_reporting(ERROR_REPORTING);
-        set_error_handler('Pancake\errorHandler');
+        PHPFunctions\setErrorHandler('Pancake\errorHandler');
         set_exception_handler(null);
         
         // Destroy all output buffers
@@ -173,8 +216,32 @@
         // Get contents from output buffer
         $contents = ob_get_contents();
         
-        if(session_id())
+        if(session_id()) {
             vars::$Pancake_request->setCookie(session_name(), session_id(), ini_get('session.cookie_lifetime'), ini_get('session.cookie_path'), ini_get('session.cookie_domain'), ini_get('session.cookie_secure'), ini_get('session.cookie_httponly'));
+        	session_write_close();
+        	
+        	switch(session_cache_limiter()) {
+        		case 'nocache':
+        			vars::$Pancake_request->setHeader('Expires', 'Thu, 19 Nov 1981 08:52:00 GMT');
+        			vars::$Pancake_request->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0');
+        			vars::$Pancake_request->setHeader('Pragma', 'no-cache');
+        			break;
+        		case 'private':
+        			vars::$Pancake_request->setHeader('Expires', 'Thu, 19 Nov 1981 08:52:00 GMT');
+        			vars::$Pancake_request->setHeader('Cache-Control', 'private, max-age=' . ini_get('session.cache_expire') . ', pre-check=' . ini_get('session.cache_expire'));
+        			vars::$Pancake_request->setHeader('Last-Modified', date('r'));
+        			break;
+        		case 'private_no_expire':
+        			vars::$Pancake_request->setHeader('Cache-Control', 'private, max-age=' . ini_get('session.cache_expire') . ', pre-check=' . ini_get('session.cache_expire'));
+        			vars::$Pancake_request->setHeader('Last-Modified', date('r'));
+        			break;
+        		case 'public':
+        			vars::$Pancake_request->setHeader('Expires', date('r', time() + ini_get('session.cache_expire')));
+        			vars::$Pancake_request->setHeader('Cache-Control', 'public, max-age=' . ini_get('session.cache_expire'));
+        			vars::$Pancake_request->setHeader('Last-Modified', date('r'));
+        			break;
+        	}
+        }
         
         $_GET = vars::$Pancake_request->getGETParams();
         if(isset($_GET['pancakephpdebug']) && DEBUG_MODE === true) {
@@ -222,22 +289,32 @@
             vars::$Pancake_request->setAnswerCode(200);
         }
         
-        if(ini_get('expose_php') == true)
-            vars::$Pancake_request->setHeader('X-Powered-By', 'PHP/' . PHP_VERSION);
-        
-        // Update RequestObject and send it to RequestWorker
-        if(!$invalidRequest)
+        // Update request object and send it to RequestWorker
+        if(!vars::$invalidRequest)
             vars::$Pancake_request->setAnswerBody($contents);
-        SharedMemory::put(vars::$Pancake_request, vars::$Pancake_message);
-        IPC::send(vars::$Pancake_request->getRequestWorker()->IPCid, 1);
+        
+        $data = serialize(vars::$Pancake_request);
+        $len = dechex(strlen($data));
+        while(strlen($len) < 8)
+            $len = "0" . $len;
+        
+        // First transmit the length of the serialized object, then the object itself
+        socket_write(vars::$requestSocket, $len);
+        socket_write(vars::$requestSocket, $data);
         
         // Reset ini-settings
         ini_set(null, null, true);
         
         // Clean
         PHPFunctions\OutputBuffering\endClean();
-
-        @session_write_close();
+        
+        vars::$errorHandler = null;
+        vars::$errorHandlerHistory = array();
+        vars::$lastError = null;
+        vars::$Pancake_shutdownCalls = array();
+        vars::$Pancake_headerCallbacks = array();
+        vars::$executedShutdown = false;
+        vars::$invalidRequest = false;
                                    
         // We're cleaning the globals here because PHP 5.4 is likely to crash when having an instance of a non-existant class
         cleanGlobals(vars::$Pancake_exclude);
@@ -309,12 +386,13 @@
         
         cleanGlobals(vars::$Pancake_exclude);
         
-        if(vars::$Pancake_currentThread->vHost->getPHPWorkerLimit() && vars::$Pancake_processedRequests >= vars::$Pancake_currentThread->vHost->getPHPWorkerLimit()) {
+        if((vars::$Pancake_currentThread->vHost->getPHPWorkerLimit() && vars::$Pancake_processedRequests >= vars::$Pancake_currentThread->vHost->getPHPWorkerLimit()) || vars::$workerExit) {
             IPC::send(9999, 1);
             exit;
         }
         
-        dt_clear_cache();
+        if(PHP_MINOR_VERSION >= 4)
+        	dt_clear_cache();
         
         clearstatcache();
         

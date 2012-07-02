@@ -41,12 +41,16 @@
         private $autoDelete = array();
         private $autoDeleteExcludes = array();
         private $forceDeletes = array();
+        private $phpSocket = null;
+        private $phpSocketName = null;
+        private $phpHTMLErrors = true;
+        private $phpDisabledFunctions = array();
         static private $defaultvHost = null;
         
         /**
         * Loads a vHost
         * 
-        * @param mixed $name Name of the vHost that should be loaded
+        * @param string $name Name of the vHost that should be loaded
         * @return vHost
         */
         public function __construct($name) {
@@ -66,10 +70,10 @@
             if(substr($this->documentRoot, -1, 1) != '/')
                 $this->documentRoot = $this->documentRoot . '/';
                                  
-            $this->phpCodeCache = $config['phpcache'];
-            $this->phpCodeCacheExcludes = $config['phpcacheexclude'];
-            $this->phpWorkers = $config['phpworkers'];
-            $this->indexFiles = $config['index'];
+            $this->phpCodeCache = (array) $config['phpcache'];
+            $this->phpCodeCacheExcludes = (array) $config['phpcacheexclude'];
+            $this->phpWorkers = (int) $config['phpworkers'];
+            $this->indexFiles = (array) $config['index'];
             $this->writeLimit = (int) $config['writelimit'];
             $this->allowDirectoryListings = (bool) $config['allowdirectorylistings'];
             $this->gzipMinimum = (int) $config['gzipmin'];
@@ -80,6 +84,8 @@
             $this->phpInfoConfig = (bool) $config['phpinfopancake'];
             $this->phpInfovHosts = (bool) $config['phpinfopancakevhosts'];
             $this->onEmptyPage204 = (bool) $config['204onemptypage'];
+            $this->phpHTMLErrors = (bool) $config['phphtmlerrors'];
+            $this->phpDisabledFunctions = (array) $config['phpdisabledfunctions'];
             
             // Check for Hosts to listen on
             $this->listen = $config['listen'];
@@ -139,6 +145,18 @@
                     }
                 if(!$this->phpWorkers)
                     throw new \Exception('The amount of PHPWorkers must be greater or equal 1 if you want to use the CodeCache.');
+            }
+            
+            // Spawn socket for PHPWorkers
+            if($this->phpWorkers) {
+                $this->phpSocketName = Config::get('main.tmppath') . mt_rand() . '_' . $this->name . '_socket';
+                
+                $this->phpSocket = socket_create(AF_UNIX, SOCK_SEQPACKET, 0);
+                socket_bind($this->phpSocket, $this->phpSocketName);
+                socket_listen($this->phpSocket);
+                
+                chown($this->phpSocketName, Config::get('main.user'));
+                chgrp($this->phpSocketName, Config::get('main.group'));
             }
         }
         
@@ -402,6 +420,42 @@
         */
         public function send204OnEmptyPage() {
             return $this->onEmptyPage204;
+        }
+        
+        /**
+        * Returns the socket used by PHPWorkers to listen for requests
+        * 
+        * @return resource|null
+        */
+        public function getSocket() {
+            return $this->phpSocket;
+        }
+        
+        /**
+        * Returns the address to the socket used by PHPWorkers to listen for requests
+        * 
+        * @return string
+        */
+        public function getSocketName() {
+            return $this->phpSocketName;
+        }
+        
+        /**
+         * Should the SAPI error handler use HTML or plain text errors?
+         * 
+         * @return boolean
+         */
+        public function useHTMLErrors() {
+        	return $this->phpHTMLErrors;
+        }
+        
+        /**
+         * Returns all functions that should be disabled inside the PHP-SAPI
+         * 
+         * @return array
+         */
+        public function getDisabledFunctions() {
+        	return $this->phpDisabledFunctions;
         }
         
         /**

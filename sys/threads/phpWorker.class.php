@@ -19,6 +19,11 @@
         static private $instances = array();
         public $id = 0;
         public $IPCid = 0;
+        
+        /**
+         * 
+         * @var vHost
+         */
         public $vHost = null;
         
         /**
@@ -42,21 +47,6 @@
             
             // Start worker
             $this->start(false);
-        }
-        
-        /**
-        * Let a PHPWorker handle a request
-        *
-        * @param HTTPRequest $request
-        * @param int $key SharedMem-key
-        * @return int SharedMem-key
-        */
-        static public function handleRequest(HTTPRequest $request, $key) {
-            if(!SharedMemory::put($request, $key))
-                return false;
-            if(!IPC::send(PHP_WORKER_TYPE.$request->getvHost()->getID(), $key))
-                return false;
-            return $key;
         }
     }
 ?>

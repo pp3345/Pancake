@@ -13,7 +13,7 @@
         exit;
     
     //declare(ticks = 5);
-    const VERSION = '0.3';
+    const VERSION = '1.0b1';
     const PANCAKE = true;
     const REQUEST_WORKER_TYPE = 1;
     const PHP_WORKER_TYPE = 2;
@@ -29,7 +29,6 @@
     require_once 'threads/phpWorker.class.php';
     require_once 'HTTPRequest.class.php';
     require_once 'invalidHTTPRequest.exception.php';
-    require_once 'sharedMemory.class.php';
     require_once 'IPC.class.php';
     require_once 'vHost.class.php';
     require_once 'authenticationFile.class.php';
@@ -47,14 +46,14 @@
     // Display help if requested
     if(isset($startOptions['h']) || isset($startOptions['help'])) {
         echo 'Pancake '.VERSION."\n";
-        echo '2012 Yussuf "pp3345" Khalil'."\n";
+        echo '2012 Yussuf Khalil'."\n";
         echo "\n";
         echo 'Pancake is a simple and lightweight HTTP-server. These are the start-options you may use:'."\n";
         echo '-h --help                          Displays this help'."\n";
-        echo '--benchmark=100                    Runs Pancake in benchmark-mode - It will then benchmark the speed needed for handling requests. You can specify a custom amount for the number of requests to be executed'."\n";
+        //echo '--benchmark=100                    Runs Pancake in benchmark-mode - It will then benchmark the speed needed for handling requests. You can specify a custom amount for the number of requests to be executed'."\n";
         echo '--debug                            Runs Pancake in debug-mode - It will output further information on errors, which may prove helpful for developers'."\n";
         echo '--daemon                           Runs Pancake in daemon-mode - It will then run as a process in background'."\n";
-        echo '--live                             Runs Pancake in live-mode - It will not run in background and output every piece of information directly to the user'."\n";
+        //echo '--live                             Runs Pancake in live-mode - It will not run in background and output every piece of information directly to the user'."\n";
         exit;
     }
     
@@ -118,8 +117,12 @@
     dt_remove_function('filter_input');
     dt_remove_function('filter_has_var');
     dt_remove_function('filter_input_array');
+    dt_remove_function('get_required_files');
+    dt_remove_function('restore_error_handler');
+    dt_remove_function('error_get_last');
     if(function_exists('http_response_code')) dt_remove_function('http_response_code');
     if(function_exists('header_register_callback')) dt_remove_function('header_register_callback');
+    if(function_exists('session_register_shutdown')) dt_remove_function('session_register_shutdown');
     dt_rename_function('phpinfo', 'Pancake\PHPFunctions\phpinfo');  
     dt_rename_function('ob_get_level', 'Pancake\PHPFunctions\OutputBuffering\getLevel');
     dt_rename_function('ob_end_clean', 'Pancake\PHPFunctions\OutputBuffering\endClean');
@@ -131,6 +134,11 @@
     dt_rename_function('debug_backtrace', 'Pancake\PHPFunctions\debugBacktrace');
     dt_rename_function('debug_print_backtrace', 'Pancake\PHPFunctions\debugPrintBacktrace');
     dt_rename_function('register_shutdown_function', 'Pancake\PHPFunctions\registerShutdownFunction');
+    dt_rename_function('get_included_files', 'Pancake\PHPFunctions\getIncludes');
+    dt_rename_function('set_error_handler', 'Pancake\PHPFunctions\setErrorHandler');
+    dt_rename_function('memory_get_usage', 'Pancake\PHPFunctions\getMemoryUsage');
+    dt_rename_function('memory_get_peak_usage', 'Pancake\PHPFunctions\getPeakMemoryUsage');
+    dt_rename_function('get_browser', 'Pancake\PHPFunctions\getBrowser');
     dt_remove_constant('PHP_SAPI'); 
     
     dt_show_plain_info(false);
@@ -192,8 +200,7 @@
         abort();
     }
     
-    // Load Shared Memory and IPC
-    SharedMemory::create();
+    // Load IPC
     IPC::create();  
     
     // Load MIME-types
@@ -223,6 +230,8 @@
             socket_set_nonblock($socket);
             $Pancake_sockets[] = $socket;
         }
+        if($interface == '::0' && $Pancake_sockets)
+        	goto socketsCreated;
     }
     
     out('Listening on ' . count(Config::get('main.ipv6')) . ' IPv6 network interfaces', SYSTEM, true, true);
@@ -256,6 +265,8 @@
         trigger_error('No sockets available to listen on', \E_USER_ERROR);
         abort();
     }
+
+    socketsCreated:
     
     // Load vHosts
     foreach(Config::get('vhosts') as $name => $config) {
@@ -289,28 +300,31 @@
     
     // We're doing this in two steps so that all vHosts will be displayed in phpinfo()
     foreach($vHosts as $vHost) {
+        $Pancake_phpSockets[] = $vHost->getSocket();
+        
         for($i = 0;$i < $vHost->getPHPWorkerAmount();$i++) {
-            cleanGlobals(array('i', 'vHosts', 'vHost'));
+            cleanGlobals(array('i', 'vHosts', 'vHost', 'Pancake_phpSockets'));
             $thread = new PHPWorker($vHost);
             if($Pancake_currentThread) {
                 require $thread->codeFile;
                 exit;
             }
-            pcntl_sigtimedwait(array(\SIGUSR1), $x, Config::get('main.workerboottime'));
-            if(!$x) {
-                $thread->kill();
-                out('Failed to boot worker ' . $thread->friendlyName . ' in time - Aborting');
-                abort();
+            if(Config::get('main.waitphpworkerboot')) {
+	            pcntl_sigtimedwait(array(\SIGUSR1), $x, Config::get('main.workerboottime'));
+	            if(!$x) {
+	                $thread->kill();
+	                out('Failed to boot worker ' . $thread->friendlyName . ' in time - Aborting');
+	                abort();
+	            }
             }
-            //$phpWorkers[] = $thread;
         }
     }
     
     // Debug-output
     out('Loaded '.count($vHosts).' vHosts', SYSTEM, true, true);
                        
-    cleanGlobals();
-    
+    cleanGlobals(array('Pancake_phpSockets'));
+
     // Create RequestWorkers
     for($i = 0;$i < Config::get('main.requestworkers');$i++) {
         $thread = new RequestWorker(); 
@@ -320,15 +334,14 @@
             out('Failed to boot worker ' . $thread->friendlyName . ' in time - Aborting');
             abort();
         }
-        //$requestWorkers[] = $thread;
-    }
-        
+    }           
+            
     out('Created '.Config::get('main.requestworkers').' RequestWorkers', SYSTEM, true, true);
     
     out('Ready');
     
     // Clean
-    cleanGlobals();
+    cleanGlobals(array('Pancake_phpSockets'));
     gc_collect_cycles();
     
     // Set blocking mode for some signals
@@ -349,7 +362,7 @@
                 
                 $thread = Thread::get($info['pid']);
                 if(IPC::get(MSG_IPC_NOWAIT, 9999)) {
-                    out('Worker ' . $thread->friendlyName . ' reached request-limit - Rebooting worker', REQUEST, true, true);
+                    out('Worker ' . $thread->friendlyName . ' requested reboot', SYSTEM, true, true);
                 } else
                     out('Detected crash of worker ' . $thread->friendlyName . ' - Rebooting worker');
                 

@@ -25,6 +25,10 @@ vhosts:
       includes: true
     forcedelete:                                                # Force deletion of the specified PHP elements after a request
     excludedelete:                                              # Exclude the specified PHP elements from automatic deletion after a request
+    phphtmlerrors: true
+#    phpdisabledfunctions:
+#      - posix_getpid
+#      - posix_kill
 #    phpcache:                                                  # Files or directories that should be cached by Pancake
 #      - my.class.php
 #      - inc/functions.php

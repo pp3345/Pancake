@@ -131,7 +131,7 @@
             
             // HyperText CoffeePot Control Protocol :-)
             if(($firstLine[0] == 'BREW' || $firstLine[0] == 'WHEN' || $firstLine[2] == 'HTCPCP/1.0') && Config::get('main.exposepancake') === true)
-                throw new invalidHTTPRequestException('No coffee here. I\'m a Pancake. Try again at 256.256.133.7', 418, $requestHeader);
+                throw new invalidHTTPRequestException('No coffee here. I\'m a Pancake. Try again at 1.3.3.7', 418, $requestHeader);
             
             // Check protocol version
             if(strtoupper($firstLine[2]) == 'HTTP/1.1')
@@ -615,10 +615,10 @@
             $_SERVER['SERVER_NAME'] = $this->getRequestHeader('Host') ? $this->getRequestHeader('Host') : $this->vHost->getHost();
             $_SERVER['SERVER_ADDR'] = $this->localIP;
             $_SERVER['SERVER_PORT'] = $this->localPort;
-                        
+
             foreach($this->requestHeaders as $name => $value)
                 $_SERVER['HTTP_'.str_replace('-', '_', strtoupper($name))] = $value;
-                
+            
             return $_SERVER;
         }
         
@@ -641,6 +641,15 @@
                 $headers .= $headerName.': '.$headerValue."\r\n";
             }
             return $headers;
+        }
+        
+        /**
+         * Returns an array with all headers of the request
+         * 
+         * @return array
+         */
+        public function getRequestHeadersArray() {
+        	return $this->requestHeaders;
         }
         
         /**
@@ -717,18 +726,18 @@
         }
         
         /**
-        * Set AnswerCode
+        * Set answer code
         * 
-        * @param int $value A valid HTTP-Answer-Code, for example 200 or 404
+        * @param int $value A valid HTTP answer code, for example 200 or 404
         */
         public function setAnswerCode($value) {
             if(!array_key_exists($value, self::$answerCodes))
                 return false;
-            return $this->answerCode = $value;
+            return $this->answerCode = (int) $value;
         }
         
         /**
-        * Get AnswerCode
+        * Get answer code
         * 
         */
         public function getAnswerCode() {
@@ -736,7 +745,7 @@
         }
         
         /**
-        * Get AnswerBody
+        * Get answer body
         * 
         */
         public function getAnswerBody() {
@@ -744,7 +753,7 @@
         }
         
         /**
-        * Set AnswerBody
+        * Set answer body
         * 
         * @param string $value
         */
@@ -867,9 +876,9 @@
         }
         
         /**
-        * Get Message corresponding to an AnswerCode
+        * Get message corresponding to an answer code
         * 
-        * @param int $code Valid AnswerCode, for example 200 or 404
+        * @param int $code Valid answer code, for example 200 or 404
         * @return string The corresponding string, for example "OK" or "Not found"
         */
         public static function getCodeString($code) {

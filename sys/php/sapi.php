@@ -36,7 +36,7 @@
             Pancake\vars::$Pancake_request->setAnswerCode($data[1]);
         } else {
             $header = explode(':', $string, 2);
-            Pancake\vars::$Pancake_request->setHeader($header[0], trim($header[1]), $replace);
+            Pancake\vars::$Pancake_request->setHeader($header[0], trim(@$header[1]), $replace);
             if($header[0] == 'Location' && Pancake\vars::$Pancake_request->getAnswerCode() != 201 && substr(Pancake\vars::$Pancake_request->getAnswerCode(), 0, 1) != 3)
                 Pancake\vars::$Pancake_request->setAnswerCode(302);
         }
@@ -71,8 +71,13 @@
         function header_register_callback($callback) {
             if(!is_callable($callback))
                 return false;
-            Pancake\vars::$Pancake_headerCallback = $callback;
+            
+            Pancake\vars::$Pancake_headerCallbacks[] = $callback;
             return true;
+        }
+        
+        function session_register_shutdown() {
+        	return register_shutdown_function('session_write_close');
         }
     }
     
@@ -105,7 +110,7 @@
             
             $pancakeAdd .= '<tr><td class="e">Included Configuration files</td><td class="v">';
             foreach(Pancake\Config::get('include') as $include) {
-                if($first) $pancakeAdd .= ', ';
+                if(isset($first)) $pancakeAdd .= ', ';
                 $pancakeAdd .= $include;
                 $first = true;
             }
@@ -116,7 +121,6 @@
             $pancakeAdd .= '<tr><td class="e">Expose Pancake</td><td class="v">' . (Pancake\Config::get('main.exposepancake') ? 'enabled' : 'disabled') . '</td></tr>';
             $pancakeAdd .= '<tr><td class="e">Timestamps</td><td class="v">' . Pancake\Config::get('main.dateformat') . '</td></tr>';
             $pancakeAdd .= '<tr><td class="e">Sizeprefixes</td><td class="v">' . (Pancake\Config::get('main.sizeprefix') == 'si' ? 'SI' : 'binary') . '</td></tr>';
-            $pancakeAdd .= '<tr><td class="e">Shared Memory</td><td class="v">' . Pancake\formatFilesize(Pancake\Config::get('main.sharedmemory')) . '</td></tr>';
             $pancakeAdd .= '<tr><td class="e">Timeout for read actions</td><td class="v">' . Pancake\Config::get('main.readtimeout') . ' µs</td></tr>';
             $pancakeAdd .= '<tr><td class="e">Current vHost</td><td class="v">' . Pancake\vars::$Pancake_currentThread->vHost->getName() . '</td></tr>';
             $pancakeAdd .= '<tr><td class="e">Path for temporary files</td><td class="v">' . Pancake\Config::get('main.tmppath') . '</td></tr>';
@@ -134,10 +138,12 @@
             $pancakeAdd .= '</table><br/>';
             
             if(Pancake\vars::$Pancake_request->getvHost()->exposePancakevHostsInPHPInfo()) {
+            	$vHostsDone = array();
+            	
                 $pancakeAdd .= '<h1>Virtual Hosts</h1>';
                 
                 foreach(Pancake\vars::$Pancake_vHosts as $vHost) {
-                    if(@in_array($vHost->getID(), $vHostsDone))
+                    if(in_array($vHost->getID(), $vHostsDone))
                         continue;
                     
                     $pancakeAdd .= '<h2>'.$vHost->getName().'</h2>';
@@ -160,7 +166,7 @@
                     
                     unset($first);
                     foreach($vHost->getIndexFiles() as $indexFile) {
-                        if($first) $pancakeAdd .= ', ';
+                        if(isset($first)) $pancakeAdd .= ', ';
                         $pancakeAdd .= $indexFile;
                         $first = true;
                     }
@@ -171,7 +177,7 @@
                     
                     unset($first);
                     foreach($vHost->getListen() as $listen) {
-                        if($first) $pancakeAdd .= ', ';
+                        if(isset($first)) $pancakeAdd .= ', ';
                         $pancakeAdd .= $listen;
                         $first = true;
                     }
@@ -210,14 +216,17 @@
         if(!is_uploaded_file($filename))
             return false;
         if(!rename($filename, $destination)) {
-            trigger_error("Unable to move '" . $filename . "' to '" . $destination . "'", E_USER_WARNING);
+            Pancake\PHPErrorHandler(E_WARNING, "Unable to move '" . $filename . "' to '" . $destination . "'");
             return false;
         }
         return true;
     }
     
     function register_shutdown_function($callback) {
-        $shutdownCall['callback'] = $callback;
+    	if(!is_callable($callback))
+    		return false;
+    	
+        $shutdownCall = array('callback' => $callback);
         
         $args = func_get_args();
         unset($args[0]);
@@ -236,21 +245,21 @@
     function ob_end_clean() {
         if(ob_get_level() > 0)
             return Pancake\PHPFunctions\OutputBuffering\endClean();
-        trigger_error('ob_end_clean(): failed to delete buffer. No buffer to delete', E_USER_NOTICE);
+        Pancake\PHPErrorHandler(E_NOTICE, 'ob_end_clean(): failed to delete buffer. No buffer to delete');
         return false;
     }
     
     function ob_end_flush() {
         if(ob_get_level() > 0)
             return Pancake\PHPFunctions\OutputBuffering\endFlush();
-        trigger_error('ob_end_flush(): failed to delete and flush buffer. No buffer to delete or flush', E_USER_NOTICE);
+        Pancake\PHPErrorHandler(E_NOTICE, 'ob_end_flush(): failed to delete and flush buffer. No buffer to delete or flush');
         return false;
     }
     
     function ob_get_flush() {
         if(ob_get_level() > 0)
             return Pancake\PHPFunctions\OutputBuffering\getFlush();
-        trigger_error('ob_get_flush(): failed to delete and flush buffer. No buffer to delete or flush', E_USER_NOTICE);
+        Pancake\PHPErrorHandler(E_NOTICE, 'ob_get_flush(): failed to delete and flush buffer. No buffer to delete or flush');
         return false;
     }
     
@@ -396,7 +405,7 @@
             $settings = array();
             return true;
         }
-        if(!$settings[$varname])
+        if(!isset($settings[$varname]))
             $settings[$varname] = ini_get($varname);
         return Pancake\PHPFunctions\setINI($varname, $newvalue); 
     }
@@ -408,12 +417,17 @@
         }
     } else {
         function debug_backtrace($options = DEBUG_BACKTRACE_PROVIDE_OBJECT, $limit = 0) {
+        	if($limit)
+        		$limit = $limit + 3;
             $backtrace = Pancake\PHPFunctions\debugBacktrace($options, $limit);
             return Pancake\workBacktrace($backtrace);
         }
     }
     
     function debug_print_backtrace($options = 0, $limit = 0) {
+    	if($limit)
+    		$limit = $limit + 3;
+    	
         ob_start();
         Pancake\PHPFunctions\debugPrintBacktrace($options, $limit);
         $backtrace = ob_get_contents();
@@ -432,4 +446,124 @@
         }
         echo $trace;
     }
+    
+    function get_included_files($setNull = false) {
+    	static $pancakeIncludes = array();
+    	
+    	$includes = Pancake\PHPFunctions\getIncludes();
+    	if($setNull) {
+    		$pancakeIncludes = $includes;
+    		return;
+    	}
+    	foreach($includes as $index => $fileName)
+    		if(in_array($fileName, $pancakeIncludes))
+    			unset($includes[$index]);
+    	return $includes;
+    }
+    
+    function get_required_files() {
+    	return get_included_files();
+    }
+    
+    function apache_child_terminate() {
+    	Pancake\vars::$workerExit = true;
+    	return true;
+    }
+    
+    function apache_request_headers() {
+    	return Pancake\vars::$Pancake_request->getRequestHeadersArray();
+    }
+    
+    function apache_response_headers() {
+    	return Pancake\vars::$Pancake_request->getAnswerHeadersArray();
+    }
+    
+    function getallheaders() {
+    	return Pancake\vars::$Pancake_request->getRequestHeadersArray();
+    }
+    
+    function set_error_handler($error_handler, $error_types = null) {
+    	if(!$error_types)
+    		$error_types = E_ALL | E_STRICT;
+    	if(!is_callable($error_handler)
+    	/*|| $error_types & E_ERROR
+    	|| $error_types & E_PARSE
+    	|| $error_types & E_CORE_ERROR
+    	|| $error_types & E_CORE_WARNING
+    	|| $error_types & E_COMPILE_ERROR
+    	|| $error_types & E_COMPILE_WARNING*/)
+    		return null;
+    	$returnValue = Pancake\vars::$errorHandler;
+
+    	Pancake\vars::$errorHandler = array('call' => $error_handler, 'for' => $error_types);
+    	Pancake\vars::$errorHandlerHistory[] = array('call' => $error_handler, 'for' => $error_types);
+    	
+    	return $returnValue;
+    }
+    
+    function restore_error_handler() {
+    	array_pop(Pancake\vars::$errorHandlerHistory);
+    	end(Pancake\Vars::$errorHandlerHistory);
+    	if(($handler = current(Pancake\vars::$errorHandlerHistory)) === false)
+    		Pancake\vars::$errorHandler = null;
+    	else
+    		Pancake\vars::$errorHandler = $handler;
+    	
+    	return true;
+    }
+    
+    function memory_get_usage($real_usage = false, $setNull = false) {
+    	static $nullUsage = 0;
+
+    	if($setNull) {
+    		$nullUsage = Pancake\PHPFunctions\getMemoryUsage();
+    		return;
+    	}
+    	
+    	return Pancake\PHPFunctions\getMemoryUsage($real_usage) - ($real_usage ? 0 : $nullUsage);
+    }
+    
+    function memory_get_peak_usage($real_usage = false, $setNull = false) {
+    	static $nullUsage = 0;
+    
+    	if($setNull) {
+    		$nullUsage = Pancake\PHPFunctions\getPeakMemoryUsage();
+    		return;
+    	}
+    	 
+    	return Pancake\PHPFunctions\getPeakMemoryUsage($real_usage) - ($real_usage ? 0 : $nullUsage);
+    }
+    
+    function get_browser($user_agent = null, $return_array = false) {
+    	return Pancake\PHPFunctions\getBrowser($user_agent ? $user_agent : Pancake\vars::$Pancake_request->getRequestHeader('User-Agent'), $return_array);
+    }
+   
+	function error_get_last() {
+   		return Pancake\vars::$lastError;
+	}
+    
+    dt_rename_method('\Exception', 'getTrace', 'Pancake_getTraceOrig');
+    dt_add_method('\Exception', 'getTrace', null, <<<'FUNCTIONBODY'
+$trace = $this->Pancake_getTraceOrig();
+unset($trace[count($trace)-1]);
+unset($trace[count($trace)-1]);
+return $trace;
+FUNCTIONBODY
+);
+    
+    dt_rename_method('\Exception', 'getTraceAsString', 'Pancake_getTraceAsStringOrig');
+    dt_add_method('\Exception', 'getTraceAsString', null, <<<'FUNCTIONBODY'
+$backtrace = explode("\n", $this->Pancake_getTraceAsStringOrig());
+
+foreach($backtrace as $traceElement) {
+	if(strpos($traceElement, 'phpWorker.thread.php'))
+    	break;
+    $trace .= $traceElement . "\n";
+    $i++;
+}
+$trace .= '#' . $i . ' {main}';
+    		
+return $trace;
+FUNCTIONBODY
+);
 ?>

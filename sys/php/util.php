@@ -17,8 +17,13 @@
         return !defined('PANCAKE_PHP');
     }
     
-    function PHPErrorHandler($errtype, $errstr, $errfile = "Unknown", $errline = 0) {
-        if(!(error_reporting() & $errtype) || !error_reporting())
+    function PHPErrorHandler($errtype, $errstr, $errfile = "Unknown", $errline = 0, $errcontext = array()) {
+    	if(vars::$errorHandler && vars::$errorHandler['for'] & $errtype && is_callable(vars::$errorHandler['call']) && call_user_func(vars::$errorHandler['call'], $errtype, $errstr, $errfile, $errline, $errcontext) !== false)
+    		return true;
+    	
+    	vars::$lastError = array('type' => $errtype, 'message' => $errstr, 'file' => $errfile, 'line' => $errline);
+    	
+        if(!(error_reporting() & $errtype) || !error_reporting() || !ini_get('display_errors'))
             return true;
         
         $typeNames = array( \E_ERROR => 'Fatal error',
@@ -37,11 +42,58 @@
                             \E_DEPRECATED => 'Deprecated',
                             \E_USER_DEPRECATED => 'Deprecated');
         
-        $message = $typeNames[$errtype].':  '.$errstr.' in '.$errfile .' on line '.$errline."\n";
-        if(ini_get('display_errors'))
-            echo $message;
+        if(vars::$Pancake_currentThread->vHost->useHTMLErrors())
+       		echo "<br />" . "\r\n" . "<b>" . $typeNames[$errtype] . "</b>:  " . $errstr . " in <b>" . $errfile . "</b> on line <b>" . $errline . "</b><br />" . "\r\n";
+        else
+        	echo $typeNames[$errtype].': '.$errstr.' in '.$errfile .' on line '.$errline."\n";
         
         return true;
+    }
+    
+    function PHPShutdownHandler() {
+    	if(!defined('PANCAKE_PHP'))
+    		return;
+    	
+    	// Execute registered shutdown callbacks
+    	foreach((array) vars::$Pancake_shutdownCalls as $shutdownCall) {
+    		unset($args);
+    		$call = 'call_user_func($shutdownCall["callback"]';
+    		foreach((array) @$shutdownCall['args'] as $arg) {
+    			if($args)
+    				$call .= ',';
+    			$args[$i++] = $arg;
+    			$call .= '$args['.$i.']';
+    		}
+    		$call .= ');';
+    		eval($call);
+    	}
+    	
+    	while(PHPFunctions\OutputBuffering\getLevel() > 1)
+    		PHPFunctions\OutputBuffering\endFlush();
+    	vars::$Pancake_request->setAnswerBody(ob_get_contents());
+    	
+    	$data = serialize(vars::$Pancake_request);
+    	$len = dechex(strlen($data));
+    	while(strlen($len) < 8)
+    		$len = "0" . $len;
+    	
+    	socket_write(vars::$requestSocket, $len);
+    	socket_write(vars::$requestSocket, $data);
+    	
+    	PHPFunctions\OutputBuffering\endClean();
+    	
+    	IPC::send(9999, 1);
+    }
+    
+    function PHPDisabledFunction($functionName) {
+    	if(PHP_MINOR_VERSION == 3 && PHP_RELEASE_VERSION < 6)
+    		$backtrace = debug_backtrace();
+    	else
+    		$backtrace = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT, 2);
+    	
+    	PHPErrorHandler(\E_WARNING, $functionName . '() has been disabled for security reasons', $backtrace[1]["file"], $backtrace[1]["line"]);
+    	
+    	return null;
     }
     
     /**
@@ -55,7 +107,6 @@
         if($vHost->isExcludedFile($fileName))
             return;
         if(is_dir($vHost->getDocumentRoot() . $fileName)) {
-            //out('Scanning directory ' . $vHost->getDocumentRoot() . '/' . $fileName);
             $directory = scandir($vHost->getDocumentRoot() . $fileName);
             if(substr($fileName, -1, 1) != '/')
                 $fileName .= '/';
@@ -65,7 +116,6 @@
         } else {
             if(MIME::typeOf($vHost->getDocumentRoot() . '/' . $fileName) != 'text/x-php')
                 return;
-            //out('Caching file ' . $vHost->getDocumentRoot() . '/' . $fileName);
             $Pancake_cacheFiles[] = $vHost->getDocumentRoot() . $fileName;
         }
     }
@@ -89,19 +139,33 @@
     * All Pancake PHP executor variables will be stored in this class
     */
     class vars {
-        public static $Pancake_request;
-        public static $Pancake_message;
-        public static $Pancake_currentThread;
-        public static $Pancake_constsPre;
-        public static $Pancake_funcsPre;
-        public static $Pancake_includesPre;
-        public static $Pancake_classesPre;
-        public static $Pancake_interfacesPre;
-        public static $Pancake_traitsPre;
-        public static $Pancake_exclude;
-        public static $Pancake_vHosts;
-        public static $Pancake_processedRequests;
-        public static $Pancake_headerCallback;
-        public static $Pancake_shutdownCalls;
+    	/**
+    	 * 
+    	 * @var HTTPRequest
+    	 */
+        public static $Pancake_request = null;
+        /**
+         * 
+         * @var PHPWorker
+         */
+        public static $Pancake_currentThread = null;
+        public static $Pancake_constsPre = array();
+        public static $Pancake_funcsPre = array();
+        public static $Pancake_includesPre = array();
+        public static $Pancake_classesPre = array();
+        public static $Pancake_interfacesPre = array();
+        public static $Pancake_traitsPre = array();
+        public static $Pancake_exclude = array();
+        public static $Pancake_vHosts = array();
+        public static $Pancake_processedRequests = 0;
+        public static $Pancake_headerCallbacks = array();
+        public static $Pancake_shutdownCalls = array();
+        public static $errorHandler = null;
+        public static $errorHandlerHistory = array();
+        public static $workerExit = false;
+        public static $requestSocket = null;
+        public static $lastError = null;
+        public static $invalidRequest = false;
+        public static $executedShutdown = false;
     }
 ?>
