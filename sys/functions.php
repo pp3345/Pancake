@@ -66,7 +66,7 @@
         global $Pancake_phpSockets;
         
         if($Pancake_currentThread || (class_exists('Pancake\vars') && $Pancake_currentThread = vars::$Pancake_currentThread))
-            return $Pancake_currentThread->parentSignal(SIGTERM);
+            return $Pancake_currentThread->parentSignal(\SIGTERM);
         
         out('Stopping...');
             
@@ -77,7 +77,7 @@
             socket_close($socket);
             unlink($addr);
         }
-                
+        
         $threads = Thread::getAll();
         
         foreach((array) $threads as $worker) {
@@ -91,7 +91,7 @@
             $worker->stop();            
             $worker->waitForExit();
         }
-            
+        
         @IPC::destroy();
         exit;
     }
@@ -173,11 +173,11 @@
         $user = posix_getpwnam(Config::get('main.user'));
         $group = posix_getgrnam(Config::get('main.group'));
         if(!posix_setgid($group['gid'])) {
-            trigger_error('Failed to change group', E_USER_ERROR);
+            trigger_error('Failed to change group', \E_USER_ERROR);
             abort();
         }
         if(!posix_setuid($user['uid'])) {
-            trigger_error('Failed to change user', E_USER_ERROR);
+            trigger_error('Failed to change user', \E_USER_ERROR);
             abort();
         }
         return true;
@@ -187,8 +187,10 @@
     * Cleans all global and superglobal variables
     * 
     */
-    function cleanGlobals($excludeVars = array(), $listOnly = false) {
+    function cleanGlobals($excludeVars = array(), $listOnly = false, $clearRecursive = false) {
         $_GET = $_SERVER = $_POST = $_COOKIE = $_ENV = $_REQUEST = $_FILES = $_SESSION = array();
+        
+        $list = array();
     
         // We can't reset $GLOBALS like this because it would destroy its function of automatically adding all global vars
         foreach($GLOBALS as $globalName => $globalVar) {
@@ -209,6 +211,9 @@
                 if($listOnly)
                     $list[] = $globalName;
                 else {
+                	if($clearRecursive && (is_array($GLOBALS[$globalName]) || is_object($GLOBALS[$globalName])))
+                		recursiveClearObjects($GLOBALS[$globalName]);
+                	
                     $GLOBALS[$globalName] = null;
                     unset($GLOBALS[$globalName]);
                 }
@@ -217,5 +222,21 @@
         return $listOnly ? $list : true;
     }
     
-    function dummy() {}
+    /**
+     * Resets all indices of an array (recursively) to lower case
+     * 
+     * @param array $array
+     * @return array
+     */
+    function arrayIndicesToLower($array) {
+    	foreach($array as $index => $value) {
+    		if(is_array($value))
+    			$value = arrayIndicesToLower($value);
+    		$newArray[strToLower($index)] = $value;
+    	}
+    	
+    	return $newArray;
+    }
+    
+    function dummy() {return true;}
 ?>

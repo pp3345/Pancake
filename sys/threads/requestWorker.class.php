@@ -35,9 +35,6 @@
             
             $this->codeFile = 'threads/single/requestWorker.thread.php';
             $this->friendlyName = 'RequestWorker #' . ($this->id+1);
-            
-            // Start worker
-            $this->start();
         }
     }
 ?>

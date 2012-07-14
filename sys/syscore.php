@@ -12,8 +12,7 @@
     if(defined('Pancake\PANCAKE'))
         exit;
     
-    //declare(ticks = 5);
-    const VERSION = '1.0b1';
+    const VERSION = '1.0b2';
     const PANCAKE = true;
     const REQUEST_WORKER_TYPE = 1;
     const PHP_WORKER_TYPE = 2;
@@ -22,16 +21,15 @@
     define('Pancake\ERROR_REPORTING', \E_COMPILE_ERROR | \E_COMPILE_WARNING | \E_CORE_ERROR | \E_CORE_WARNING | \E_ERROR | \E_PARSE | \E_RECOVERABLE_ERROR | \E_USER_ERROR | \E_USER_WARNING | \E_WARNING);
     
     // Include files necessary to run Pancake
+    require_once 'sfYamlParser.class.php';
     require_once 'configuration.class.php';
     require_once 'functions.php';
     require_once 'thread.class.php';
     require_once 'threads/requestWorker.class.php';
     require_once 'threads/phpWorker.class.php';
     require_once 'HTTPRequest.class.php';
-    require_once 'invalidHTTPRequest.exception.php';
     require_once 'IPC.class.php';
     require_once 'vHost.class.php';
-    require_once 'authenticationFile.class.php';
     require_once 'mime.class.php';
     
     // Set error reporting
@@ -50,14 +48,12 @@
         echo "\n";
         echo 'Pancake is a simple and lightweight HTTP-server. These are the start-options you may use:'."\n";
         echo '-h --help                          Displays this help'."\n";
-        //echo '--benchmark=100                    Runs Pancake in benchmark-mode - It will then benchmark the speed needed for handling requests. You can specify a custom amount for the number of requests to be executed'."\n";
-        echo '--debug                            Runs Pancake in debug-mode - It will output further information on errors, which may prove helpful for developers'."\n";
-        echo '--daemon                           Runs Pancake in daemon-mode - It will then run as a process in background'."\n";
-        //echo '--live                             Runs Pancake in live-mode - It will not run in background and output every piece of information directly to the user'."\n";
+        echo '--debug                            Enable debugging'."\n";
+        echo '--daemon                           Run Pancake as a background-process'."\n";
         exit;
     }
     
-    out('Loading Pancake '.VERSION.'...', SYSTEM, false);
+    out('Loading Pancake '.VERSION.'... 2012 Yussuf Khalil', SYSTEM, false);
     
     // Check for POSIX-compliance
     if(!is_callable('posix_getpid')) {
@@ -71,15 +67,9 @@
         abort();
     }
     
-    // Check if PECL-extension for YAML-support is installed
-    if(!extension_loaded('yaml')) {
-        out('You need to install the PECL-extension for YAML-support in order to run Pancake.', SYSTEM, false);
-        abort();
-    }
-    
-    // Check for System V
-    if(!extension_loaded('sysvmsg') || !extension_loaded('sysvshm')) {
-        out('You need to compile PHP with --enable-sysvmsg and --enable-sysvshm in order to run Pancake.', SYSTEM, false);
+    // Check for System V IPC
+    if(!extension_loaded('sysvmsg')) {
+        out('You need to compile PHP with --enable-sysvmsg in order to run Pancake.', SYSTEM, false);
         abort();
     }
     
@@ -119,7 +109,7 @@
     dt_remove_function('filter_input_array');
     dt_remove_function('get_required_files');
     dt_remove_function('restore_error_handler');
-    dt_remove_function('error_get_last');
+    dt_remove_function('ini_alter');
     if(function_exists('http_response_code')) dt_remove_function('http_response_code');
     if(function_exists('header_register_callback')) dt_remove_function('header_register_callback');
     if(function_exists('session_register_shutdown')) dt_remove_function('session_register_shutdown');
@@ -139,6 +129,11 @@
     dt_rename_function('memory_get_usage', 'Pancake\PHPFunctions\getMemoryUsage');
     dt_rename_function('memory_get_peak_usage', 'Pancake\PHPFunctions\getPeakMemoryUsage');
     dt_rename_function('get_browser', 'Pancake\PHPFunctions\getBrowser');
+    dt_rename_function('spl_autoload_register', 'Pancake\PHPFunctions\registerAutoload');
+    dt_rename_function('session_id', 'Pancake\PHPFunctions\sessionID');
+    dt_rename_function('error_get_last', 'Pancake\PHPFunctions\errorGetLast');
+    dt_rename_function('session_set_save_handler', 'Pancake\PHPFunctions\setSessionSaveHandler');
+    dt_rename_method('ReflectionFunction', 'isDisabled', 'Pancake_isDisabledOrig');
     dt_remove_constant('PHP_SAPI'); 
     
     dt_show_plain_info(false);
@@ -147,13 +142,11 @@
     dt_set_proctitle('Pancake HTTP-Server '.VERSION);
     
     // Set PANCAKE_DEBUG_MODE
-    if(isset($startOptions['debug']) || Config::get('main.debugmode') === true)
+    if(isset($startOptions['debug']) || Config::get('main.debugmode') === true) {
         define('Pancake\DEBUG_MODE', true);
-    else
-        define('Pancake\DEBUG_MODE', false);
-        
-    if(DEBUG_MODE === true)
         out('Debugging enabled');
+    } else
+        define('Pancake\DEBUG_MODE', false);
         
     out('Basic configuration initialized', SYSTEM, true, true);
            
@@ -162,11 +155,6 @@
         out('The configured user/group doesn\'t exist.', SYSTEM, false);
         abort();
     }
-    
-    // Handle signals
-    //pcntl_signal(SIGUSR2, 'Pancake\abort');
-    //pcntl_signal(SIGTERM, 'Pancake\abort');
-    //pcntl_signal(SIGINT, 'Pancake\abort');      
     
     // Daemonize
     if(isset($startOptions['daemon'])) {
@@ -226,7 +214,7 @@
             } 
             
             // Start listening  
-            socket_listen($socket);
+            socket_listen($socket, Config::get('main.socketbacklog'));
             socket_set_nonblock($socket);
             $Pancake_sockets[] = $socket;
         }
@@ -252,7 +240,7 @@
             } 
             
             // Start listening  
-            socket_listen($socket);
+            socket_listen($socket, Config::get('main.socketbacklog'));
             socket_set_nonblock($socket);
             $Pancake_sockets[] = $socket;
         }
@@ -300,12 +288,13 @@
     
     // We're doing this in two steps so that all vHosts will be displayed in phpinfo()
     foreach($vHosts as $vHost) {
-        $Pancake_phpSockets[] = $vHost->getSocket();
+    	if($vHost->getSocket())
+        	$Pancake_phpSockets[] = $vHost->getSocket();
         
         for($i = 0;$i < $vHost->getPHPWorkerAmount();$i++) {
             cleanGlobals(array('i', 'vHosts', 'vHost', 'Pancake_phpSockets'));
             $thread = new PHPWorker($vHost);
-            if($Pancake_currentThread) {
+            if(isset($Pancake_currentThread)) {
                 require $thread->codeFile;
                 exit;
             }
@@ -328,6 +317,7 @@
     // Create RequestWorkers
     for($i = 0;$i < Config::get('main.requestworkers');$i++) {
         $thread = new RequestWorker(); 
+        $thread->start();
         pcntl_sigtimedwait(array(\SIGUSR1), $x, Config::get('main.workerboottime'));
         if(!$x) {
             $thread->kill();
@@ -347,7 +337,7 @@
     // Set blocking mode for some signals
     pcntl_sigprocmask(\SIG_BLOCK, array(\SIGCHLD, \SIGINT, \SIGUSR2, \SIGTERM));
     
-    // Don't do anything except if one of the children died
+    // Don't do anything except if one of the children died or Pancake gets the signal to shutdown
     while(true) {
         pcntl_sigwaitinfo(array(\SIGCHLD, \SIGINT, \SIGUSR2, \SIGTERM), $info);
         
@@ -369,15 +359,10 @@
                 // PHPWorkers need to be run in global scope
                 if($thread instanceof PHPWorker) {
                     $thread->start(false);
-                    if($Pancake_currentThread) {
+                    if(isset($Pancake_currentThread)) {
                         require $thread->codeFile;
                         exit;
                     }
-                    
-                    // Send error to RequestWorker
-                    $ipcStatus = IPC::status();
-                    if(($thread = Thread::get($ipcStatus['msg_lspid'])) instanceof RequestWorker)
-                        IPC::send($thread->IPCid, 500);
                 } else
                     $thread->start();
             break;

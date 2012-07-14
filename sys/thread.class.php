@@ -72,6 +72,7 @@
                 global $Pancake_currentThread;
                 $Pancake_currentThread = $this;
                 dt_set_proctitle('Pancake '.$this->friendlyName);
+                dt_remove_function('dt_set_proctitle');
                 if(!$loadCodeFile)
                     return true;
                 require $this->codeFile;

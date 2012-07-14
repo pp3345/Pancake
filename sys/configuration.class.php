@@ -22,11 +22,14 @@
         const VHOST_EXAMPLE_PATH = '../conf/vhost.example.yml'; // Path to example vHost configuration
         const DEFAULT_VHOST_INCLUDE_DIR = '../conf/vhosts/';    // Path to default vHost include directory
         static private $configuration = array();
+        static private $parser = null;
         
         /**
         * Loads the configuration
         */
         static public function load() {
+        	self::$parser = new sfYamlParser;
+        	
         	if(!file_exists(self::PATH) && file_exists(self::EXAMPLE_PATH)) {
         		out('It seems that Pancake is being started for the first time - Welcome to Pancake!', SYSTEM, false);
         		out('Using example configuration', SYSTEM, false);
@@ -43,24 +46,58 @@
         			 
         			self::loadFile(self::VHOST_EXAMPLE_PATH);
         		}
+        		
+        		$firstStart = true;
         	}
+        	
+        	self::$configuration = arrayIndicesToLower(self::$configuration);
         	
             if(!self::loadFile(self::SKELETON_PATH) || !self::loadFile(self::PATH)) {
                 out('Couldn\'t load configuration');
                 abort();
             }
             
-            $includes = self::get('include');
+            self::$configuration = arrayIndicesToLower(self::$configuration);
             
-            foreach((array) $includes as $include)
+            if(isset($firstStart)) {
+            	if(!@posix_getpwnam(self::get('main.user'))) {
+            		out('The default user was not found. Trying to create it automatically');
+            		exec('useradd --no-create-home --shell /dev/null ' . self::get('main.user'), $x, $returnValue);
+            		if($returnValue != 0) {
+            			trigger_error('Failed to create user ' . self::get('main.user') . ' - Please create it yourself', \E_USER_ERROR);
+            			abort();
+            		}
+            	}
+            	if(!@posix_getgrnam(self::get('main.group'))) {
+            		out('The default group was not found. Trying to create it automatically');
+            		exec('groupadd ' . self::get('main.group'), $x, $returnValue);
+            		if($returnValue != 0) {
+            			trigger_error('Failed to create group ' . self::get('main.group') . ' - Please create it yourself', \E_USER_ERROR);
+            			abort();
+            		}
+            	}
+            }
+            
+            self::$configuration['include'] = (array) self::$configuration['include'];
+            
+            foreach(self::$configuration['include'] as &$include) {
+            	$include = realpath($include);
                 self::loadFile($include);
+            }
+            
+            self::$configuration = arrayIndicesToLower(self::$configuration);
                 
-            if(substr(self::get('main.tmppath'), -1, 1) != '/')
-                self::$configuration['main']['tmppath'] = self::get('main.tmppath') . '/';
-            if(!is_dir(self::get('main.tmppath'))) {
-                trigger_error('The specified path for temporary files ("'.self::get('main.tmppath').'") is not a directory', \E_USER_WARNING);
+            self::$configuration['main']['tmppath'] = realpath(self::$configuration['main']['tmppath']) . '/';
+            self::$configuration['main']['logging']['request'] = realpath(self::$configuration['main']['logging']['request']);
+            self::$configuration['main']['logging']['system'] = realpath(self::$configuration['main']['logging']['system']);
+            self::$configuration['main']['logging']['error'] = realpath(self::$configuration['main']['logging']['error']);
+            
+            if(!is_dir(self::get('main.tmppath')) || !is_writable(self::get('main.tmppath'))) {
+                trigger_error('The specified path for temporary files ("'.self::get('main.tmppath').'") is not a directory or is not writable', \E_USER_ERROR);
                 abort();
             }
+            
+            self::$parser = null;
         }
         
         /**
@@ -77,10 +114,11 @@
                 }
                 return true;
             }
-            if(!($data = file_get_contents($fileName)) || !($config = yaml_parse($data))) {
+            if(!($data = file_get_contents($fileName)) || !($config = self::$parser->parse($data))) {
                 out('Failed to load configuration file ' . $fileName);
                 return false;
             }
+            
             self::$configuration = array_merge(self::$configuration, $config);
             return true;
         }

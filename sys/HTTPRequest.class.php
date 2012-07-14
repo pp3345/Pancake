@@ -24,7 +24,13 @@
         private $POSTParameters = array();
         private $cookies = array();
         private $setCookies = array();
+        /**
+         * @var RequestWorker
+         */
         private $requestWorker = null;
+        /**
+         * @var vHost
+         */
         private $vHost = null;
         private $requestLine = null;
         private $rangeFrom = 0;
@@ -201,6 +207,11 @@
             
             // Check for index-files    
             if(is_dir($this->vHost->getDocumentRoot().$this->requestFilePath)) {
+            	if(substr($this->requestFilePath, -1, 1) != '/' && $this->requestType == 'GET') {
+            		$this->setHeader('Location', 'http://' . $this->getRequestHeader('Host') . $this->requestFilePath . '/' . $this->queryString);
+            		throw new invalidHTTPRequestException('Redirecting...', 301);
+            	}
+            	
                 foreach($this->vHost->getIndexFiles() as $file)
                     if(file_exists($this->vHost->getDocumentRoot().$this->requestFilePath.'/'.$file)) {
                         $this->requestFilePath .= (substr($this->requestFilePath, -1, 1) == '/' ? null : '/') . $file;
@@ -341,7 +352,7 @@
         */
         public function readPOSTData($postData) {
             // Check for url-encoded parameters
-            if(strpos($this->getRequestHeader('Content-Type'), 'application/x-www-form-urlencoded') !== false) {
+            if(strpos($this->getRequestHeader('Content-Type', false), 'application/x-www-form-urlencoded') !== false) {
                 // Split POST-parameters
                 $post = explode('&', $postData);
 
@@ -370,20 +381,22 @@
                         $this->POSTParameters[$param[0]] = $param[1];
                 }
             // Check for multipart-data
-            } else if(strpos($this->getRequestHeader('Content-Type'), 'multipart/form-data') !== false) {
+            } else if(strpos($this->getRequestHeader('Content-Type', false), 'multipart/form-data') !== false) {
                 // Get boundary string that splits the dispositions
                 preg_match('~boundary=(.*)~', $this->getRequestHeader('Content-Type'), $boundary);
                 if(!($boundary = $boundary[1]))
                     return false;
                 
                 // For some strange reason the actual boundary string is -- + the specified boundary string
-                $postData = str_replace("\r\n--" . $boundary . '--', null, $postData);
+                $postData = str_replace("\r\n--" . $boundary . "--\r\n", null, $postData);
                 
                 $dispositions = explode("\r\n--" . $boundary, $postData);
                 
                 // The first disposition will have a boundary string at its beginning
                 $disposition[0] = substr($disposition[0], strlen('--' . $boundary . "\r\n"));
 
+                $paramDefinitions = array();
+                
                 foreach($dispositions as $disposition) {
                     $dispParts = explode("\r\n\r\n", $disposition, 2);
                     preg_match('~Content-Disposition: form-data;[ ]?name="(.*?)";?[ ]?(?:filename="(.*?)")?(?:\r\n)?(?:Content-Type: (.*))?~', $dispParts[0], $data);
@@ -395,7 +408,7 @@
                         $dataArray = array(
                                             'name' => $data[2],
                                             'type' => $data[3],
-                                            'error' => UPLOAD_ERR_OK,
+                                            'error' => \UPLOAD_ERR_OK,
                                             'size' => strlen($dispParts[1]),
                                             'tmp_name' => $tmpFileName);
                         
@@ -404,7 +417,7 @@
                             
                             $paramDefinition = '$file[$parts[1][0]]';
                             foreach((array) $parts[2] as $index => $arrayKey) {
-                                if($arrayKey != null)
+                                if($arrayKey)
                                     $paramDefinition .= '[$parts[2]['.$index.']]';
                                 else
                                     $multi = true;
@@ -414,7 +427,7 @@
                                 $paramDefinitions[$paramDefinition]++;
                                 $dataArray = array( 'name' => array( $paramDefinitions[$paramDefinition] - 1 => $data[2]),
                                                     'type' => array( $paramDefinitions[$paramDefinition] - 1 => $data[3]),
-                                                    'error' => array( $paramDefinitions[$paramDefinition] - 1 => UPLOAD_ERR_OK),
+                                                    'error' => array( $paramDefinitions[$paramDefinition] - 1 => \UPLOAD_ERR_OK),
                                                     'size' => array( $paramDefinitions[$paramDefinition] - 1 => strlen($dispParts[1])),
                                                     'tmp_name' => array( $paramDefinitions[$paramDefinition] - 1 => $tmpFileName));
                             }
@@ -486,7 +499,7 @@
         }
        
         /**
-        * Build complete answer
+        * Build answer headers
         *  
         */
         public function buildAnswerHeaders() {
@@ -497,7 +510,7 @@
                 return $answer;
             }
             
-            // Set AnswerCode if not set
+            // Set answer code if not set
             if(!$this->getAnswerCode())
                 (!$this->getAnswerHeader('Content-Length') && !$this->getAnswerBody() && $this->vHost->send204OnEmptyPage()) ? $this->setAnswerCode(204) : $this->setAnswerCode(200);
             // Set Connection-Header
@@ -512,7 +525,7 @@
             foreach($this->setCookies as $cookie)
                 $setCookie .= ($setCookie) ? "\r\nSet-Cookie: ".$cookie : $cookie;
             
-            if($setCookie)
+            if(isset($setCookie))
                 $this->setHeader('Set-Cookie', $setCookie);
             // Set Content-Length
             if(!$this->getAnswerHeader('Content-Length'))
@@ -544,7 +557,7 @@
                 unset($this->answerHeaders[$headerName]);
                 $this->answerHeaders[$headerName] = $headerValue;
             } else {
-                if($value = $this->answerHeaders[$headerName] && !is_array($this->answerHeaders[$headerName])) {
+                if(isset($this->answerHeaders[$headerName]) && $value = $this->answerHeaders[$headerName] && !is_array($this->answerHeaders[$headerName])) {
                     unset($this->answerHeaders[$headerName]);
                     $this->answerHeaders[$headerName][] = $value;
                 }
@@ -596,6 +609,8 @@
         * @return array $_SERVER
         */
         public function createSERVER() {
+        	$appendSlash = "";
+        	
             if(is_dir($this->vHost->getDocumentRoot() . $this->requestFilePath) && substr($this->requestFilePath, -1, 1) != '/')
                 $appendSlash = '/';
             
@@ -626,10 +641,19 @@
         * Get the value of a single Request-Header
         * 
         * @param string $headerName
-        * @return Value of the Header
+        * @param bool $caseSensitive
+        * @return mixed value of the Header
         */
-        public function getRequestHeader($headerName) {
-            return $this->requestHeaders[$headerName];
+        public function getRequestHeader($headerName, $caseSensitive = true) {
+            if($caseSensitive)
+            	return $this->requestHeaders[$headerName];
+            else {
+            	$headerName = strtolower($headerName);
+            	foreach($this->requestHeaders as $name => $value) {
+            		if(strtolower($name) == $headerName)
+            			return $this->requestHeaders[$name];
+            	}
+            }
         }
         
         /**
@@ -682,6 +706,8 @@
         * 
         */
         public function getAnswerHeaders() {
+        	$headers = "";
+        	
             foreach($this->answerHeaders as $headerName => $headerValue) {
                 if(is_array($headerValue)) {
                     foreach($headerValue as $value)
@@ -873,6 +899,25 @@
         */
         public function acceptsCompression($compression) {
             return $this->acceptedCompressions[strtolower($compression)] === true;
+        }
+        
+        /**
+         * Returns a (not human-readable) string representation of the object
+         * 
+         * This function's return value can be compared with a similar object's
+         * return value, especially to check if it was manipulated, for example
+         * after being returned from the PHP-SAPI
+         * 
+         * @return string
+         */
+        public function __toString() {
+        	return serialize($this->requestHeaders)
+        	. serialize($this->remoteIP)
+        	. serialize($this->remotePort)
+        	. serialize($this->requestURI)
+        	. serialize($this->vHost)
+        	. serialize($this->requestType)
+        	. serialize($this->requestLine);
         }
         
         /**

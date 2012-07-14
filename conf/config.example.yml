@@ -1,34 +1,37 @@
 main:
-  tmppath: ../tmp/                                              # Path for temporary files
+  tmpPath: ../tmp/                                              # Path for temporary files
   logging:
     system: ../log/system.log                                   # Path to System-Log
     request: ../log/requests.log                                # Path to Request-Log
     error: ../log/error.log                                     # Path to Error-Log
-  dateformat: 'd.m.y H:i:s'                                     # Format for timestamps - See php.net/date for more information
-  debugmode: false                                              # Enable debugging (debugging can also be enabled for a single run by setting the option --debug)
+  dateFormat: 'd.m.y H:i:s'                                     # Format for timestamps - See php.net/date for more information
+  debugMode: false                                              # Enable debugging (debugging can also be enabled for a single run by setting the option --debug)
   user: www-data                                                # *NIX-User under which Pancake should run
   group: www-data                                               # *NIX-Group under which Pancake should run
-  listenports:                                                  # List of ports to listen on (Recommended for HTTP: 80)
+  listenPorts:                                                  # List of ports to listen on (Recommended for HTTP: 80)
     - 80
-  ipv4:                                                         # IPv4 network interfaces to listen on (use 0 to listen on all available interfaces)
+  IPv4:                                                         # IPv4 network interfaces to listen on (use 0 to listen on all available interfaces)
     - 0
-  ipv6:                                                         # IPv6 network interfaces to listen on (use ::0 to listen on all available interfaces)
+  IPv6:                                                         # IPv6 network interfaces to listen on (use ::0 to listen on all available interfaces)
     - ::0
-  requestworkers: 4                                             # Amount of RequestWorkers to run
-  readtimeout: 200000                                           # Timelimit until Pancake will decline a request in µs
-  exposepancake: true                                           # If true, Pancake will send a "Server"-Header with Information about Pancake
-  sharedmemory: 10000000                                        # Size of SharedMemory in Bytes
-  sizeprefix: bin                                               # "si" or "bin" - SI: 1000 Byte = 1 Kilobyte - Binary: 1024 Byte = 1 Kibibyte
-  allowhead: true                                               # Whether to allow the "HEAD"-requestmethod
-  allowtrace: true                                              # Whether to allow the "TRACE"-requestmethod
-  allowoptions: true                                            # Whether to allow the "OPTIONS"-requestmethod
-  requestworkerlimit: 50000                                     # Limit of requests a RequestWorker may process until it has to be restarted (0 for no limit)
-  maxconcurrent: 0                                              # Limit of concurrent connections a RequestWorker may hold open (0 for no limit)
-  workerboottime: 5                                             # The upper timelimit for a worker to boot (raise this when you're for example caching files that take long to load)
-  writebuffermin: 10240                                         # Minimum write buffer size that should be held in RAM
-  writebuffersoftmaxconcurrent: 50                              # Soft concurrent write buffer limit - When this limit is reached, Pancake won't allocate any buffers that are bigger than the minimum size anymore
-  writebufferhardmaxconcurrent: 2000                            # Hard concurrent write buffer limit - When this limit is reached, Pancake will try not to allocate any buffers anymore
-  waitphpworkerboot: true                                       # Wait for PHP-Workers to boot (should be disabled in shared environments)
+  requestWorkers: 4                                             # Amount of RequestWorkers to run
+  readTimeout: 200000                                           # Timelimit until Pancake will decline a request in µs
+  exposePancake: true                                           # If true, Pancake will send a "Server"-Header with Information about Pancake
+  sharedMemory: 10000000                                        # Size of SharedMemory in Bytes
+  sizePrefix: bin                                               # "si" or "bin" - SI: 1000 Byte = 1 Kilobyte - Binary: 1024 Byte = 1 Kibibyte
+  allowHEAD: true                                               # Whether to allow the "HEAD"-requestmethod
+  allowTRACE: true                                              # Whether to allow the "TRACE"-requestmethod
+  allowOPTIONS: true                                            # Whether to allow the "OPTIONS"-requestmethod
+  requestWorkerLimit: 50000                                     # Limit of requests a RequestWorker may process until it has to be restarted (0 for no limit)
+  maxConcurrent: 0                                              # Limit of concurrent connections a RequestWorker may hold open (0 for no limit)
+  workerBootTime: 5                                             # The upper timelimit for a worker to boot (raise this when you're for example caching files that take long to load)
+  writeBufferMin: 10240                                         # Minimum write buffer size that should be held in RAM
+  writeBufferSoftMaxConcurrent: 50                              # Soft concurrent write buffer limit - When this limit is reached, Pancake won't allocate any buffers that are bigger than the minimum size anymore
+  writeBufferHardMaxConcurrent: 2000                            # Hard concurrent write buffer limit - When this limit is reached, Pancake will try not to allocate any buffers anymore
+  waitPHPWorkerBoot: true                                       # Wait for PHP-Workers to boot (should be disabled in shared environments)
+  waitSlotTime: 5000                                            # When there is no PHPWorker available to serve a PHP-request, Pancake will check after waitslottime µsec if a slot became available
+  waitSlotWaitLimit: 5                                          # See above; this is the upper limit of wait-cycles until Pancake gives up on searching for a slot (for example: waitslottime = 5000; waitslotwaitlimit = 5 => Client will receive 500 Internal Server Error after 25 ms if no PHPWorker became available in those 25 ms)
+  socketBacklog: 100                                            # Connection backlog for incoming requests
 include:                                                        # Additional configuration-files to include
   - ../conf/vhosts/
   - ../conf/mime.yml

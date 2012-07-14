@@ -13,13 +13,19 @@
         exit;
     
     function PHPExitHandler($exitmsg = null) {
-        echo $exitmsg;
+    	if(!is_int($exitmsg))
+        	echo $exitmsg;
         return !defined('PANCAKE_PHP');
     }
     
     function PHPErrorHandler($errtype, $errstr, $errfile = "Unknown", $errline = 0, $errcontext = array()) {
-    	if(vars::$errorHandler && vars::$errorHandler['for'] & $errtype && is_callable(vars::$errorHandler['call']) && call_user_func(vars::$errorHandler['call'], $errtype, $errstr, $errfile, $errline, $errcontext) !== false)
+    	$nonUserHandlableErrors = \E_ERROR | \E_PARSE | \E_CORE_ERROR | \E_CORE_WARNING | \E_COMPILE_ERROR | \E_COMPILE_WARNING;
+    	
+    	vars::$executingErrorHandler = true;
+    	if(vars::$errorHandler && vars::$errorHandler['for'] & $errtype && !($errtype & $nonUserHandlableErrors) && is_callable(vars::$errorHandler['call']) && call_user_func(vars::$errorHandler['call'], $errtype, $errstr, $errfile, $errline, $errcontext) !== false)
     		return true;
+    	
+    	vars::$executingErrorHandler = false;
     	
     	vars::$lastError = array('type' => $errtype, 'message' => $errstr, 'file' => $errfile, 'line' => $errline);
     	
@@ -58,8 +64,11 @@
     	foreach((array) vars::$Pancake_shutdownCalls as $shutdownCall) {
     		unset($args);
     		$call = 'call_user_func($shutdownCall["callback"]';
+    		
+    		$i = 0;
+    		
     		foreach((array) @$shutdownCall['args'] as $arg) {
-    			if($args)
+    			if(isset($args))
     				$call .= ',';
     			$args[$i++] = $arg;
     			$call .= '$args['.$i.']';
@@ -72,24 +81,61 @@
     		PHPFunctions\OutputBuffering\endFlush();
     	vars::$Pancake_request->setAnswerBody(ob_get_contents());
     	
+    	if(session_id() || vars::$sessionID) {
+    		vars::$Pancake_request->setCookie(session_name(), session_id() ? session_id() : vars::$sessionID, time() + ini_get('session.cookie_lifetime'), ini_get('session.cookie_path'), ini_get('session.cookie_domain'), ini_get('session.cookie_secure'), ini_get('session.cookie_httponly'));
+    		session_write_close();
+    		 
+    		switch(session_cache_limiter()) {
+    			case 'nocache':
+    				vars::$Pancake_request->setHeader('Expires', 'Thu, 19 Nov 1981 08:52:00 GMT');
+    				vars::$Pancake_request->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0');
+    				vars::$Pancake_request->setHeader('Pragma', 'no-cache');
+    				break;
+    			case 'private':
+    				vars::$Pancake_request->setHeader('Expires', 'Thu, 19 Nov 1981 08:52:00 GMT');
+    				vars::$Pancake_request->setHeader('Cache-Control', 'private, max-age=' . ini_get('session.cache_expire') . ', pre-check=' . ini_get('session.cache_expire'));
+    				vars::$Pancake_request->setHeader('Last-Modified', date('r'));
+    				break;
+    			case 'private_no_expire':
+    				vars::$Pancake_request->setHeader('Cache-Control', 'private, max-age=' . ini_get('session.cache_expire') . ', pre-check=' . ini_get('session.cache_expire'));
+    				vars::$Pancake_request->setHeader('Last-Modified', date('r'));
+    				break;
+    			case 'public':
+    				vars::$Pancake_request->setHeader('Expires', date('r', time() + ini_get('session.cache_expire')));
+    				vars::$Pancake_request->setHeader('Cache-Control', 'public, max-age=' . ini_get('session.cache_expire'));
+    				vars::$Pancake_request->setHeader('Last-Modified', date('r'));
+    				break;
+    		}
+    	}
+    	
     	$data = serialize(vars::$Pancake_request);
-    	$len = dechex(strlen($data));
-    	while(strlen($len) < 8)
-    		$len = "0" . $len;
     	
-    	socket_write(vars::$requestSocket, $len);
-    	socket_write(vars::$requestSocket, $data);
-    	
-    	PHPFunctions\OutputBuffering\endClean();
-    	
+    	$packages = array();
+        
+      	if(strlen($data) > (socket_get_option(vars::$requestSocket, \SOL_SOCKET, \SO_SNDBUF) - 1024)
+      	&& (socket_set_option(vars::$requestSocket, \SOL_SOCKET, \SO_SNDBUF, strlen($data) + 1024) + 1)
+        && strlen($data) > (socket_get_option(vars::$requestSocket, \SOL_SOCKET, \SO_SNDBUF) - 1024)) {
+      		$packageSize = socket_get_option(vars::$requestSocket, \SOL_SOCKET, \SO_SNDBUF) - 1024;
+      		
+      		for($i = 0;$i < ceil($data / $packageSize);$i++)
+      			$packages[] = substr($data, $i * $packageSize, $i * $packageSize + $packageSize);
+      	} else
+      		$packages[] = $data;
+        
+        // First transmit the length of the serialized object, then the object itself
+        socket_write(vars::$requestSocket, dechex(count($packages)));
+        socket_write(vars::$requestSocket, dechex(strlen($packages[0])));
+        foreach($packages as $data)
+        	socket_write(vars::$requestSocket, $data);
+        
     	IPC::send(9999, 1);
     }
     
     function PHPDisabledFunction($functionName) {
-    	if(PHP_MINOR_VERSION == 3 && PHP_RELEASE_VERSION < 6)
+    	if(\PHP_MINOR_VERSION == 3 && \PHP_RELEASE_VERSION < 6)
     		$backtrace = debug_backtrace();
     	else
-    		$backtrace = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT, 2);
+    		$backtrace = debug_backtrace(\DEBUG_BACKTRACE_PROVIDE_OBJECT, 2);
     	
     	PHPErrorHandler(\E_WARNING, $functionName . '() has been disabled for security reasons', $backtrace[1]["file"], $backtrace[1]["line"]);
     	
@@ -100,7 +146,7 @@
     * Recursive CodeCache-build
     * 
     * @param vHost $vHost
-    * @param string $fileName Filename, relative to the vHosts DocumentRoot
+    * @param string $fileName Filename, relative to the vHosts document root
     */
     function cacheFile(vHost $vHost, $fileName) {
         global $Pancake_cacheFiles;
@@ -114,7 +160,7 @@
                 if($file != '..' && $file != '.')
                     cacheFile($vHost, $fileName . $file);
         } else {
-            if(MIME::typeOf($vHost->getDocumentRoot() . '/' . $fileName) != 'text/x-php')
+            if(MIME::typeOf($vHost->getDocumentRoot() . $fileName) != 'text/x-php')
                 return;
             $Pancake_cacheFiles[] = $vHost->getDocumentRoot() . $fileName;
         }
@@ -130,13 +176,50 @@
         unset($backtrace[count($backtrace)-1]);
         unset($backtrace[count($backtrace)-1]);
         unset($backtrace[0]);
-        foreach($backtrace as $index => $tracePart)
-            $newBacktrace[] = $tracePart;
+        
+        foreach($backtrace as $index => $tracePart) {
+			if(vars::$executingErrorHandler && ((isset($tracePart['file']) && strpos($tracePart['file'], '/sys/php/util.php')) || $tracePart['function'] == 'Pancake\PHPErrorHandler'))
+				continue;
+        	$newBacktrace[] = $tracePart;
+        }
         return $newBacktrace;
     }
     
     /**
-    * All Pancake PHP executor variables will be stored in this class
+     * Removes all objects stored in an array
+     * 
+     * @param array $data
+     * @return array
+     */
+    function recursiveClearObjects($data, $objects = array()) {
+    	if(is_object($data)) {
+    		$reflect = new \ReflectionObject($data);
+    		$objects[] = $data;
+    		
+    		foreach($reflect->getProperties() as $property) {
+    			$property->setAccessible(true);
+    			
+	    		if((is_object($property->getValue($data)) && !in_array($property->getValue($data), $objects, true)) || is_array($data))
+			    	// Search for objects in the object's properties
+			    	$property->setValue($data, recursiveClearObjects($property->getValue($data), $objects));
+    		}
+    		
+    		// Destroy object
+    		$data = null;
+
+    		gc_collect_cycles();
+    	} else if(is_array($data)) {
+	    	foreach($data as $index => &$val) {
+	    		if((is_array($val) || is_object($val)) && !($val = recursiveClearObjects($val)))
+	    			unset($data[$index]);
+	    	}
+    	}
+    	
+    	return $data;
+    }
+    
+    /**
+    * All Pancake PHP executor variables are stored in this class
     */
     class vars {
     	/**
@@ -167,5 +250,10 @@
         public static $lastError = null;
         public static $invalidRequest = false;
         public static $executedShutdown = false;
+        public static $classes = array();
+        public static $executingErrorHandler = false;
+        public static $sessionID = null;
+        public static $resetSessionSaveHandler = false;
     }
+    
 ?>

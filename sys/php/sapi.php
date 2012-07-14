@@ -230,6 +230,9 @@
         
         $args = func_get_args();
         unset($args[0]);
+        
+        $shutdownCall['args'] = array();
+        
         foreach($args as $arg)
             $shutdownCall['args'][] = $arg;
         
@@ -269,19 +272,18 @@
     }
     
     function session_start() {
-        if(session_id()) {
+        if(session_id())
             return Pancake\PHPFunctions\sessionStart();
-        } else if($_GET[session_name()]) {
-            session_id($_GET[session_name()]);
+        else if(in_array(session_name(), Pancake\vars::$Pancake_request->getGETParams())) {
+        	$get = Pancake\vars::$Pancake_request->getGETParams();
+            session_id($get[session_name()]);
             return Pancake\PHPFunctions\sessionStart();
-        } else if($_COOKIE[session_name()]) {
-            session_id($_COOKIE[session_name()]);
+        } else if(in_array(session_name(), Pancake\vars::$Pancake_request->getCookies())) {
+        	$cookie = Pancake\vars::$Pancake_request->getCookies();
+            session_id($cookie[session_name()]);
             return Pancake\PHPFunctions\sessionStart();
-        } else {
-            if(!Pancake\PHPFunctions\sessionStart())
-                return false;
-            return true;
-        }
+        } else
+            return Pancake\PHPFunctions\sessionStart();
     }
     
     function filter_input($type, $variable_name, $filter = FILTER_DEFAULT, $options = FILTER_FLAG_NONE) {
@@ -375,9 +377,8 @@
             $data[$key] = $var;
             $filterOptions[$key] = $options;
         }
-        
-        $result = filter_var_array($data, $filterOptions);
-        return array_merge($result, $endArray);
+
+        return array_merge(filter_var_array($data, $filterOptions), $endArray);
     }
     
     function filter_has_var($type, $variable_name) {
@@ -410,39 +411,47 @@
         return Pancake\PHPFunctions\setINI($varname, $newvalue); 
     }
     
+    function ini_alter($varname, $newvalue) {
+    	return ini_set($varname, $newvalue);
+    }
+    
     if(PHP_MINOR_VERSION == 3 && PHP_RELEASE_VERSION < 6) {
         function debug_backtrace($provide_object = true) {
-            $backtrace = Pancake\PHPFunctions\debugBacktrace($provide_object);
-            return Pancake\workBacktrace($backtrace);
+            return Pancake\workBacktrace(Pancake\PHPFunctions\debugBacktrace($provide_object));
         }
     } else {
         function debug_backtrace($options = DEBUG_BACKTRACE_PROVIDE_OBJECT, $limit = 0) {
         	if($limit)
-        		$limit = $limit + 3;
-            $backtrace = Pancake\PHPFunctions\debugBacktrace($options, $limit);
-            return Pancake\workBacktrace($backtrace);
+        		$limit += 3;
+            return Pancake\workBacktrace(Pancake\PHPFunctions\debugBacktrace($options, $limit));
         }
     }
     
     function debug_print_backtrace($options = 0, $limit = 0) {
     	if($limit)
-    		$limit = $limit + 3;
+    		$limit += 3;
     	
         ob_start();
         Pancake\PHPFunctions\debugPrintBacktrace($options, $limit);
         $backtrace = ob_get_contents();
         Pancake\PHPFunctions\OutputBuffering\endClean();
+        
+        $trace = "";
+        $i = 0;
+        
         foreach(explode("\n", $backtrace) as $index => $tracePart) {
-            if(!$index)
+            if(!$index
+            || (strpos($tracePart, '/sys/php/util.php') && Pancake\vars::$executingErrorHandler)
+            || (strpos($tracePart, 'Pancake\PHPErrorHandler') && Pancake\vars::$executingErrorHandler))
                 continue;
             if(strpos($tracePart, '/sys/threads/single/phpWorker.thread.php'))
                 break;
             if($index-1)
                 $trace .= "\n";
             $tracePart = explode(" ", $tracePart, 2);
-            $tracePart[0] = (int) substr($tracePart[0], 1) - 1;
             
-            $trace .= "#" . $tracePart[0] . " " . $tracePart[1];
+            $trace .= "#" . $i . " " . $tracePart[1];
+            $i++;
         }
         echo $trace;
     }
@@ -466,8 +475,7 @@
     }
     
     function apache_child_terminate() {
-    	Pancake\vars::$workerExit = true;
-    	return true;
+    	return Pancake\vars::$workerExit = true;
     }
     
     function apache_request_headers() {
@@ -539,9 +547,69 @@
     }
    
 	function error_get_last() {
-   		return Pancake\vars::$lastError;
+		$lastError = Pancake\PHPFunctions\errorGetLast();
+		
+   		return is_array($lastError) && $lastError['type'] == \E_ERROR ? $lastError : Pancake\vars::$lastError;
+	}
+	
+	function spl_autoload_register($autoload_function = null, $throw = true, $prepend = false, $unregister = false) {
+		static $registeredFunctions = array();
+		
+		if($unregister) {
+			foreach($registeredFunctions as $function)
+				@spl_autoload_unregister($function);
+			$registeredFunctions = array();
+			return;
+		}
+		
+		// Some crazy softwares like Joomla want to register private static methods as autoloaders, which is only possible, when spl_autoload_register() is called from the same class
+		// But with the SAPI-wrapped function the real spl_autoload_register() is always called from the function's scope
+		if(is_array($autoload_function)) {
+			$reflect = new ReflectionMethod($autoload_function[0], $autoload_function[1]);
+			if($reflect->isPrivate() || $reflect->isProtected()) {
+				dt_add_method(is_object($autoload_function[0]) ? get_class($autoload_function[0]) : $autoload_function[0], 'Pancake_TemporaryMethod', null, <<<'FUNCTIONBODY'
+				if(!\Pancake\PHPFunctions\registerAutoload(func_get_arg(0), func_get_arg(1), func_get_arg(2)))
+					return false;
+				return true;
+FUNCTIONBODY
+				, 0x01 | 0x100);
+				
+				if(!$autoload_function[0]::Pancake_TemporaryMethod($autoload_function, $throw, $prepend))
+					$returnFalse = true;
+				
+				dt_remove_method(is_object($autoload_function[0]) ? get_class($autoload_function[0]) : $autoload_function[0], 'Pancake_TemporaryMethod');
+				
+				if(isset($returnFalse))
+					return false;
+				
+				goto registered;
+			}
+		}
+		
+		if(!Pancake\PHPFunctions\registerAutoload($autoload_function, $throw, $prepend))
+			return false;
+		
+		registered:
+		
+		// Do not unregister autoloaders defined at CodeCache-load
+		if(defined('PANCAKE_PHP'))
+			$registeredFunctions[] = $autoload_function;
+		
+		return true;
+	}
+	
+	function session_id($id = "") {
+		if(PHP_MINOR_VERSION >= 4 && session_status() == 1 && !$id)
+			return '';
+		if($id)
+			Pancake\vars::$sessionID = $id;
+		return $id ? Pancake\PHPFunctions\sessionID($id) : Pancake\PHPFunctions\sessionID();
 	}
     
+	function session_set_save_handler($open, $close, $read, $write, $destroy, $gc) {
+		return Pancake\PHPFunctions\setSessionSaveHandler($open, $close, $read, $write, $destroy, $gc) && Pancake\vars::$resetSessionSaveHandler = true;
+	}
+	
     dt_rename_method('\Exception', 'getTrace', 'Pancake_getTraceOrig');
     dt_add_method('\Exception', 'getTrace', null, <<<'FUNCTIONBODY'
 $trace = $this->Pancake_getTraceOrig();
@@ -549,11 +617,13 @@ unset($trace[count($trace)-1]);
 unset($trace[count($trace)-1]);
 return $trace;
 FUNCTIONBODY
-);
+	);
     
     dt_rename_method('\Exception', 'getTraceAsString', 'Pancake_getTraceAsStringOrig');
     dt_add_method('\Exception', 'getTraceAsString', null, <<<'FUNCTIONBODY'
 $backtrace = explode("\n", $this->Pancake_getTraceAsStringOrig());
+$trace = "";
+$i = 0;    	
 
 foreach($backtrace as $traceElement) {
 	if(strpos($traceElement, 'phpWorker.thread.php'))
@@ -565,5 +635,10 @@ $trace .= '#' . $i . ' {main}';
     		
 return $trace;
 FUNCTIONBODY
-);
+	);
+    
+    dt_add_method('\ReflectionFunction', 'isDisabled', null, <<<'FUNCTIONBODY'
+return $this->Pancake_isDisabledOrig() || in_array($this->name, Pancake\vars::$Pancake_currentThread->vHost->getDisabledFunctions());
+FUNCTIONBODY
+    );
 ?>

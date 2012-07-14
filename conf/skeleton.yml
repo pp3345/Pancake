@@ -9,7 +9,7 @@ main:
   debugmode: false
   user: www-data
   group: www-data
-  requestworkers: 10
+  requestworkers: 4
   readtimeout: 200000
   exposepancake: true
   sizeprefix: bin
@@ -23,3 +23,6 @@ main:
   writebuffersoftmaxconcurrent: 50
   writebufferhardmaxconcurrent: 2000
   waitphpworkerboot: true
+  waitslottime: 5000
+  waitslotwaitlimit: 5
+  socketbacklog: 100

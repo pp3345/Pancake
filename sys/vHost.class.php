@@ -45,6 +45,12 @@
         private $phpSocketName = null;
         private $phpHTMLErrors = true;
         private $phpDisabledFunctions = array();
+        private $resetClassObjects = false;
+        private $resetClassNonObjects = false;
+        private $shouldCompareObjects = false;
+        private $resetClassObjectsDestroyDestructor = false;
+        private $predefinedConstants = array();
+        private $deletePredefinedConstantsAfterCodeCacheLoad = false;
         static private $defaultvHost = null;
         
         /**
@@ -61,14 +67,18 @@
             
             // Get configured settings
             $config = Config::get('vhosts.'.$this->name);
+            
+            if(!$config)
+            	throw new \InvalidArgumentException('Unknown vHost specified');
+            
             $this->documentRoot = $config['docroot'];
             
             // Check if document root exists and is a directory
             if(!file_exists($this->documentRoot) || !is_dir($this->documentRoot))
                 throw new \Exception('Document root does not exist or is not a directory: '.$this->documentRoot);
                 
-            if(substr($this->documentRoot, -1, 1) != '/')
-                $this->documentRoot = $this->documentRoot . '/';
+            // Resolve exact path to docroot
+            $this->documentRoot = realpath($this->documentRoot) . '/';
                                  
             $this->phpCodeCache = (array) $config['phpcache'];
             $this->phpCodeCacheExcludes = (array) $config['phpcacheexclude'];
@@ -86,6 +96,12 @@
             $this->onEmptyPage204 = (bool) $config['204onemptypage'];
             $this->phpHTMLErrors = (bool) $config['phphtmlerrors'];
             $this->phpDisabledFunctions = (array) $config['phpdisabledfunctions'];
+            $this->resetClassObjects = (bool) $config['phpresetclassstaticobjects'];
+            $this->resetClassNonObjects = (bool) $config['phpresetclassstaticnonobjects'];
+            $this->shouldCompareObjects = (bool) $config['compareobjects'];
+            $this->resetClassObjectsDestroyDestructor = (bool) $config['phpresetclassstaticobjectsdestroydestructors'];
+            $this->predefinedConstants = (array) $config['phppredefinedconstants'];
+            $this->deletePredefinedConstantsAfterCodeCacheLoad = (bool) $config['phpdeletepredefinedconstantsaftercodecacheload'];
             
             // Check for Hosts to listen on
             $this->listen = $config['listen'];
@@ -117,9 +133,10 @@
             
             // Load files and directories that need authentication
             if($config['auth']) {
+            	require_once 'authenticationFile.class.php';
                 foreach($config['auth'] as $authFile => $authFileConfig) {
                     if(!is_array($authFileConfig['authfiles']) || ($authFileConfig['type'] != 'basic' && $authFileConfig['type'] != 'digest')) {
-                        trigger_error('Invalid authentication configuration for "'.$authFile.'"', E_USER_WARNING);
+                        trigger_error('Invalid authentication configuration for "'.$authFile.'"', \E_USER_WARNING);
                         continue;
                     }
                     if(is_dir($this->documentRoot.$authFile)) {
@@ -153,7 +170,7 @@
                 
                 $this->phpSocket = socket_create(AF_UNIX, SOCK_SEQPACKET, 0);
                 socket_bind($this->phpSocket, $this->phpSocketName);
-                socket_listen($this->phpSocket);
+                socket_listen($this->phpSocket, (int) $config['phpsocketbacklog']);
                 
                 chown($this->phpSocketName, Config::get('main.user'));
                 chgrp($this->phpSocketName, Config::get('main.group'));
@@ -167,14 +184,14 @@
         * @return mixed Returns false or array with realm and type
         */
         public function requiresAuthentication($filePath) {
-            if($this->authFiles[$filePath])
+            if(isset($this->authFiles[$filePath]))
                 return $this->authFiles[$filePath];
-            else if($this->authDirectories[$filePath])
+            else if(isset($this->authDirectories[$filePath]))
                 return $this->authDirectories[$filePath];
             else {
                 while($filePath != '/') {
                     $filePath = dirname($filePath);
-                    if($this->authDirectories[$filePath])
+                    if(isset($this->authDirectories[$filePath]))
                         return $this->authDirectories[$filePath];
                 }
             }
@@ -257,7 +274,7 @@
         * @return bool
         */
         public function isAutoDeleteExclude($name, $type) {
-            return (bool) $this->autoDeleteExludes[$type][$name];
+            return (bool) $this->autoDeleteExcludes[$type][$name];
         }
         
         /**
@@ -456,6 +473,60 @@
          */
         public function getDisabledFunctions() {
         	return $this->phpDisabledFunctions;
+        }
+       
+        /**
+         * Returns true if objects in static class properties should be cleaned after finishing a request
+         * 
+         * @return boolean
+         */
+        public function shouldResetStaticClassObjectValues() {
+        	return $this->resetClassObjects;
+        }
+        
+        /**
+         * Returns true if non-object-values in static class properties should be cleaned after finishing a request
+         *
+         * @return boolean
+         */
+        public function shouldResetStaticClassNonObjectValues() {
+        	return $this->resetClassNonObjects;
+        }
+        
+        /**
+         * Returns true if object destructors should not be executed when destroying an object from a static class property
+         * 
+         * @return boolean
+         */
+        public function shouldDestroyDestructorOnObjectDestroy() {
+        	return $this->resetClassObjectsDestroyDestructor;	
+        }
+        
+        /**
+         * Returns whether the request object should be checked for manipulation after being returned from the PHP-SAPI
+         * 
+         * @return boolean
+         */
+        public function shouldCompareObjects() {
+        	return $this->shouldCompareObjects;
+        }
+        
+        /**
+         * Returns all constants that are automatically predefined by Pancake before loading this vHosts' CodeCache
+         * 
+         * @return array
+         */
+        public function getPredefinedConstants() {
+        	return $this->predefinedConstants;
+        }
+        
+        /**
+         * Returns whether predefined constants should be deleted again after loading the CodeCache
+         * 
+         * @return boolean
+         */
+        public function predefineConstantsOnlyForCodeCache() {
+        	return $this->deletePredefinedConstantsAfterCodeCacheLoad;
         }
         
         /**

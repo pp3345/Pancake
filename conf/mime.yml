@@ -36,6 +36,7 @@ mime:
     - doc
   application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
     - xlsx
+    - xlsm
   application/vnd.openxmlformats-officedocument.spreadsheetml.template:
     - xltx
   application/vnd.openxmlformats-officedocument.presentationml.template:
@@ -44,10 +45,12 @@ mime:
     - ppsx
   application/vnd.openxmlformats-officedocument.presentationml.presentation:
     - pptx
+    - pptm
   application/vnd.openxmlformats-officedocument.presentationml.slide:
     - sldx
   application/vnd.openxmlformats-officedocument.wordprocessingml.document:
     - docx
+    - docm
   application/vnd.openxmlformats-officedocument.wordprocessingml.template:
     - dotx
   application/vnd.ms-excel.addin.macroEnabled.12:
@@ -87,10 +90,6 @@ mime:
     - xpi
   application/x-7z-compressed:
     - 7z
-  application/vnd.oasis.opendocument.p:
-    - odp
-  application/vnd.oasis.opendocument.t:
-    - odt
   application/x-msdownload:
     - dll
   application/bat:
@@ -118,3 +117,43 @@ mime:
     - svgz
   image/vnd.microsoft.icon:
     - ico
+  application/xml:
+    - xml
+  application/rss+xml:
+    - rss
+  text/mathml:
+    - mml
+  application/xhtml+xml:
+    - xhtml
+    - xht
+  application/xaml+xml:
+    - xaml
+  text/x-opml:
+    - opml
+  application/vnd.google-earth.kml+xml:
+    - kml
+  application/vnd.google-earth.kmz:
+    - kmz
+  application/smil+xml:
+    - smil
+  application/json:
+    - json
+  application/vnd.oasis.opendocument.text:
+    - odt
+    - fodt
+  application/vnd.oasis.opendocument.presentation:
+    - odp
+    - fodp
+  application/vnd.oasis.opendocument.spreadsheet:
+    - ods
+    - fods
+  application/vnd.oasis.opendocument.graphics:
+    - odg
+    - fodg
+  image/tiff:
+    - tiff
+  application/x-shockwave-flash:
+    - swf
+  application/photoshop:
+    - psd
+    - psb
