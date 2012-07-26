@@ -3,8 +3,8 @@
     /****************************************************************/
     /* Pancake                                                      */
     /* util.php                                                     */
-    /* 2012 Yussuf "pp3345" Khalil                                  */
-    /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
+    /* 2012 Yussuf Khalil                                           */
+    /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
     
     namespace Pancake;
@@ -19,11 +19,16 @@
     }
     
     function PHPErrorHandler($errtype, $errstr, $errfile = "Unknown", $errline = 0, $errcontext = array()) {
-    	$nonUserHandlableErrors = \E_ERROR | \E_PARSE | \E_CORE_ERROR | \E_CORE_WARNING | \E_COMPILE_ERROR | \E_COMPILE_WARNING;
-    	
-    	vars::$executingErrorHandler = true;
-    	if(vars::$errorHandler && vars::$errorHandler['for'] & $errtype && !($errtype & $nonUserHandlableErrors) && is_callable(vars::$errorHandler['call']) && call_user_func(vars::$errorHandler['call'], $errtype, $errstr, $errfile, $errline, $errcontext) !== false)
+    	if(vars::$errorHandler 
+    	&& vars::$errorHandler['for'] & $errtype 
+    	&& !($errtype & (\E_ERROR | \E_PARSE | \E_CORE_ERROR | \E_CORE_WARNING | \E_COMPILE_ERROR | \E_COMPILE_WARNING)) 
+    	&& is_callable(vars::$errorHandler['call']) 
+    	&& vars::$executingErrorHandler = true 
+    	&& call_user_func(vars::$errorHandler['call'], $errtype, $errstr, $errfile, $errline, $errcontext) !== false) {
+    		vars::$executingErrorHandler = false;
+    		vars::$lastError = array('type' => $errtype, 'message' => $errstr, 'file' => $errfile, 'line' => $errline);
     		return true;
+    	}
     	
     	vars::$executingErrorHandler = false;
     	
@@ -177,8 +182,10 @@
         unset($backtrace[count($backtrace)-1]);
         unset($backtrace[0]);
         
+        $newBacktrace = array();
+        
         foreach($backtrace as $index => $tracePart) {
-			if(vars::$executingErrorHandler && ((isset($tracePart['file']) && strpos($tracePart['file'], '/sys/php/util.php')) || $tracePart['function'] == 'Pancake\PHPErrorHandler'))
+			if(vars::$executingErrorHandler && ((isset($tracePart['file']) && strpos($tracePart['file'], '/sys/php/util.php')) || (isset($tracePart['function']) && $tracePart['function'] == 'Pancake\PHPErrorHandler')))
 				continue;
         	$newBacktrace[] = $tracePart;
         }
@@ -196,9 +203,17 @@
     		$reflect = new \ReflectionObject($data);
     		$objects[] = $data;
     		
+    		if(vars::$Pancake_currentThread->vHost->shouldDestroyDestructorOnObjectDestroy() && $reflect->hasMethod('__destruct')) {
+    			global $destroyedDestructors;
+
+    			$name = 'Pancake_DestroyedDestructor' . mt_rand();
+    			dt_rename_method($reflect->getName(), '__destruct', $name);
+    			$destroyedDestructors[$reflect->getName()] = $name;
+    		}
+    		
     		foreach($reflect->getProperties() as $property) {
     			$property->setAccessible(true);
-    			
+
 	    		if((is_object($property->getValue($data)) && !in_array($property->getValue($data), $objects, true)) || is_array($data))
 			    	// Search for objects in the object's properties
 			    	$property->setValue($data, recursiveClearObjects($property->getValue($data), $objects));
@@ -251,6 +266,7 @@
         public static $invalidRequest = false;
         public static $executedShutdown = false;
         public static $classes = array();
+        public static $functions = array();
         public static $executingErrorHandler = false;
         public static $sessionID = null;
         public static $resetSessionSaveHandler = false;

@@ -3,8 +3,8 @@
     /****************************************************************/
     /* Pancake                                                      */
     /* HTTPRequest.class.php                                        */
-    /* 2012 Yussuf "pp3345" Khalil                                  */
-    /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
+    /* 2012 Yussuf Khalil                                           */
+    /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
     
     namespace Pancake;
@@ -24,10 +24,6 @@
         private $POSTParameters = array();
         private $cookies = array();
         private $setCookies = array();
-        /**
-         * @var RequestWorker
-         */
-        private $requestWorker = null;
         /**
          * @var vHost
          */
@@ -102,17 +98,15 @@
                                             510 => 'Not Extended');
         
         /**
-        * Creates a new HTTPRequest-Object
+        * Creates a new HTTPRequest-object
         * 
-        * @param RequestWorker $worker
         * @param string $remoteIP
         * @param int $remotePort
         * @param string $localIP
         * @param int $localPort
         * @return HTTPRequest
         */
-        public function __construct(RequestWorker $worker, $remoteIP = null, $remotePort = null, $localIP = null, $localPort = null) {
-            $this->requestWorker = $worker;
+        public function __construct($remoteIP = null, $remotePort = null, $localIP = null, $localPort = null) {
             $this->remoteIP = $remoteIP;
             $this->remotePort = $remotePort;
             $this->localIP = $localIP;
@@ -546,7 +540,7 @@
         }
         
         /**
-        * Set Answer Header
+        * Set answer header
         * 
         * @param string $headerName
         * @param string $headerValue
@@ -554,12 +548,13 @@
         */
         public function setHeader($headerName, $headerValue, $replace = true) {
             if($replace) {
-                unset($this->answerHeaders[$headerName]);
+            	if(isset($this->answerHeaders[$headerName]))
+                	unset($this->answerHeaders[$headerName]);
                 $this->answerHeaders[$headerName] = $headerValue;
             } else {
                 if(isset($this->answerHeaders[$headerName]) && $value = $this->answerHeaders[$headerName] && !is_array($this->answerHeaders[$headerName])) {
                     unset($this->answerHeaders[$headerName]);
-                    $this->answerHeaders[$headerName][] = $value;
+                    $this->answerHeaders[$headerName] = array($value);
                 }
                 $this->answerHeaders[$headerName][] = $headerValue;
             }
@@ -567,16 +562,17 @@
         }
         
         /**
-        * Remove Answer Header
+        * Remove answer header
         * 
         * @param string $headerName
         */
         public function removeHeader($headerName) {
-            unset($this->answerHeaders[$headerName]);
+        	if(isset($this->answerHeaders[$headerName]))
+            	unset($this->answerHeaders[$headerName]);
         }
         
         /**
-        * Removes all Headers to be sent
+        * Removes all headers that are ready to be sent
         * 
         */
         public function removeAllHeaders() {
@@ -645,8 +641,8 @@
         * @return mixed value of the Header
         */
         public function getRequestHeader($headerName, $caseSensitive = true) {
-            if($caseSensitive)
-            	return $this->requestHeaders[$headerName];
+            if($caseSensitive || isset($this->requestHeaders[$headerName]))
+            	return  isset($this->requestHeaders[$headerName]) ? $this->requestHeaders[$headerName] : null;
             else {
             	$headerName = strtolower($headerName);
             	foreach($this->requestHeaders as $name => $value) {
@@ -723,6 +719,8 @@
         * 
         */
         public function getAnswerHeadersArray() {
+        	$headers = array();
+        	
             foreach($this->answerHeaders as $headerName => $headerValue) {
                 if(is_array($headerValue)) {
                     foreach($headerValue as $value)
@@ -740,7 +738,7 @@
         * @param boolean $caseSensitive
         */
         public function getAnswerHeader($headerName, $caseSensitive = true) {
-            if($caseSensitive)
+            if($caseSensitive || isset($this->answerHeaders[$headerName]))
                 return $this->answerHeaders[$headerName];
             else {
                 $headerName = strtolower($headerName);

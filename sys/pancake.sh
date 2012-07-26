@@ -3,8 +3,8 @@
 #   /****************************************************************/
 #   /* Pancake                                                      */
 #   /* pancake.sh                                                   */
-#   /* 2012 Yussuf "pp3345" Khalil                                  */
-#   /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
+#   /* 2012 Yussuf Khalil                                           */
+#   /* License: http://pancakehttp.net/license/                     */
 #   /****************************************************************/
 
 FILENAME=`readlink -f $0`
@@ -31,6 +31,11 @@ then
 elif test $ARCH == "armv6l" || test $ARCH == "armv7l"
 then
 	ARCH=armel
+fi
+
+if [ -d ./ext/ ];
+then
+	chmod +x ./ext/*
 fi
 
 if [ -x ./ext/$ARCH\_$PHPMAJOR$PHPMINOR.so ];

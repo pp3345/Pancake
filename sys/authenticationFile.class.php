@@ -3,8 +3,8 @@
     /****************************************************************/
     /* Pancake                                                      */
     /* authenticationFile.class.php                                 */
-    /* 2012 Yussuf "pp3345" Khalil                                  */
-    /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
+    /* 2012 Yussuf Khalil                                           */
+    /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
     
     namespace Pancake;
@@ -38,7 +38,7 @@
             $data = file_get_contents($filePath);
             
             // Split lines
-            $lines = explode("\n", $data);
+            $lines = explode("\n", str_replace("\r\n", "\n", $data));
             
             foreach($lines as $line) {
                 $line = trim($line);
@@ -55,12 +55,12 @@
         * @return bool
         */
         public function isValid($user, $password) {
-            return $this->users[$user] == $password;
+            return isset($this->users[$user]) && $this->users[$user] == $password;
         }
         
-        public function isValidDigest($user, $clientResponse, $nonce, $nonceCount, $uri, $realm) {
+        /*public function isValidDigest($user, $clientResponse, $nonce, $nonceCount, $uri, $realm) {
             
-        }
+        }*/
         
         /**
         * Returns the instance of an authentication file for a given filepath

@@ -1,6 +1,6 @@
 vhosts:
   default:                                                      # Name of the vHost
-    docRoot: ../vhosts/default/                                 # Path to DocumentRoot
+    docRoot: ../vhosts/default/                                 # Path to document root
     listen:                                                     # Hosts to listen on
       - 127.0.0.1
       - localhost
@@ -13,7 +13,7 @@ vhosts:
     allowDirectoryListings: true                                # Enable directory listings
     isDefault: true                                             # Whether this vHost is the default vHost or not (one of your vHosts MUST have this settings enabled)
     204OnEmptyPage: false                                       # If true, Pancake will send 204 No Content instead of 200 OK when the page is empty
-    PHPWorkerLimit: 100                                         # Limit of requests a PHPWorker may process until it has to be restarted (0 for no limit)
+    PHPWorkerLimit: 1000                                        # Limit of requests a PHPWorker may process until it has to be restarted (0 for no limit)
     PHPInfoPancake: true                                        # Expose information about Pancake's configuration in phpinfo()
     PHPInfoPancakevHosts: true                                  # Expose information about Pancake's vHosts in phpinfo() (requires phpinfopancake to be true)
     autoDelete:                                                 # Automatically delete non-cached PHP elements after a request
@@ -29,8 +29,12 @@ vhosts:
     PHPSocketBacklog: 100                                       # Connection backlog for internal worker communication sockets (recommendation: less workers => higher backlog; more workers => lower backlog - should not be lower than 1)
     PHPResetClassStaticObjects: true                            # Whether the SAPI should search for objects inside static class properties and reset them (will also look recursively in arrays and object's properties) - Try this setting when the SAPI often crashes or acts strange
     PHPResetClassStaticNonObjects: false                        # Whether the SAPI should set all static class properties to null after finishing a request (will still destroy objects before if phpresetclassstaticobjects is enabled)
-    PHPResetClassStaticObjectsDestroyDestructors: true          # Whether the SAPI should not execute object destructors when destroying objects (true = will not execute; false = will execute)
+    PHPResetFunctionStaticObjects: true                         # Whether the SAPI should search for objects inside static function variables and reset them (will also look recursively in arrays and object's properties) - Try this setting when the SAPI often crashes or acts strange
+    PHPResetFunctionStaticNonObjects: false                     # Whether the SAPI should set all static function variables to null after finishing a request (will still destroy objects before if phpresetfunctionstaticobjects is enabled)
+    PHPResetObjectsDestroyDestructors: true                     # Whether the SAPI should not execute object destructors when destroying objects (true = will not execute; false = will execute)
     compareObjects: false                                       # Whether the internal request object should be checked for possible manipulation after being returned from the PHP-SAPI (should be enabled in shared hosting environments or when untrusted scripts are executed)
+    PHPMaxExecutionTime: 10                                     # Same function as PHP's max_execution_time-setting
+    PHPFixStaticMethodCalls: true                               # This setting does not have any effect if you don't use the CodeCache or have all classes cached - With this setting you can enable dt_fix_static_method_calls()
 #    PHPPredefinedConstants:                                    # A list of constants that should be predefined before script-execution in the SAPI
 #      myConst: 123
 #      iLovePancakes: true

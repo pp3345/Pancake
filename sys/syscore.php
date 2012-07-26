@@ -3,8 +3,8 @@
     /****************************************************************/
     /* Pancake                                                      */
     /* syscore.php                                                  */
-    /* 2012 Yussuf "pp3345" Khalil                                  */
-    /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
+    /* 2012 Yussuf Khalil                                           */
+    /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
     
     namespace Pancake;
@@ -12,13 +12,19 @@
     if(defined('Pancake\PANCAKE'))
         exit;
     
-    const VERSION = '1.0b2';
+    const VERSION = '1.0b3';
     const PANCAKE = true;
     const REQUEST_WORKER_TYPE = 1;
     const PHP_WORKER_TYPE = 2;
     const SYSTEM = 1;
     const REQUEST = 2;
+    // \Pancake\STDOUT = \STDOUT
+    const STDOUT = STDOUT;
     define('Pancake\ERROR_REPORTING', \E_COMPILE_ERROR | \E_COMPILE_WARNING | \E_CORE_ERROR | \E_CORE_WARNING | \E_ERROR | \E_PARSE | \E_RECOVERABLE_ERROR | \E_USER_ERROR | \E_USER_WARNING | \E_WARNING);
+    
+    // Deactivate static method cache fixing per default in order to improve performance
+    if(\PHP_MINOR_VERSION >= 4 && extension_loaded('DeepTrace'))
+    	dt_fix_static_method_calls(false);
     
     // Include files necessary to run Pancake
     require_once 'sfYamlParser.class.php';
@@ -55,6 +61,12 @@
     
     out('Loading Pancake '.VERSION.'... 2012 Yussuf Khalil', SYSTEM, false);
     
+    // Check for php-cli
+    if(\PHP_SAPI != 'cli') {
+    	out('Pancake must be executed with the PHP CLI-SAPI. You are using the "' . \PHP_SAPI . '" SAPI.', SYSTEM, false);
+    	abort();
+    }
+    
     // Check for POSIX-compliance
     if(!is_callable('posix_getpid')) {
         out('Pancake can\'t run on this system. Either your operating system isn\'t POSIX-compliant or PHP was compiled with --disable-posix', SYSTEM, false);
@@ -81,9 +93,13 @@
     
     // Check for DeepTrace
     if(!extension_loaded('DeepTrace')) {
-        out('You need to run Pancake with the DeepTrace-extension, which is delivered with Pancake. Just run pancake.sh.', SYSTEM, false);
+        out('You need to run Pancake with the bundled DeepTrace-extension. Just run pancake.sh.', SYSTEM, false);
         abort();
     }
+    
+    // Check for Suhosin
+    if(extension_loaded('suhosin'))
+    	out('It seems that your server is running Suhosin. Although everything should work fine, Suhosin is not officially supported by Pancake. If you encounter any errors, please try deactivating Suhosin.', SYSTEM, false);
     
     // Check for root-user
     if(posix_getuid() !== 0) {
@@ -129,10 +145,10 @@
     dt_rename_function('memory_get_usage', 'Pancake\PHPFunctions\getMemoryUsage');
     dt_rename_function('memory_get_peak_usage', 'Pancake\PHPFunctions\getPeakMemoryUsage');
     dt_rename_function('get_browser', 'Pancake\PHPFunctions\getBrowser');
-    dt_rename_function('spl_autoload_register', 'Pancake\PHPFunctions\registerAutoload');
     dt_rename_function('session_id', 'Pancake\PHPFunctions\sessionID');
     dt_rename_function('error_get_last', 'Pancake\PHPFunctions\errorGetLast');
     dt_rename_function('session_set_save_handler', 'Pancake\PHPFunctions\setSessionSaveHandler');
+    dt_rename_function('spl_autoload_register', 'Pancake\PHPFunctions\registerAutoload');
     dt_rename_method('ReflectionFunction', 'isDisabled', 'Pancake_isDisabledOrig');
     dt_remove_constant('PHP_SAPI'); 
     
@@ -302,7 +318,7 @@
 	            pcntl_sigtimedwait(array(\SIGUSR1), $x, Config::get('main.workerboottime'));
 	            if(!$x) {
 	                $thread->kill();
-	                out('Failed to boot worker ' . $thread->friendlyName . ' in time - Aborting');
+	                out('Failed to boot ' . $thread->friendlyName . ' in time - Aborting');
 	                abort();
 	            }
             }
@@ -321,7 +337,7 @@
         pcntl_sigtimedwait(array(\SIGUSR1), $x, Config::get('main.workerboottime'));
         if(!$x) {
             $thread->kill();
-            out('Failed to boot worker ' . $thread->friendlyName . ' in time - Aborting');
+            out('Failed to boot ' . $thread->friendlyName . ' in time - Aborting');
             abort();
         }
     }           
@@ -351,10 +367,10 @@
                 pcntl_wait($x, \WNOHANG);
                 
                 $thread = Thread::get($info['pid']);
-                if(IPC::get(MSG_IPC_NOWAIT, 9999)) {
-                    out('Worker ' . $thread->friendlyName . ' requested reboot', SYSTEM, true, true);
+                if(IPC::get(\MSG_IPC_NOWAIT, 9999)) {
+                    out($thread->friendlyName . ' requested reboot', SYSTEM, true, true);
                 } else
-                    out('Detected crash of worker ' . $thread->friendlyName . ' - Rebooting worker');
+                    out('Detected crash of ' . $thread->friendlyName . ' - Rebooting worker');
                 
                 // PHPWorkers need to be run in global scope
                 if($thread instanceof PHPWorker) {
@@ -365,6 +381,8 @@
                     }
                 } else
                     $thread->start();
+                
+                out('New PID of ' . $thread->friendlyName . ': ' . $thread->pid, SYSTEM, false, true);
             break;
             case \SIGINT:
             case \SIGTERM:

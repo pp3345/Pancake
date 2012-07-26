@@ -3,8 +3,8 @@
     /****************************************************************/
     /* Pancake                                                      */
     /* functions.php                                                */
-    /* 2012 Yussuf "pp3345" Khalil                                  */
-    /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
+    /* 2012 Yussuf Khalil                                           */
+    /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
     
     namespace Pancake;
@@ -51,7 +51,7 @@
             return $message;
         
         if(DAEMONIZED !== true)
-            fwrite(\STDOUT, $message);
+            fwrite(STDOUT, $message);
         if($log === true && is_resource($fileStream[$type]) && !fwrite($fileStream[$type], $message))
             trigger_error('Couldn\'t write to logfile', \E_USER_WARNING);
         return $message;
@@ -226,12 +226,13 @@
      * Resets all indices of an array (recursively) to lower case
      * 
      * @param array $array
+     * @param array $caseSensitivePaths If the name of a index matches and the value is an array, this function won't change the case of indexes inside the value
      * @return array
      */
-    function arrayIndicesToLower($array) {
+    function arrayIndicesToLower($array, $caseSensitivePaths = array()) {
     	foreach($array as $index => $value) {
-    		if(is_array($value))
-    			$value = arrayIndicesToLower($value);
+    		if(is_array($value) && !in_array(strToLower($index), $caseSensitivePaths))
+    			$value = arrayIndicesToLower($value, $caseSensitivePaths);
     		$newArray[strToLower($index)] = $value;
     	}
     	

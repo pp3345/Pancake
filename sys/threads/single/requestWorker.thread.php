@@ -3,8 +3,8 @@
     /****************************************************************/
     /* Pancake                                                      */
     /* requestWorker.thread.php                                     */
-    /* 2012 Yussuf "pp3345" Khalil                                  */
-    /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
+    /* 2012 Yussuf Khalil                                           */
+    /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
     
     namespace Pancake;
@@ -44,7 +44,7 @@
     $phpSockets = array();
     $waitSlots = array();
     $waits = array();
-    
+
     // Ready
     $Pancake_currentThread->parentSignal(\SIGUSR1);
     
@@ -83,14 +83,14 @@
                 $requestSocket = $phpSockets[(int) $socket];
                 $socketID = (int) $requestSocket;
                 
+                socket_set_block($socket);
+                
                 $packages = hexdec(socket_read($socket, 8));
                 $length = hexdec(socket_read($socket, 8));
                 
                 if($packages > 1) {
                 	$sockData = "";
-                	
-                	socket_set_block($socket);
-                	
+
                 	while($packages--)
                 		$sockData .= socket_read($socket, $length);
                 	
@@ -179,7 +179,7 @@
             
             // Create request object / Read Headers
             try {
-                $requests[$socketID] = new HTTPRequest($Pancake_currentThread, $ip, $port, $lip, $lport);
+                $requests[$socketID] = new HTTPRequest($ip, $port, $lip, $lport);
                 $requests[$socketID]->init($socketData[$socketID]);
             } catch(invalidHTTPRequestException $e) {
                 $requests[$socketID]->invalidRequest($e);

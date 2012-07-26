@@ -3,8 +3,8 @@
     /****************************************************************/
     /* Pancake                                                      */
     /* thread.class.php                                             */
-    /* 2012 Yussuf "pp3345" Khalil                                  */
-    /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
+    /* 2012 Yussuf Khalil                                           */
+    /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
   
     namespace Pancake;
@@ -49,6 +49,8 @@
         
         /**
         * Starts the Thread
+        * 
+        * @return bool
         */
         public function start($loadCodeFile = true) {
             if($loadCodeFile && !$this->checkCodeFile())
@@ -82,6 +84,8 @@
 
         /**
         * Stops the Thread with SIGTERM, may stay alive in some cases
+        * 
+        * @return bool
         */
         public function stop() {
             if(!posix_kill($this->pid, \SIGTERM))
@@ -92,6 +96,8 @@
         
         /**
         * Kills the Thread with SIGKILL, Thread can't resist being killed
+        * 
+        * @return bool
         */
         public final function kill() {
             if(!posix_kill($this->pid, \SIGKILL))
@@ -103,7 +109,8 @@
         /**
         * Sends a signal to a thread, but not SIGTERM or SIGKILL - use stop() or kill() for sending such signals
         * 
-        * @param int $signal The signal to be sent
+        * @param int $signal The signal that should be sent
+        * @return bool
         */
         public final function signal($signal) {
             if($signal == \SIGKILL || $signal == \SIGTERM)
@@ -117,6 +124,7 @@
         * Send a signal to the parent of the thread
         * 
         * @param int $signal The signal to send
+        * @return bool
         */
         public final function parentSignal($signal) {
             return posix_kill($this->ppid, $signal);

@@ -3,8 +3,8 @@
     /****************************************************************/
     /* Pancake                                                      */
     /* vHost.class.php                                              */
-    /* 2012 Yussuf "pp3345" Khalil                                  */
-    /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
+    /* 2012 Yussuf Khalil                                           */
+    /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
     
     namespace Pancake;
@@ -45,12 +45,16 @@
         private $phpSocketName = null;
         private $phpHTMLErrors = true;
         private $phpDisabledFunctions = array();
+        private $phpMaxExecutionTime = 0;
         private $resetClassObjects = false;
         private $resetClassNonObjects = false;
+        private $resetFunctionObjects = false;
+        private $resetFunctionNonObjects = false;
         private $shouldCompareObjects = false;
-        private $resetClassObjectsDestroyDestructor = false;
+        private $resetObjectsDestroyDestructor = false;
         private $predefinedConstants = array();
         private $deletePredefinedConstantsAfterCodeCacheLoad = false;
+        private $fixStaticMethodCalls = false;
         static private $defaultvHost = null;
         
         /**
@@ -98,13 +102,17 @@
             $this->phpDisabledFunctions = (array) $config['phpdisabledfunctions'];
             $this->resetClassObjects = (bool) $config['phpresetclassstaticobjects'];
             $this->resetClassNonObjects = (bool) $config['phpresetclassstaticnonobjects'];
+            $this->resetFunctionObjects = (bool) $config['phpresetfunctionstaticobjects'];
+            $this->resetFunctionNonObjects = (bool) $config['phpresetfunctionstaticnonobjects'];
             $this->shouldCompareObjects = (bool) $config['compareobjects'];
-            $this->resetClassObjectsDestroyDestructor = (bool) $config['phpresetclassstaticobjectsdestroydestructors'];
+            $this->resetObjectsDestroyDestructor = (bool) $config['phpresetobjectsdestroydestructors'];
             $this->predefinedConstants = (array) $config['phppredefinedconstants'];
             $this->deletePredefinedConstantsAfterCodeCacheLoad = (bool) $config['phpdeletepredefinedconstantsaftercodecacheload'];
+            $this->phpMaxExecutionTime = (int) $config['phpmaxexecutiontime'];
+            $this->fixStaticMethodCalls = (!$this->phpCodeCache) || ($this->phpCodeCache && $config['phpfixstaticmethodcalls'] === false) ? false : true;
             
             // Check for Hosts to listen on
-            $this->listen = $config['listen'];
+            $this->listen = (array) $config['listen'];
             if(count($this->listen) < 1 && !$this->isDefault)
                 throw new \Exception('You need to specify at least one address to listen on');
             
@@ -140,6 +148,9 @@
                         continue;
                     }
                     if(is_dir($this->documentRoot.$authFile)) {
+                    	if(substr($authFile, -1, 1) == '/')
+                    		$authFile = substr($authFile, 0, strlen($authFile) - 1);
+                    	
                         $this->authDirectories[$authFile] = array(
                                                                     'realm' => $authFileConfig['realm'],
                                                                     'type' => $authFileConfig['type'],
@@ -295,7 +306,7 @@
         }
         
         /**
-        * Get the DocumentRoot of the vHost
+        * Get the document root of the vHost
         * 
         */
         public function getDocumentRoot() {
@@ -303,7 +314,7 @@
         }
         
         /**
-        * Get Hosts the vHost listens on
+        * Get hosts the vHost listens on
         * 
         */
         public function getListen() {
@@ -494,12 +505,30 @@
         }
         
         /**
-         * Returns true if object destructors should not be executed when destroying an object from a static class property
+         * Returns true if objects in static function variables should be cleaned after finishing a request
+         *
+         * @return boolean
+         */
+        public function shouldResetStaticFunctionObjectValues() {
+        	return $this->resetFunctionObjects;
+        }
+        
+        /**
+         * Returns true if non-object-values in static function variables should be cleaned after finishing a request
+         *
+         * @return boolean
+         */
+        public function shouldResetStaticFunctionNonObjectValues() {
+        	return $this->resetFunctionNonObjects;
+        }
+        
+        /**
+         * Returns true if object destructors should not be executed when destroying an object from a static class property or a static variable inside a function
          * 
          * @return boolean
          */
         public function shouldDestroyDestructorOnObjectDestroy() {
-        	return $this->resetClassObjectsDestroyDestructor;	
+        	return $this->resetObjectsDestroyDestructor;	
         }
         
         /**
@@ -527,6 +556,24 @@
          */
         public function predefineConstantsOnlyForCodeCache() {
         	return $this->deletePredefinedConstantsAfterCodeCacheLoad;
+        }
+        
+        /**
+         * Returns the maximum execution time for PHP scripts
+         *
+         * @return number
+         */
+        public function getMaxExecutionTime() {
+        	return $this->phpMaxExecutionTime;
+        }
+        
+        /**
+         * Returns whether dt_fix_static_method_calls() should be enabled or not
+         * 
+         * @return boolean
+         */
+        public function shouldFixStaticMethodCalls() {
+        	return $this->fixStaticMethodCalls;
         }
         
         /**

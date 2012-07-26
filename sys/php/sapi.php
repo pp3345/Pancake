@@ -3,8 +3,8 @@
     /****************************************************************/
     /* Pancake                                                      */
     /* sapi.php                                                     */
-    /* 2012 Yussuf "pp3345" Khalil                                  */
-    /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
+    /* 2012 Yussuf Khalil                                           */
+    /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
     
     /* See php.net for further documentation on the SAPI-functions */
@@ -33,10 +33,11 @@
     function header($string, $replace = true, $http_response_code = 0) {
         if(strtoupper(substr($string, 0, 5)) == 'HTTP/') {
             $data = explode(' ', $string);
-            Pancake\vars::$Pancake_request->setAnswerCode($data[1]);
+            if(isset($data[1]))
+            	Pancake\vars::$Pancake_request->setAnswerCode($data[1]);
         } else {
             $header = explode(':', $string, 2);
-            Pancake\vars::$Pancake_request->setHeader($header[0], trim(@$header[1]), $replace);
+            Pancake\vars::$Pancake_request->setHeader($header[0], isset($header[1]) ? trim($header[1]) : null, $replace);
             if($header[0] == 'Location' && Pancake\vars::$Pancake_request->getAnswerCode() != 201 && substr(Pancake\vars::$Pancake_request->getAnswerCode(), 0, 1) != 3)
                 Pancake\vars::$Pancake_request->setAnswerCode(302);
         }
@@ -86,8 +87,10 @@
         
         // Get original phpinfo
         ob_start();
-        if(!Pancake\PHPFunctions\phpinfo($what))
+        if(!Pancake\PHPFunctions\phpinfo($what)) {
+        	Pancake\PHPFunctions\OutputBuffering\endClean();
             return false;
+        }
         $phpInfo = ob_get_contents();
         Pancake\PHPFunctions\OutputBuffering\endClean();
         
@@ -121,7 +124,6 @@
             $pancakeAdd .= '<tr><td class="e">Expose Pancake</td><td class="v">' . (Pancake\Config::get('main.exposepancake') ? 'enabled' : 'disabled') . '</td></tr>';
             $pancakeAdd .= '<tr><td class="e">Timestamps</td><td class="v">' . Pancake\Config::get('main.dateformat') . '</td></tr>';
             $pancakeAdd .= '<tr><td class="e">Sizeprefixes</td><td class="v">' . (Pancake\Config::get('main.sizeprefix') == 'si' ? 'SI' : 'binary') . '</td></tr>';
-            $pancakeAdd .= '<tr><td class="e">Timeout for read actions</td><td class="v">' . Pancake\Config::get('main.readtimeout') . ' µs</td></tr>';
             $pancakeAdd .= '<tr><td class="e">Current vHost</td><td class="v">' . Pancake\vars::$Pancake_currentThread->vHost->getName() . '</td></tr>';
             $pancakeAdd .= '<tr><td class="e">Path for temporary files</td><td class="v">' . Pancake\Config::get('main.tmppath') . '</td></tr>';
             $pancakeAdd .= '<tr><td class="e">Path to requestlog</td><td class="v">' . Pancake\Config::get('main.logging.request') . '</td></tr>';
@@ -226,12 +228,10 @@
     	if(!is_callable($callback))
     		return false;
     	
-        $shutdownCall = array('callback' => $callback);
+        $shutdownCall = array('callback' => $callback, 'args' => array());
         
         $args = func_get_args();
         unset($args[0]);
-        
-        $shutdownCall['args'] = array();
         
         foreach($args as $arg)
             $shutdownCall['args'][] = $arg;
@@ -272,23 +272,29 @@
     }
     
     function session_start() {
-        if(session_id())
-            return Pancake\PHPFunctions\sessionStart();
-        else if(in_array(session_name(), Pancake\vars::$Pancake_request->getGETParams())) {
+        if(session_id());
+        else if(array_key_exists(session_name(), Pancake\vars::$Pancake_request->getGETParams())) {
         	$get = Pancake\vars::$Pancake_request->getGETParams();
             session_id($get[session_name()]);
-            return Pancake\PHPFunctions\sessionStart();
-        } else if(in_array(session_name(), Pancake\vars::$Pancake_request->getCookies())) {
+        } else if(array_key_exists(session_name(), Pancake\vars::$Pancake_request->getCookies())) {
         	$cookie = Pancake\vars::$Pancake_request->getCookies();
             session_id($cookie[session_name()]);
-            return Pancake\PHPFunctions\sessionStart();
         } else
-            return Pancake\PHPFunctions\sessionStart();
+        	Pancake\PHPFunctions\sessionID("");
+        
+        if(Pancake\PHPFunctions\sessionStart()) {
+        	Pancake\vars::$sessionID = session_id();
+        	return true;
+        }
+        
+        return false;
     }
     
     function filter_input($type, $variable_name, $filter = FILTER_DEFAULT, $options = FILTER_FLAG_NONE) {
         // Create bitmask of flags
         if(is_array($options)) {
+        	$flags = 0;
+        	
             foreach((array) $options['flags'] as $option)
                 $flags |= $option;
         } else
@@ -331,7 +337,12 @@
     }
     
     function filter_input_array($type, $definition = null) {
+    	$endArray = $data = $filterOptions = array();
+    	
         foreach($definition as $key => $options) {
+        	if(!isset($options['flags']))
+        		$options['flags'] = 0;
+        	
             switch($type) {
                 case INPUT_GET:
                     $GET = Pancake\vars::$Pancake_request->getGETParams();   
@@ -423,7 +434,7 @@
         function debug_backtrace($options = DEBUG_BACKTRACE_PROVIDE_OBJECT, $limit = 0) {
         	if($limit)
         		$limit += 3;
-            return Pancake\workBacktrace(Pancake\PHPFunctions\debugBacktrace($options, $limit));
+            return Pancake\workBacktrace(PHP_MINOR_VERSION >= 4 ? Pancake\PHPFunctions\debugBacktrace($options, $limit) : Pancake\PHPFunctions\debugBacktrace($options));
         }
     }
     
@@ -493,13 +504,7 @@
     function set_error_handler($error_handler, $error_types = null) {
     	if(!$error_types)
     		$error_types = E_ALL | E_STRICT;
-    	if(!is_callable($error_handler)
-    	/*|| $error_types & E_ERROR
-    	|| $error_types & E_PARSE
-    	|| $error_types & E_CORE_ERROR
-    	|| $error_types & E_CORE_WARNING
-    	|| $error_types & E_COMPILE_ERROR
-    	|| $error_types & E_COMPILE_WARNING*/)
+    	if(!is_callable($error_handler))
     		return null;
     	$returnValue = Pancake\vars::$errorHandler;
 
@@ -543,7 +548,7 @@
     }
     
     function get_browser($user_agent = null, $return_array = false) {
-    	return Pancake\PHPFunctions\getBrowser($user_agent ? $user_agent : Pancake\vars::$Pancake_request->getRequestHeader('User-Agent'), $return_array);
+    	return Pancake\PHPFunctions\getBrowser($user_agent ? $user_agent : Pancake\vars::$Pancake_request->getRequestHeader('User-Agent', false), $return_array);
     }
    
 	function error_get_last() {
@@ -552,12 +557,34 @@
    		return is_array($lastError) && $lastError['type'] == \E_ERROR ? $lastError : Pancake\vars::$lastError;
 	}
 	
+	function session_id($id = "") {
+		if(((PHP_MINOR_VERSION >= 4 && session_status() == 1)
+		|| (PHP_MINOR_VERSION == 3 && !Pancake\vars::$sessionID))
+			&& !$id)
+			return '';
+		if($id)
+			Pancake\vars::$sessionID = $id;
+		return $id ? Pancake\PHPFunctions\sessionID($id) : Pancake\PHPFunctions\sessionID();
+	}
+    
+	function session_set_save_handler($open, $close = true, $read = null, $write = null, $destroy = null, $gc = null) {
+		if(PHP_MINOR_VERSION >= 4 && is_object($open) && in_array('SessionHandlerInterface', class_implements($open))) {
+			$retval = Pancake\PHPFunctions\setSessionSaveHandler($open, false);
+			if($close && $retval)
+				session_register_shutdown();
+		} else
+			$retval = Pancake\PHPFunctions\setSessionSaveHandler($open, $close, $read, $write, $destroy, $gc);
+		if($retval)
+			return Pancake\vars::$resetSessionSaveHandler = true;
+		return false;
+	}
+	
 	function spl_autoload_register($autoload_function = null, $throw = true, $prepend = false, $unregister = false) {
-		static $registeredFunctions = array();
+		 static $registeredFunctions = array();
 		
 		if($unregister) {
 			foreach($registeredFunctions as $function)
-				@spl_autoload_unregister($function);
+				spl_autoload_unregister($function);
 			$registeredFunctions = array();
 			return;
 		}
@@ -567,17 +594,19 @@
 		if(is_array($autoload_function)) {
 			$reflect = new ReflectionMethod($autoload_function[0], $autoload_function[1]);
 			if($reflect->isPrivate() || $reflect->isProtected()) {
-				dt_add_method(is_object($autoload_function[0]) ? get_class($autoload_function[0]) : $autoload_function[0], 'Pancake_TemporaryMethod', null, <<<'FUNCTIONBODY'
-				if(!\Pancake\PHPFunctions\registerAutoload(func_get_arg(0), func_get_arg(1), func_get_arg(2)))
-					return false;
-				return true;
+				$name = 'Pancake_TemporaryMethod' . mt_rand();
+
+				dt_add_method(is_object($autoload_function[0]) ? get_class($autoload_function[0]) : $autoload_function[0], $name, null, <<<'FUNCTIONBODY'
+						if(!\Pancake\PHPFunctions\registerAutoload(func_get_arg(0), func_get_arg(1), func_get_arg(2)))
+							return false;
+						return true;
 FUNCTIONBODY
-				, 0x01 | 0x100);
+						, 0x01 | 0x100);
 				
-				if(!$autoload_function[0]::Pancake_TemporaryMethod($autoload_function, $throw, $prepend))
+				if(!$autoload_function[0]::$name($autoload_function, $throw, $prepend))
 					$returnFalse = true;
 				
-				dt_remove_method(is_object($autoload_function[0]) ? get_class($autoload_function[0]) : $autoload_function[0], 'Pancake_TemporaryMethod');
+				dt_remove_method(is_object($autoload_function[0]) ? get_class($autoload_function[0]) : $autoload_function[0], $name);
 				
 				if(isset($returnFalse))
 					return false;
@@ -596,18 +625,6 @@ FUNCTIONBODY
 			$registeredFunctions[] = $autoload_function;
 		
 		return true;
-	}
-	
-	function session_id($id = "") {
-		if(PHP_MINOR_VERSION >= 4 && session_status() == 1 && !$id)
-			return '';
-		if($id)
-			Pancake\vars::$sessionID = $id;
-		return $id ? Pancake\PHPFunctions\sessionID($id) : Pancake\PHPFunctions\sessionID();
-	}
-    
-	function session_set_save_handler($open, $close, $read, $write, $destroy, $gc) {
-		return Pancake\PHPFunctions\setSessionSaveHandler($open, $close, $read, $write, $destroy, $gc) && Pancake\vars::$resetSessionSaveHandler = true;
 	}
 	
     dt_rename_method('\Exception', 'getTrace', 'Pancake_getTraceOrig');

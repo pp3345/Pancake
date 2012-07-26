@@ -3,8 +3,8 @@
     /****************************************************************/
     /* Pancake                                                      */
     /* configuration.class.php                                      */
-    /* 2012 Yussuf "pp3345" Khalil                                  */
-    /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
+    /* 2012 Yussuf Khalil                                           */
+    /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
     
     namespace Pancake;
@@ -29,6 +29,7 @@
         */
         static public function load() {
         	self::$parser = new sfYamlParser;
+        	$caseSensitivePaths = array('phppredefinedconstants', 'auth');
         	
         	if(!file_exists(self::PATH) && file_exists(self::EXAMPLE_PATH)) {
         		out('It seems that Pancake is being started for the first time - Welcome to Pancake!', SYSTEM, false);
@@ -50,16 +51,25 @@
         		$firstStart = true;
         	}
         	
-        	self::$configuration = arrayIndicesToLower(self::$configuration);
+        	self::$configuration = arrayIndicesToLower(self::$configuration, $caseSensitivePaths);
         	
             if(!self::loadFile(self::SKELETON_PATH) || !self::loadFile(self::PATH)) {
                 out('Couldn\'t load configuration');
                 abort();
             }
             
-            self::$configuration = arrayIndicesToLower(self::$configuration);
+            self::$configuration = arrayIndicesToLower(self::$configuration, $caseSensitivePaths);
             
             if(isset($firstStart)) {
+            	if(!file_exists(self::$configuration['main']['logging']['request']))
+            		touch(self::$configuration['main']['logging']['request']);
+            	if(!file_exists(self::$configuration['main']['logging']['system']))
+            		touch(self::$configuration['main']['logging']['system']);
+            	if(!file_exists(self::$configuration['main']['logging']['error']))
+            		touch(self::$configuration['main']['logging']['error']);
+            	if(!file_exists(self::$configuration['main']['tmppath']))
+            		touch(self::$configuration['main']['tmppath']);
+            	
             	if(!@posix_getpwnam(self::get('main.user'))) {
             		out('The default user was not found. Trying to create it automatically');
             		exec('useradd --no-create-home --shell /dev/null ' . self::get('main.user'), $x, $returnValue);
@@ -85,7 +95,7 @@
                 self::loadFile($include);
             }
             
-            self::$configuration = arrayIndicesToLower(self::$configuration);
+            self::$configuration = arrayIndicesToLower(self::$configuration, $caseSensitivePaths);
                 
             self::$configuration['main']['tmppath'] = realpath(self::$configuration['main']['tmppath']) . '/';
             self::$configuration['main']['logging']['request'] = realpath(self::$configuration['main']['logging']['request']);

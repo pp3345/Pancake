@@ -4,17 +4,14 @@ System requirements:
 
 Linux (should also run on other unixoid, POSIX-compliant operating systems with some work)
 PHP 5.3.0 or newer compiled with --enable-pcntl --enable-sysvmsg --enable-sockets (PHP 5.4 recommended!)
-PECL yaml 1.1.0 or newer
-DeepTrace 1.4 or newer (DeepTrace is bundled with Pancake for x86, x86_64 and ARM (armv6l, armv7l) processors)
+DeepTrace 1.4.2 or newer (DeepTrace is bundled with Pancake for x86, x86_64 and ARM (armv6l, armv7l) processors)
 
-Installing Pancake:
+Installation:
 
 1. cd /usr/local/
 2. git clone git://github.com/pp3345/Pancake/
 3. cd Pancake/sys
 4. chmod +x pancake.sh
-5. cd ext
-6. chmod +x *
 
 Running Pancake:
 
@@ -32,5 +29,5 @@ Compiling DeepTrace:
 6. make
 7. cp modules/DeepTrace.so /usr/local/Pancake/sys/ext/<arch>_<phpver>.so (for example x86_64_54.so for x86_64 and PHP 5.4)
 
-Pancake is licensed under the CC BY-NC-SA 3.0 of which you may obtain a copy at http://creativecommons.org/licenses/by-nc-sa/3.0/
-If you would like to make commercial use of Pancake, please contact me.
+By downloading and using Pancake you agree to our license: http://pancakehttp.net/license/
+This license does not allow using Pancake for commercial websites. If you want to use Pancake for such sites, please contact support [at] pancakehttp [dot] net

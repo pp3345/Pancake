@@ -3,8 +3,8 @@
     /****************************************************************/
     /* Pancake                                                      */
     /* phpWorker.thread.php                                         */
-    /* 2012 Yussuf "pp3345" Khalil                                  */
-    /* License: http://creativecommons.org/licenses/by-nc-sa/3.0/   */
+    /* 2012 Yussuf Khalil                                           */
+    /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
     
     namespace Pancake;
@@ -51,10 +51,21 @@
     
     unset($function);
     
-    if(vars::$Pancake_currentThread->vHost->shouldResetStaticClassNonObjectValues() || vars::$Pancake_currentThread->vHost->shouldResetStaticClassObjectValues())
+    if(vars::$Pancake_currentThread->vHost->shouldResetStaticClassNonObjectValues() || vars::$Pancake_currentThread->vHost->shouldResetStaticClassObjectValues()
+    || vars::$Pancake_currentThread->vHost->shouldResetStaticFunctionObjectValues() || vars::$Pancake_currentThread->vHost->shouldResetStaticFunctionNonObjectValues())
     	vars::$classes = get_declared_classes();
     
+    if(vars::$Pancake_currentThread->vHost->shouldResetStaticFunctionObjectValues() || vars::$Pancake_currentThread->vHost->shouldResetStaticFunctionNonObjectValues()) {
+    	$functions = get_defined_functions();
+    	vars::$functions = $functions['user'];
+    	unset($functions);
+    }
+    
     chdir(vars::$Pancake_currentThread->vHost->getDocumentRoot());
+    
+    if(defined('STDOUT')) dt_remove_constant('STDOUT');
+    if(defined('STDIN')) dt_remove_constant('STDIN');
+    if(defined('STDERR')) dt_remove_constant('STDERR');
     
     memory_get_usage(null, true);
     memory_get_peak_usage(null, true);
@@ -68,13 +79,17 @@
         cacheFile(vars::$Pancake_currentThread->vHost, $cacheFile);
     
     // Load CodeCache
-    foreach((array) $Pancake_cacheFiles as $cacheFile)
+    foreach((array) $Pancake_cacheFiles as $cacheFile) {
+    	set_time_limit(vars::$Pancake_currentThread->vHost->getMaxExecutionTime());
         require_once $cacheFile;
+        set_time_limit(0);
+    }
     
     // Delete predefined constants, if wanted
-    if(vars::$Pancake_currentThread->vHost->predefineConstantsOnlyForCodeCache())
+    if(vars::$Pancake_currentThread->vHost->predefineConstantsOnlyForCodeCache()) {
     	foreach((array) vars::$Pancake_currentThread->vHost->getPredefinedConstants() as $name => $value)
     		dt_remove_constant($name);
+    }
         
     unset($cacheFile);
     unset($Pancake_cacheFiles);
@@ -101,14 +116,14 @@
 
     // Wait for requests
     while(vars::$requestSocket = socket_accept(vars::$Pancake_currentThread->vHost->getSocket())) {
+    	socket_set_block(vars::$requestSocket);
+    	
     	// Get request object from RequestWorker
     	$packages = hexdec(socket_read(vars::$requestSocket, 8));
     	$length = hexdec(socket_read(vars::$requestSocket, 8));
     	
     	if($packages > 1) {
     		$sockData = "";
-    		 
-    		socket_set_block(vars::$requestSocket);
     		 
     		while($packages--)
     			$sockData .= socket_read(vars::$requestSocket, $length);
@@ -147,7 +162,8 @@
         
         // Execute script and protect Pancake from exit() and Exceptions
         try {
-            include vars::$Pancake_request->getvHost()->getDocumentRoot() . vars::$Pancake_request->getRequestFilePath();
+        	set_time_limit(vars::$Pancake_currentThread->vHost->getMaxExecutionTime());
+            include vars::$Pancake_currentThread->vHost->getDocumentRoot() . vars::$Pancake_request->getRequestFilePath();
             
             runShutdown:
             
@@ -159,7 +175,7 @@
                         
             // Run Registered Shutdown Functions
             foreach((array) vars::$Pancake_shutdownCalls as $shutdownCall) {
-                unset($args);
+            	unset($args);
                 $call = 'call_user_func($shutdownCall["callback"]';
                 
                 $i = 0;
@@ -220,6 +236,8 @@
         	goto runShutdown;
         
         postShutdown:
+        
+        set_time_limit(0);
 
         // After $invalidRequest is set to true it might still happen that the registered shutdown functions do some output
         if(vars::$invalidRequest) {
@@ -237,8 +255,9 @@
         $contents = ob_get_contents();
         
         if(session_id() || vars::$sessionID) {
-            vars::$Pancake_request->setCookie(session_name(), session_id() ? session_id() : vars::$sessionID, time() + ini_get('session.cookie_lifetime'), ini_get('session.cookie_path'), ini_get('session.cookie_domain'), ini_get('session.cookie_secure'), ini_get('session.cookie_httponly'));
-        	session_write_close();
+            vars::$Pancake_request->setCookie(session_name(), session_id() ? session_id() : vars::$sessionID, ini_get('session.cookie_lifetime') ? time() + ini_get('session.cookie_lifetime') : 0, ini_get('session.cookie_path'), ini_get('session.cookie_domain'), ini_get('session.cookie_secure'), ini_get('session.cookie_httponly'));
+            session_write_close();
+            PHPFunctions\sessionID("");
         	
         	switch(session_cache_limiter()) {
         		case 'nocache':
@@ -266,7 +285,7 @@
         	dt_remove_constant('SID');
         }
 
-        if(DEBUG_MODE === true && in_array('pancakephpdebug', vars::$Pancake_request->getGETParams())) {
+        if(DEBUG_MODE === true && array_key_exists('pancakephpdebug', vars::$Pancake_request->getGETParams())) {
             $body = 'Dump of RequestObject:' . "\r\n";
             $body .= print_r(vars::$Pancake_request, true);
             $body .= "\r\n";
@@ -371,79 +390,143 @@
         cleanGlobals(vars::$Pancake_exclude, false, true);
         
         gc_collect_cycles();
-        
-        $funcsPost = get_defined_functions();
-        $constsPost = get_defined_constants(true);
-        
+
         spl_autoload_register(null, null, null, true);
 
-        if(vars::$Pancake_currentThread->vHost->shouldResetStaticClassNonObjectValues() || vars::$Pancake_currentThread->vHost->shouldResetStaticClassObjectValues()) {
+        if(vars::$Pancake_currentThread->vHost->shouldResetStaticClassNonObjectValues() || vars::$Pancake_currentThread->vHost->shouldResetStaticClassObjectValues()
+        || vars::$Pancake_currentThread->vHost->shouldResetStaticFunctionObjectValues() || vars::$Pancake_currentThread->vHost->shouldResetStaticFunctionNonObjectValues()) {
         	foreach(get_declared_classes() as $class) {
-        		if(!in_array($class, vars::$classes)) {
-        			$reflect = new \ReflectionClass($class);
-        			
-        			// Destroy destructor
-        			if(vars::$Pancake_currentThread->vHost->shouldDestroyDestructorOnObjectDestroy() && $reflect->hasMethod('__destruct')) {
-        				$name = 'Pancake_DestroyedDestructor' . mt_rand();
-        				dt_rename_method($reflect->getName(), '__destruct', $name);
-        					$destroyedDestructors[$class] = $name;
-        			}
-        			
-        			foreach($reflect->getStaticProperties() as $name => $value) {
-        				$prop = new \ReflectionProperty($class, $name);
-        				$prop->setAccessible(true);
-
-        				if((is_array($value) || is_object($value)) && vars::$Pancake_currentThread->vHost->shouldResetStaticClassObjectValues()) {
-        					$value = recursiveClearObjects($value);
-        					
-        					if(!$value)
-        						$value = null;
-
-        					gc_collect_cycles();
-
-        					$prop->setValue($value);
-
-        				} else if(vars::$Pancake_currentThread->vHost->shouldResetStaticClassNonObjectValues() && !is_object($value)) {
-        					$prop->setValue(null);
-        				}
-        			}
-        			
-        			unset($reflect);
-        			unset($prop);
+        		if(in_array($class, vars::$classes))
+        			continue;
+        		
+        		$reflect = new \ReflectionClass($class);
+        		
+        		if(vars::$Pancake_currentThread->vHost->shouldDestroyDestructorOnObjectDestroy() && $reflect->hasMethod('__destruct')) {
+        			$name = 'Pancake_DestroyedDestructor' . mt_rand();
+        			dt_rename_method($reflect->getName(), '__destruct', $name);
+        			$destroyedDestructors[$reflect->getName()] = $name;
         		}
+        		
+        		if(vars::$Pancake_currentThread->vHost->shouldResetStaticClassNonObjectValues() || vars::$Pancake_currentThread->vHost->shouldResetStaticClassObjectValues()) {
+	        		foreach($reflect->getStaticProperties() as $name => $value) {
+	        			$prop = new \ReflectionProperty($class, $name);
+	        			$prop->setAccessible(true);
+	
+	        			if((is_array($value) || is_object($value)) && vars::$Pancake_currentThread->vHost->shouldResetStaticClassObjectValues()) {
+	        				$value = recursiveClearObjects($value);
+	        					
+	        				if(!$value)
+	        					$value = null;
+	
+	        				gc_collect_cycles();
+	
+	        				$prop->setValue($value);
+	        			} else if(vars::$Pancake_currentThread->vHost->shouldResetStaticClassNonObjectValues() && !is_object($value)) {
+	        				$prop->setValue(null);
+	        			}
+	        			
+	        			unset($name);
+	        			unset($value);
+	        			unset($prop);
+	        		}
+        		}
+        		
+        		if(vars::$Pancake_currentThread->vHost->shouldResetStaticFunctionObjectValues() || vars::$Pancake_currentThread->vHost->shouldResetStaticFunctionNonObjectValues()) {
+	        		foreach($reflect->getMethods() as $method) {
+	        			foreach($method->getStaticVariables() as $name => $value) {
+	        				if((is_array($value) || is_object($value)) && vars::$Pancake_currentThread->vHost->shouldResetStaticFunctionObjectValues()) {
+	        					$value = recursiveClearObjects($value);
+	        					 
+	        					if(!$value)
+	        						$value = null;
+	        					 
+	        					gc_collect_cycles();
+	        					 
+	        					dt_set_method_variable($class, $method->getName(), $name, $value);
+	        				} else if(vars::$Pancake_currentThread->vHost->shouldResetStaticFunctionNonObjectValues() && !is_object($value)) {
+	        					dt_set_method_variable($class, $method->getName(), $name, null);
+	        				}
+	        				 
+	        				unset($name);
+	        				unset($value);
+	        			}
+	        			
+	        			unset($method);
+	        		}
+        		}
+        			
+        		unset($reflect);
         	}
         }
-		
+        
+        if(vars::$Pancake_currentThread->vHost->shouldResetStaticFunctionObjectValues() || vars::$Pancake_currentThread->vHost->shouldResetStaticFunctionNonObjectValues()) {
+        	$functions = get_defined_functions();
+        	
+        	foreach($functions['user'] as $function) {
+        		if(in_array($function, vars::$functions))
+        			continue;
+        	
+        		$reflect = new \ReflectionFunction($function);
+        		 
+        		foreach($reflect->getStaticVariables() as $name => $value) {
+        			if((is_array($value) || is_object($value)) && vars::$Pancake_currentThread->vHost->shouldResetStaticFunctionObjectValues()) {
+        				$value = recursiveClearObjects($value);
+        				 
+        				if(!$value)
+        					$value = null;
+        	
+        				gc_collect_cycles();
+        	
+        				dt_set_function_variable($function, $name, $value);
+        			} else if(vars::$Pancake_currentThread->vHost->shouldResetStaticFunctionNonObjectValues() && !is_object($value)) {
+        				dt_set_function_variable($function, $name, null);
+        			}
+        			
+        			unset($name);
+        			unset($value);
+        		}
+        		
+        		unset($reflect);
+        	}
+        }
+        
         // Restore destroyed destructors
         foreach((array) $destroyedDestructors as $class => $name)
         	if(!@dt_rename_method($class, $name, '__destruct'))
         		dt_remove_method($class, $name);
+        
+        $funcsPost = get_defined_functions();
+        $constsPost = get_defined_constants(true);
         
         gc_collect_cycles();
 
         if(vars::$Pancake_currentThread->vHost->shouldAutoDelete('functions'))
             foreach($funcsPost['user'] as $func) {
                 if(!in_array($func, vars::$Pancake_funcsPre['user']) && !vars::$Pancake_currentThread->vHost->isAutoDeleteExclude($func, 'functions')) {
-                    dt_remove_function($func);
+                    dt_destroy_function_data($func);
                     gc_collect_cycles();
+                    $deleteFunctions[] = $func;
                 }
-            }
-            
-        if(vars::$Pancake_currentThread->vHost->shouldAutoDelete('interfaces'))
-           	foreach(get_declared_interfaces() as $interface) {
-            	if(!in_array($interface, vars::$Pancake_interfacesPre) && !vars::$Pancake_currentThread->vHost->isAutoDeleteExclude($interface, 'interfaces')) {
-            		dt_remove_interface($interface);
-            		gc_collect_cycles();
-            	}
             }
             
         if(vars::$Pancake_currentThread->vHost->shouldAutoDelete('classes'))
             foreach(get_declared_classes() as $class) {
                 if(!in_array($class, vars::$Pancake_classesPre) && !vars::$Pancake_currentThread->vHost->isAutoDeleteExclude($class, 'classes')) {
-                    dt_remove_class($class);
+                    dt_destroy_class_data($class);
+                    gc_collect_cycles();
+                    $deleteClasses[] = $class;
                 }
             }
-        
+            
+        if(vars::$Pancake_currentThread->vHost->shouldAutoDelete('interfaces'))
+            foreach(get_declared_interfaces() as $interface) {
+            	if(!in_array($interface, vars::$Pancake_interfacesPre) && !vars::$Pancake_currentThread->vHost->isAutoDeleteExclude($interface, 'interfaces')) {
+            		dt_destroy_class_data($interface);
+            		gc_collect_cycles();
+            		$deleteClasses[] = $interface;
+            	}
+            }
+
         if(vars::$Pancake_currentThread->vHost->shouldAutoDelete('constants'))
             foreach($constsPost['user'] as $const => $constValue) {
                 if(!array_key_exists($const, vars::$Pancake_constsPre['user']) && !vars::$Pancake_currentThread->vHost->isAutoDeleteExclude($const, 'constants')) {
@@ -463,8 +546,9 @@
         if(\PHP_MINOR_VERSION >= 4 && vars::$Pancake_currentThread->vHost->shouldAutoDelete('traits')) {
             foreach(get_declared_traits() as $trait) {
                 if(!in_array($trait, vars::$Pancake_traitsPre) && !vars::$Pancake_currentThread->vHost->isAutoDeleteExclude($trait, 'traits')) {
-                    dt_remove_trait($trait);
+                    dt_destroy_class_data($trait);
                     gc_collect_cycles();
+                    $deleteClasses[] = $trait;
                 }
             }
         }
@@ -472,36 +556,43 @@
         foreach(vars::$Pancake_currentThread->vHost->getForcedDeletes() as $delete) {
             switch($delete['type']) {
                 case 'classes':
-                    @dt_remove_class($delete['name']);
+                case 'interfaces':
+                case 'traits':
+                    dt_destroy_class_data($delete['name']);
                     gc_collect_cycles();
+                    $deleteClasses[] = $delete['name'];
                 break;
                 case 'functions':
-                    @dt_remove_function($delete['name']);
+                    dt_destroy_function_data($delete['name']);
                     gc_collect_cycles();
+                    $deleteFunctions[] = $delete['name'];
                 break;
                 case 'includes':
-                    @dt_remove_include($delete['name']);
-                    gc_collect_cycles();
-                break;
-                case 'traits':
-                    @dt_remove_trait($delete['name']);
+                    dt_remove_include($delete['name']);
                     gc_collect_cycles();
                 break;
                 case 'constants':
-                    @dt_remove_constant($delete['name']);
-                    gc_collect_cycles();
-                break;
-                case 'interfaces':
-                    @dt_remove_interface($delete['name']);
+                    dt_remove_constant($delete['name']);
                     gc_collect_cycles();
                 break;
             }
         }
         
+        foreach((array) $deleteClasses as $class) {
+        	dt_remove_class($class);
+        	gc_collect_cycles();
+        }
+        
+        foreach((array) $deleteFunctions as $function) {
+        	dt_remove_function($function);
+        	gc_collect_cycles();
+        }
+        
+        // Do not activate static method call fixing if it does not make sense
+        if(vars::$Pancake_currentThread->vHost->shouldFixStaticMethodCalls() && $deleteClasses && \PHP_MINOR_VERSION >= 4)
+        	dt_fix_static_method_calls(true);
+        
         cleanGlobals(vars::$Pancake_exclude, false, true);
-       	        
-        if(\PHP_MINOR_VERSION >= 4)
-        	dt_clear_cache();
         
         clearstatcache();
         
@@ -514,8 +605,10 @@
         vars::$Pancake_includesPre = get_included_files();
         vars::$Pancake_classesPre = get_declared_classes();
         vars::$Pancake_interfacesPre = get_declared_interfaces();
-        if(\PHP_MINOR_VERSION >= 4)
+        if(\PHP_MINOR_VERSION >= 4) {
         	vars::$Pancake_traitsPre = get_declared_traits();
+        	dt_clear_cache();
+    	}
         
         gc_collect_cycles();
     }
