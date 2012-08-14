@@ -95,6 +95,8 @@
                 		$sockData .= socket_read($socket, $length);
                 	
                 	$obj = unserialize($sockData);
+                	
+                	unset($sockData);
                 }
                 else
                 	$obj = unserialize(socket_read($socket, $length));

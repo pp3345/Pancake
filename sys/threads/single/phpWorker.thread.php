@@ -11,7 +11,7 @@
     
     if(PANCAKE !== true)
         exit;
-        
+    
     // Load SAPI functions and PHP runtime utilities
     require_once 'php/sapi.php';
     require_once 'php/util.php';    
@@ -210,8 +210,6 @@
                 while(PHPFunctions\OutputBuffering\getLevel() > 1)
                     PHPFunctions\OutputBuffering\endFlush();
                 if(ini_get('display_errors')) {
-                    $i = 0;
-                    
                     $errorText = 'Uncaught exception \'' . get_class($exception) . '\'';
                     if($exception->getMessage())
                         $errorText .= ' with message \'' . $exception->getMessage() . '\'';
