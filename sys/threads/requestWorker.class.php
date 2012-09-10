@@ -27,10 +27,10 @@
         * @return RequestWorker
         */
         public function __construct() {
-        	if(!$this->codeProcessed) {
+        	if(!self::$codeProcessed) {
         		$codeProcessor = new CodeProcessor('threads/single/requestWorker.thread.php', 'threads/single/requestWorker.thread.cphp');
         		$codeProcessor->run();
-        		$this->codeProcessed = true;
+        		self::$codeProcessed = true;
         	}
         	
             // Add instance
