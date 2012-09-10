@@ -7,10 +7,12 @@
     /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
     
+	#.if 0
     namespace Pancake;
-    
+
     if(PANCAKE !== true)
         exit;
+    #.endif
         
     class invalidHTTPRequestException extends \Exception {
         private $header = null;

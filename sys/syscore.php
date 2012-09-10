@@ -12,7 +12,7 @@
     if(defined('Pancake\PANCAKE'))
         exit;
 
-    const VERSION = '1.0';
+    const VERSION = '1.1-devel';
     const PANCAKE = true;
     const REQUEST_WORKER_TYPE = 1;
     const PHP_WORKER_TYPE = 2;
@@ -33,6 +33,7 @@
     require_once 'thread.class.php';
     require_once 'threads/requestWorker.class.php';
     require_once 'threads/phpWorker.class.php';
+    require_once 'threads/codeProcessor.class.php';
     require_once 'HTTPRequest.class.php';
     require_once 'IPC.class.php';
     require_once 'vHost.class.php';

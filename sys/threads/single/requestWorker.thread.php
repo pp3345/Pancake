@@ -8,15 +8,22 @@
     /****************************************************************/
     
     namespace Pancake;
-    
+
+    #.if 0
     if(PANCAKE !== true)
         exit;
+   	#.endif
+
+    #.mapVariable '$Pancake_sockets' '$Pancake_sockets'
+    #.mapVariable '$Pancake_vHosts' '$Pancake_vHosts'
+    #.mapVariable '$Pancake_postMaxSize' '$Pancake_postMaxSize'
+    #.mapVariable '$Pancake_currentThread' '$Pancake_currentThread'
     
     global $Pancake_sockets;
     global $Pancake_vHosts;
     global $Pancake_postMaxSize;
-    
-    require_once 'invalidHTTPRequest.exception.php';
+
+    #.include 'invalidHTTPRequest.exception.php'
     
     // Precalculate post_max_size in bytes
     $size = strtolower(ini_get('post_max_size'));
@@ -31,7 +38,9 @@
     $listenSockets = $listenSocketsOrig = $Pancake_sockets;
     
     // Initialize some variables
+    #.if /* .eval 'return Pancake\Config::get("main.maxconcurrent");' */
     $decliningNewRequests = false;
+    #.endif
     $liveWriteSocketsOrig = array();
     $liveReadSockets = array();
     $socketData = array();
@@ -52,7 +61,7 @@
     setUser();
     
     // Wait for incoming requests     
-    while(socket_select($listenSockets, $liveWriteSockets, $x, $waitSlots && Config::get('main.waitslottime') ? 0 : null, $waitSlots && Config::get('main.waitslottime') ? Config::get('main.waitslottime') : null) !== false) {
+    while(socket_select($listenSockets, $liveWriteSockets, $x, $waitSlots && /* .eval 'return Pancake\Config::get("main.waitslottime");' */ ? 0 : null, $waitSlots && /* .eval 'return Pancake\Config::get("main.waitslottime");' */ ? /* .eval 'return Pancake\Config::get("main.waitslottime");' */ : null) !== false) {
     	// If there are jobs left in the queue at the end of the job-run, we're going to jump back to this point to execute the jobs that are left
     	cycle:
     	
@@ -116,7 +125,11 @@
                 goto write;
             }
 
-            if((Config::get('main.maxconcurrent') < count($listenSocketsOrig) - count($Pancake_sockets) && Config::get('main.maxconcurrent') != 0) || !($requestSocket = @socket_accept($socket)))
+            if(
+            #.if /* .eval 'return Pancake\Config::get("main.maxconcurrent");' */ != 0
+            Config::get('main.maxconcurrent') < count($listenSocketsOrig) - count($Pancake_sockets) || 
+            #.endif
+            !($requestSocket = @socket_accept($socket)))
                 goto clean;
             $socketID = (int) $requestSocket;
 
@@ -214,15 +227,18 @@
         // Check for "OPTIONS"-requestmethod
         if($requests[$socketID]->getRequestType() == 'OPTIONS') {
             $allow = 'GET, POST, OPTIONS';
-            if(Config::get('main.allowhead') === true)
+            #.if /* .eval 'return Pancake\Config::get("main.allowhead");' */  === true
                 $allow .= ', HEAD';
-            if(Config::get('main.allowtrace') === true)
+            #.endif
+            #.if /* .eval 'return Pancake\Config::get("main.allowtrace");' */  === true
                 $allow .= ', TRACE';
+            #.endif
             $requests[$socketID]->setHeader('Allow', $allow);
         }
         
         // Output debug information
-        if(DEBUG_MODE === true && array_key_exists('pancakedebug', $requests[$socketID]->getGETParams())) {
+        #.if Pancake\DEBUG_MODE === true
+        if(array_key_exists('pancakedebug', $requests[$socketID]->getGETParams())) {
             $requests[$socketID]->setHeader('Content-Type', 'text/plain');
                                                     
             $body = 'Received Headers:'."\r\n";
@@ -236,6 +252,7 @@
             
             goto write;
         }
+        #.endif
         
         if(ini_get('expose_php') && array_key_exists("", $requests[$socketID]->getGETParams())) {
             $_GET = $requests[$socketID]->getGETParams();
@@ -286,7 +303,7 @@
             if(socket_last_error($socket) == 11) {
       			$waits[$socketID]++;
             	
-            	if($waits[$socketID] > Config::get('main.waitslotwaitlimit')) {
+            	if($waits[$socketID] > /* .eval 'return Pancake\Config::get("main.waitslotwaitlimit");' */) {
             		$requests[$socketID]->invalidRequest(new invalidHTTPRequestException('There was no worker available to serve your request. Please try again later.', 500));
             		goto write;
             	}	
@@ -395,7 +412,7 @@
                                     $body .= MIME::typeOf($requests[$socketID]->getvHost()->getDocumentRoot() . $requests[$socketID]->getRequestFilePath() . '/' . $file);
                             $body .= '</td>';
                             $body .= '<td>';
-                                $body .= date(Config::get('main.dateformat'), filemtime($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath().'/'.$file));
+                                $body .= date(/* .eval 'return Pancake\Config::get("main.dateformat");' */, filemtime($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath().'/'.$file));
                             $body .= '</td>';
                             if(!is_dir($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath().'/'.$file)) {
                                 $body .= '<td>';
@@ -407,10 +424,11 @@
                 $body .= '</tbody>';
             $body .= '</table>';
             
-            if(Config::get('main.exposepancake') === true) {
+            
+            #.if /* .eval 'return Pancake\Config::get("main.exposepancake");' */ === true
                 $body .= '<hr/>';
                 $body .= 'Pancake '.VERSION;
-            }
+            #.endif
             
             $body .= '</body>';
             $body .= '</html>';
@@ -424,7 +442,7 @@
                 // Set encoding-header
                 $requests[$socketID]->setHeader('Content-Encoding', 'gzip');
                 // Create temporary file
-                $gzipPath[$socketID] = tempnam(Config::get('main.tmppath'), 'GZIP');
+                $gzipPath[$socketID] = tempnam(/* .eval 'return Pancake\Config::get("main.tmppath");' */, 'GZIP');
                 $gzipFileHandle = gzopen($gzipPath[$socketID], 'w' . $requests[$socketID]->getvHost()->getGZIPLevel());
                 // Load uncompressed requested file
                 $requestedFileHandle = fopen($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath(), 'r');
@@ -480,7 +498,7 @@
         
         // The buffer should usually only be empty if the hard limit was reached - In this case Pancake won't allocate any buffers except when the client really IS ready to receive data
         if(!strlen($writeBuffer[$socketID]))
-        	$writeBuffer[$socketID] = fread($requestFileHandle[$socketID], Config::get('main.writebuffermin'));
+        	$writeBuffer[$socketID] = fread($requestFileHandle[$socketID], /* .eval 'return Pancake\Config::get("main.writebuffermin");' */);
         
         // Write data to socket
         if(($writtenLength = @socket_write($requestSocket, $writeBuffer[$socketID])) === false)
@@ -489,8 +507,21 @@
         $writeBuffer[$socketID] = substr($writeBuffer[$socketID], $writtenLength);
         
         // Add data to buffer if not all data was sent yet
-        if(strlen($writeBuffer[$socketID]) < Config::get('main.writebuffermin') && is_resource($requestFileHandle[$socketID]) && !feof($requestFileHandle[$socketID]) && !(count($writeBuffer) > Config::get('main.writebufferhardmaxconcurrent') && Config::get('main.writebufferhardmaxconcurrent')) && $requests[$socketID]->getRequestType() != 'HEAD' && $writtenLength)
-        	$writeBuffer[$socketID] .= fread($requestFileHandle[$socketID], (count($writeBuffer) > Config::get('main.writebuffersoftmaxconcurrent') && Config::get('main.writebuffersoftmaxconcurrent') ? Config::get('main.writebuffermin') : $requests[$socketID]->getvHost()->getWriteLimit()) - strlen($writeBuffer[$socketID]));
+        if(strlen($writeBuffer[$socketID]) < /* .eval 'return Pancake\Config::get("main.writebuffermin");' */ 
+        && is_resource($requestFileHandle[$socketID]) 
+        && !feof($requestFileHandle[$socketID]) 
+        #.if /* .eval 'return Pancake\Config::get("main.writebufferhardmaxconcurrent");' */
+        && count($writeBuffer) < /* .eval 'return Pancake\Config::get("main.writebufferhardmaxconcurrent");' */
+        #.endif
+        && $requests[$socketID]->getRequestType() != 'HEAD' 
+        && $writtenLength)
+        	$writeBuffer[$socketID] .= fread($requestFileHandle[$socketID], 
+        			#.if /* .eval 'return Pancake\Config::get("main.writebuffersoftmaxconcurrent");' */
+        			(count($writeBuffer) > /* .eval 'return Pancake\Config::get("main.writebuffersoftmaxconcurrent");' */ ? /* .eval 'return Pancake\Config::get("main.writebuffermin");' */ : $requests[$socketID]->getvHost()->getWriteLimit())
+					#.else
+        			$requests[$socketID]->getvHost()->getWriteLimit()
+        			#.endif
+        			- strlen($writeBuffer[$socketID]));
 
         // Check if more data is available
         if(strlen($writeBuffer[$socketID]) || (is_resource($requestFileHandle[$socketID]) && !feof($requestFileHandle[$socketID]) && $requests[$socketID]->getRequestType() != 'HEAD')) {
@@ -539,22 +570,26 @@
             unset($requestFileHandle[$socketID]);
         }
         
-        // Check if request-limit is reached 
-        if(Config::get('main.requestworkerlimit') > 0 && $processedRequests >= Config::get('main.requestworkerlimit') && !$socketData && !$postData && !$requests) {
+        // Check if request-limit is reached
+        #.if /* .eval 'return Pancake\Config::get("main.requestworkerlimit");' */ > 0
+        if($processedRequests >= /* .eval 'return Pancake\Config::get("main.requestworkerlimit");' */ && !$socketData && !$postData && !$requests) {
             IPC::send(9999, 1);
             exit;
         }
+        #.endif
         
         clean:
         
-        if($decliningNewRequests && Config::get('main.maxconcurrent') > count($listenSocketsOrig))
+        #.if /* .eval 'return Pancake\Config::get("main.maxconcurrent");' */
+        if($decliningNewRequests && /* .eval 'return Pancake\Config::get("main.maxconcurrent");' */ > count($listenSocketsOrig))
             $listenSocketsOrig = array_merge($Pancake_sockets, $listenSocketsOrig);
         
-        if(Config::get('main.maxconcurrent') < count($listenSocketsOrig) - count($Pancake_sockets) && Config::get('main.maxconcurrent') != 0) {
+        if(/* .eval 'return Pancake\Config::get("main.maxconcurrent");' */ < count($listenSocketsOrig) - count($Pancake_sockets)) {
             foreach($Pancake_sockets as $index => $socket)
                 unset($listenSocketsOrig[$index]);
             $decliningNewRequests = true;
         }
+        #.endif
         
         // Clean old request-data
         unset($data);
