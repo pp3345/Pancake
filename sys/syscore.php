@@ -12,7 +12,7 @@
     if(defined('Pancake\PANCAKE'))
         exit;
 
-    const VERSION = '1.0rc1';
+    const VERSION = '1.0';
     const PANCAKE = true;
     const REQUEST_WORKER_TYPE = 1;
     const PHP_WORKER_TYPE = 2;
