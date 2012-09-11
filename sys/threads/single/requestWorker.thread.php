@@ -26,14 +26,15 @@
     #.include 'invalidHTTPRequest.exception.php'
     
     // Precalculate post_max_size in bytes
-    $size = strtolower(ini_get('post_max_size'));
-    if(strpos($size, 'k'))
+    $Pancake_postMaxSize = 
+    /* .eval '$size = strtolower(ini_get("post_max_size"));
+    if(strpos($size, "k"))
         $size = (int) $size * 1024;
-    else if(strpos($size, 'm'))
+    else if(strpos($size, "m"))
         $size = (int) $size * 1024 * 1024;
-    else if(strpos($size, 'g'))
+    else if(strpos($size, "g"))
         $size = (int) $size * 1024 * 1024 * 1024;
-    $Pancake_postMaxSize = $size;
+    return $size;' */;
     
     $listenSockets = $listenSocketsOrig = $Pancake_sockets;
     
@@ -55,13 +56,17 @@
     $waits = array();
 
     // Ready
-    $Pancake_currentThread->parentSignal(\SIGUSR1);
+    $Pancake_currentThread->parentSignal(/* .constant 'SIGUSR1' */);
     
     // Set user and group
     setUser();
     
     // Wait for incoming requests     
-    while(socket_select($listenSockets, $liveWriteSockets, $x, $waitSlots && /* .eval 'return Pancake\Config::get("main.waitslottime");' */ ? 0 : null, $waitSlots && /* .eval 'return Pancake\Config::get("main.waitslottime");' */ ? /* .eval 'return Pancake\Config::get("main.waitslottime");' */ : null) !== false) {
+    while(socket_select($listenSockets, $liveWriteSockets, $x
+    #.if /* .eval 'return Pancake\Config::get("main.waitslottime");' */
+    , $waitSlots ? 0 : null, $waitSlots ? /* .eval 'return Pancake\Config::get("main.waitslottime");' */ : null
+    #.endif
+    ) !== false) {
     	// If there are jobs left in the queue at the end of the job-run, we're going to jump back to this point to execute the jobs that are left
     	cycle:
     	
@@ -83,7 +88,7 @@
         foreach($listenSockets as $index => $socket) {
         	unset($listenSockets[$index]);
         	
-            if(isset($liveReadSockets[(int) $socket]) || socket_get_option($socket, \SOL_SOCKET, \SO_KEEPALIVE)) {
+            if(isset($liveReadSockets[(int) $socket]) || socket_get_option($socket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_KEEPALIVE' */)) {
                 $socketID = (int) $socket;
                 $requestSocket = $socket;
                 break;
@@ -127,7 +132,7 @@
 
             if(
             #.if /* .eval 'return Pancake\Config::get("main.maxconcurrent");' */ != 0
-            Config::get('main.maxconcurrent') < count($listenSocketsOrig) - count($Pancake_sockets) || 
+            /* .eval 'return Pancake\Config::get("main.maxconcurrent");' */ < count($listenSocketsOrig) - count($Pancake_sockets) || 
             #.endif
             !($requestSocket = @socket_accept($socket)))
                 goto clean;
@@ -225,16 +230,15 @@
             goto write;
         
         // Check for "OPTIONS"-requestmethod
-        if($requests[$socketID]->getRequestType() == 'OPTIONS') {
-            $allow = 'GET, POST, OPTIONS';
-            #.if /* .eval 'return Pancake\Config::get("main.allowhead");' */  === true
-                $allow .= ', HEAD';
-            #.endif
-            #.if /* .eval 'return Pancake\Config::get("main.allowtrace");' */  === true
-                $allow .= ', TRACE';
-            #.endif
-            $requests[$socketID]->setHeader('Allow', $allow);
-        }
+        if($requests[$socketID]->getRequestType() == 'OPTIONS')
+            $requests[$socketID]->setHeader('Allow', 
+            /* .eval '$allow = "GET, POST, OPTIONS";
+            if(Pancake\Config::get("main.allowhead") === true)
+                $allow .= ", HEAD";
+            if(Pancake\Config::get("main.allowtrace") === true)
+                $allow .= ", TRACE";
+            return $allow;'
+             */);
         
         // Output debug information
         #.if Pancake\DEBUG_MODE === true
@@ -254,7 +258,8 @@
         }
         #.endif
         
-        if(ini_get('expose_php') && array_key_exists("", $requests[$socketID]->getGETParams())) {
+        #.if /* .eval 'return ini_get("expose_php");' */
+        if(array_key_exists("", $requests[$socketID]->getGETParams())) {
             $_GET = $requests[$socketID]->getGETParams();
             switch($_GET[""]) {
                 case 'PHPE9568F34-D428-11d2-A769-00AA001ACF42':
@@ -276,26 +281,27 @@
                     $logo = ob_get_contents();
                     PHPFunctions\OutputBuffering\endClean();
                 break;
+                #.if /* .eval 'return Pancake\Config::get("main.exposepancake");' */ === true
                 case 'PAN8DF095AE-6639-4C6F-8831-5AB8FBD64D8B':
-                    if(Config::get('main.exposepancake') === true) {
-                        $logo = file_get_contents('logo/pancake.png');
-                        $requests[$socketID]->setHeader('Content-Type', 'image/png');
-                    } else
-                        goto load;
-                break;
+                    $logo = file_get_contents('logo/pancake.png');
+                    $requests[$socketID]->setHeader('Content-Type', 'image/png');
+                    break;
+          		#.endif
                 default:
                     goto load;
             }
             $requests[$socketID]->setAnswerBody($logo);
             unset($logo);
+            unset($_GET);
             goto write;
         }
+        #.endif
         
         load:
         
         // Check for PHP
         if($requests[$socketID]->getMIMEType() == 'text/x-php' && $requests[$socketID]->getvHost()->getPHPWorkerAmount()) {
-            $socket = socket_create(\AF_UNIX, \SOCK_SEQPACKET, 0);
+            $socket = socket_create(/* .constant 'AF_UNIX' */, /* .constant 'SOCK_SEQPACKET' */, 0);
             socket_set_nonblock($socket);
             // @ - Do not spam errorlog with Resource temporarily unavailable if there is no PHPWorker available
             @socket_connect($socket, $requests[$socketID]->getvHost()->getSocketName());
@@ -320,10 +326,10 @@
             
             $packages = array();
             
-            if(strlen($data) > (socket_get_option($socket, \SOL_SOCKET, \SO_SNDBUF) - 1024)
-            && (socket_set_option($socket, \SOL_SOCKET, \SO_SNDBUF, strlen($data) + 1024) + 1)
-            && strlen($data) > (socket_get_option($socket, \SOL_SOCKET, \SO_SNDBUF) - 1024)) {
-            	$packageSize = socket_get_option($socket, \SOL_SOCKET, \SO_SNDBUF) - 1024;
+            if(strlen($data) > (socket_get_option($socket, /* .constant "SOL_SOCKET" */, /* .constant "SO_SNDBUF" */) - 1024)
+            && (socket_set_option($socket, /* .constant "SOL_SOCKET" */, /* .constant "SO_SNDBUF" */, strlen($data) + 1024) + 1)
+            && strlen($data) > (socket_get_option($socket, /* .constant "SOL_SOCKET" */, /* .constant "SO_SNDBUF" */) - 1024)) {
+            	$packageSize = socket_get_option($socket, /* .constant "SOL_SOCKET" */, /* .constant "SO_SNDBUF" */) - 1024;
             
             	for($i = 0;$i < ceil(strlen($data) / $packageSize);$i++)
             		$packages[] = substr($data, $i * $packageSize, $packageSize);
@@ -427,7 +433,7 @@
             
             #.if /* .eval 'return Pancake\Config::get("main.exposepancake");' */ === true
                 $body .= '<hr/>';
-                $body .= 'Pancake '.VERSION;
+                $body .= /* .eval 'return "Pancake " . Pancake\VERSION;' */;
             #.endif
             
             $body .= '</body>';
@@ -480,11 +486,11 @@
             $writeBuffer[$socketID] .= $requests[$socketID]->getAnswerBody();
 
         // Output request information
-        out('REQ '.$requests[$socketID]->getAnswerCode().' '.$requests[$socketID]->getRemoteIP().': '.$requests[$socketID]->getRequestLine().' on vHost '.(($requests[$socketID]->getvHost()) ? $requests[$socketID]->getvHost()->getName() : null).' (via '.$requests[$socketID]->getRequestHeader('Host').' from '.$requests[$socketID]->getRequestHeader('Referer').') - '.$requests[$socketID]->getRequestHeader('User-Agent'), REQUEST);
+        out('REQ '.$requests[$socketID]->getAnswerCode().' '.$requests[$socketID]->getRemoteIP().': '.$requests[$socketID]->getRequestLine().' on vHost '.(($requests[$socketID]->getvHost()) ? $requests[$socketID]->getvHost()->getName() : null).' (via '.$requests[$socketID]->getRequestHeader('Host').' from '.$requests[$socketID]->getRequestHeader('Referer').') - '.$requests[$socketID]->getRequestHeader('User-Agent'), /* .constant 'Pancake\REQUEST' */);
 
         // Check if user wants keep-alive connection
         if($requests[$socketID]->getAnswerHeader('Connection') == 'keep-alive')
-            socket_set_option($requestSocket, \SOL_SOCKET, \SO_KEEPALIVE, 1);
+            socket_set_option($requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_KEEPALIVE' */, 1);
 
         // Increment amount of processed requests
         $processedRequests++;
@@ -600,7 +606,6 @@
         unset($directory);
         unset($requestSocket);
         unset($socket);
-        unset($_GET);
         unset($add);
         unset($continue);
         unset($index);
