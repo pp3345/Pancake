@@ -32,7 +32,9 @@
 		}
 
 		public function execute(Token $token, TokenVM $vm) {
-			if(Configuration::get('compressvariables', false) && $token->content != '$this') {
+			static $forbiddenVariables = array('$this', '$_GET', '$_POST', '$_REQUEST', '$_COOKIE', '$_ENV', '$_SESSION');
+			
+			if(Configuration::get('compressvariables', false) && !in_array($token->content, $forbiddenVariables)) {
 				if(!isset($this->variableMappings[$token->content])) {
 					do {
 						$this->mapVariable($token->content, is_int($this->nextLetter) ? '$i' . $this->nextLetter : '$' . $this->nextLetter);

@@ -43,12 +43,20 @@
 			TokenVM::globalRegisterTokenHandler(T_STATIC, $this);
 			TokenVM::globalRegisterTokenHandler(T_FUNCTION, $this);
 			TokenVM::globalRegisterTokenHandler(T_RETURN, $this);
+			TokenVM::globalRegisterTokenHandler(T_CASE, $this);
+			TokenVM::globalRegisterTokenHandler(T_START_HEREDOC, $this);
+			TokenVM::globalRegisterTokenHandler(T_SEMICOLON, $this);
+			TokenVM::globalRegisterTokenHandler(T_END_HEREDOC, $this);
 		}
 	
 		public function execute(Token $token, TokenVM $vm) {
 			if(Configuration::get('deletewhitespaces', false)) {
 				switch($token->type) {
 					case T_WHITESPACE:
+						$tokenArray = $vm->getTokenArray();
+						
+						if($tokenX = current($tokenArray) && $tokenX->type == T_END_HEREDOC)
+							$this->insertForcedWhitespace($vm, true);
 						return TokenVM::NEXT_HANDLER | TokenVM::NEXT_TOKEN | TokenVM::DELETE_TOKEN;
 					case T_ECHO:
 					case T_RETURN:
@@ -57,6 +65,7 @@
 					case T_PRIVATE:
 					case T_STATIC:
 					case T_FINAL:
+					case T_CASE:
 						$tokenArray = $vm->getTokenArray();
 
 						if($tokenX = current($tokenArray)) {
@@ -85,6 +94,7 @@
 					case T_CLASS:
 					case T_EXTENDS:
 					case T_FUNCTION:
+					case T_START_HEREDOC:
 						$this->insertForcedWhitespace($vm);
 						break;
 					case T_ELSE:
@@ -107,15 +117,30 @@
 								$this->insertForcedWhitespace($vm);
 						}
 						break;
+					case T_SEMICOLON:
+						$tokenArray = $vm->getTokenArray();
+						
+						prev($tokenArray);
+						$tokenX = prev($tokenArray);
+						
+						if($tokenX->type == T_END_HEREDOC)
+							$this->insertForcedWhitespace($vm, true);
+						break;
+					case T_END_HEREDOC:
+						$tokenArray = $vm->getTokenArray();
+						
+						if($tokenX = current($tokenArray) && $tokenX->type != T_SEMICOLON)
+							$this->insertForcedWhitespace($vm, true);
+						break;
 				}
 			}
 
 			return TokenVM::NEXT_HANDLER | TokenVM::NEXT_TOKEN;
 		}
 
-		private function insertForcedWhitespace(TokenVM $vm) {
+		private function insertForcedWhitespace(TokenVM $vm, $lineBreak = false) {
 			$token = new Token;
-			$token->content = " ";
+			$token->content = $lineBreak ? "\r\n" : " ";
 			$token->type = T_FORCED_WHITESPACE;
 			$token->fileName = "Moody WhitespaceHandler";
 			$vm->insertTokenArray(array($token));

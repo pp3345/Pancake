@@ -7,10 +7,12 @@
     /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
     
+	#.if 0
     namespace Pancake;
     
     if(PANCAKE !== true)
         exit;
+    #.endif
     
     function PHPExitHandler($exitmsg = null) {
     	if(!is_int($exitmsg))

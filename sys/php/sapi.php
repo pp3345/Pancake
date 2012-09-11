@@ -597,7 +597,7 @@
 				$name = 'Pancake_TemporaryMethod' . mt_rand();
 
 				dt_add_method(is_object($autoload_function[0]) ? get_class($autoload_function[0]) : $autoload_function[0], $name, null, <<<'FUNCTIONBODY'
-						if(!\Pancake\PHPFunctions\registerAutoload(func_get_arg(0), func_get_arg(1), func_get_arg(2)))
+if(!\Pancake\PHPFunctions\registerAutoload(func_get_arg(0), func_get_arg(1), func_get_arg(2)))
 							return false;
 						return true;
 FUNCTIONBODY

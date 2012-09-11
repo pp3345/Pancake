@@ -57,7 +57,7 @@
 	}
 	
 	ConstantContainer::initialize();
-	Configuration::set('deletewhitespaces', true);
+	//Configuration::set('deletewhitespaces', true);
 	Configuration::set('deletecomments', true);
 	Configuration::set('compressvariables', true);
 	

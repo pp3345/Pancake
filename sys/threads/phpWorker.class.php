@@ -17,6 +17,7 @@
     */
     class PHPWorker extends Thread {
         static private $instances = array();
+        static private $codeProcessed = array();
         public $id = 0;
         public $IPCid = 0;
         
@@ -35,6 +36,13 @@
         public function __construct(vHost $vHost) {
             $this->vHost = $vHost;
             
+            if(!isset(self::$codeProcessed[$vHost->getName()])) {
+            	$codeProcessor = new CodeProcessor('threads/single/phpWorker.thread.php', 'threads/single/phpWorker.thread.' . $vHost->getName() . '.cphp');
+            	$codeProcessor->vHost = $vHost;
+            	$codeProcessor->run();
+            	self::$codeProcessed[$vHost->getName()] = true;
+            }
+            
             // Save instance
             self::$instances[] = $this;
             
@@ -42,7 +50,7 @@
             $this->id = max(array_keys(self::$instances));
             $this->IPCid = PHP_WORKER_TYPE.$this->vHost->getID();
             
-            $this->codeFile = 'threads/single/phpWorker.thread.php';
+            $this->codeFile = 'threads/single/phpWorker.thread.' . $vHost->getName() . '.cphp';
             $this->friendlyName = 'PHPWorker #'.($this->id+1).' ("'.$this->vHost->getName().'")';
             
             // Start worker
