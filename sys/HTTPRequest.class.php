@@ -509,26 +509,28 @@
                     $this->answerBody .= "<strong>Headers:</strong><br/>";
                     $this->answerBody .= nl2br($exception->getHeader());
                 }
-                if(Config::get('main.exposepancake') === true) {
+                #.if /* .eval 'return Pancake\Config::get("main.exposepancake");' */ === true
                     $this->answerBody .= '<hr/>';
-                    $this->answerBody .= 'Pancake ' . VERSION;
-                }
+                    $this->answerBody .= /* .eval "return 'Pancake ' . Pancake\VERSION;" */;
+                #.endif
             $this->answerBody .= '</body>';
             $this->answerBody .= '</html>';
         }
        
-        #.ifdef 'PHPWORKER'
+        #.ifndef 'PHPWORKER'
         /**
         * Build answer headers
         *  
         */
         public function buildAnswerHeaders() {
+        	#.if /* .eval 'return Pancake\Config::get("main.allowtrace");' */
             // Check for TRACE
             if($this->getRequestType() == 'TRACE' && $this->getAnswerCode() != 405) {
                 $answer = $this->getRequestLine()."\r\n";
                 $answer .= $this->getRequestHeaders()."\r\n";
                 return $answer;
             }
+            #.endif
             
             // Set answer code if not set
             if(!$this->getAnswerCode())
@@ -539,8 +541,9 @@
             else
                 $this->setHeader('Connection', 'close');
             // Add Server-Header
-            if(Config::get('main.exposepancake') === true)
-                $this->setHeader('Server', 'Pancake/' . VERSION);
+            #.if /* .eval 'return Pancake\Config::get("main.exposepancake");' */ === true
+                $this->setHeader('Server', /* .eval "return 'Pancake/' . Pancake\VERSION;" */);
+            #.endif
             // Set cookies
             foreach($this->setCookies as $cookie)
                 $setCookie .= ($setCookie) ? "\r\nSet-Cookie: ".$cookie : $cookie;
@@ -597,7 +600,7 @@
             	unset($this->answerHeaders[$headerName]);
         }
         
-        #.ifndef 'PHPWORKER'
+        #.ifdef 'PHPWORKER'
         /**
         * Removes all headers that are ready to be sent
         * 
@@ -926,7 +929,7 @@
             return $this->acceptedCompressions[strtolower($compression)] === true;
         }
         
-        #.ifdef 'PHPWORKER'
+        #.ifndef 'PHPWORKER'
         /**
          * Returns a (not human-readable) string representation of the object
          * 

@@ -15,6 +15,7 @@ mime:
     - phb
     - inc
     - phar
+    - cphp
   application/octet-stream:
     - exe
     - bin
