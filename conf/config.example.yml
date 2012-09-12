@@ -33,3 +33,8 @@ main:
 include:                                                        # Additional configuration-files to include
   - ../conf/vhosts/
   - ../conf/mime.yml
+moody:
+  deletewhitespaces: false
+  compressvariables: true
+  compressproperties: true
+  deletecomments: true

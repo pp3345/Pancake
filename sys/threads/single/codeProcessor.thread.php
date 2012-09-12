@@ -57,9 +57,10 @@
 	}
 	
 	ConstantContainer::initialize();
-	//Configuration::set('deletewhitespaces', true);
-	Configuration::set('deletecomments', true);
-	Configuration::set('compressvariables', true);
+	
+	foreach((array) Config::get('moody') as $name => $value) {
+		Configuration::set($name, $value);
+	}
 	
 	try {
 		$tokens = Token::tokenize(file_get_contents($Pancake_currentThread->processFile), $Pancake_currentThread->processFile);

@@ -28,9 +28,22 @@
         */
         public function __construct() {
         	if(!self::$codeProcessed) {
-        		$codeProcessor = new CodeProcessor('threads/single/requestWorker.thread.php', 'threads/single/requestWorker.thread.cphp');
-        		$codeProcessor->run();
+        		$hash = md5(serialize(Config::get('main')) 
+        				. serialize((array) Config::get('moody')) 
+        				. md5_file('threads/single/requestWorker.thread.php') 
+        				. md5_file('HTTPRequest.class.php')
+        				. md5_file('invalidHTTPRequest.exception.php')
+        				. md5_file('mime.class.php'));
+        		if(!(file_exists('threads/single/requestWorker.thread.hash')
+        		&& file_get_contents('threads/single/requestWorker.thread.hash') == $hash)) {
+        			require_once 'threads/codeProcessor.class.php';
+        			
+	        		$codeProcessor = new CodeProcessor('threads/single/requestWorker.thread.php', 'threads/single/requestWorker.thread.cphp');
+	        		$codeProcessor->run();
+	        		file_put_contents('threads/single/requestWorker.thread.hash', $hash);
+        		}
         		self::$codeProcessed = true;
+        		unset($hash);
         	}
         	
             // Add instance

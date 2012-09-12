@@ -7,10 +7,12 @@
     /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
     
+	#.if 0
     namespace Pancake;
     
     if(PANCAKE !== true)
         exit;
+    #.endif
         
     class MIME {
         static private $mimeByExt = array();

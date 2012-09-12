@@ -37,10 +37,25 @@
             $this->vHost = $vHost;
             
             if(!isset(self::$codeProcessed[$vHost->getName()])) {
-            	$codeProcessor = new CodeProcessor('threads/single/phpWorker.thread.php', 'threads/single/phpWorker.thread.' . $vHost->getName() . '.cphp');
-            	$codeProcessor->vHost = $vHost;
-            	$codeProcessor->run();
+            	$hash = md5(serialize(Config::get('vhosts.' . $vHost->getName())) 
+            			. serialize(Config::get('main')) 
+            			. serialize((array) Config::get('moody'))
+            			. md5_file('threads/single/phpWorker.thread.php')
+            			. md5_file('HTTPRequest.class.php')
+            			. md5_file('php/sapi.php')
+            			. md5_file('php/util.php')
+            			. md5_file('mime.class.php'));
+            	if(!(file_exists('threads/single/phpWorker.thread.' . $vHost->getName() . '.hash') 
+            	&& file_get_contents('threads/single/phpWorker.thread.' . $vHost->getName() . '.hash') == $hash)) {
+            		require_once 'threads/codeProcessor.class.php';
+            		
+	            	$codeProcessor = new CodeProcessor('threads/single/phpWorker.thread.php', 'threads/single/phpWorker.thread.' . $vHost->getName() . '.cphp');
+	            	$codeProcessor->vHost = $vHost;
+	            	$codeProcessor->run();
+	            	file_put_contents('threads/single/phpWorker.thread.' . $vHost->getName() . '.hash', $hash);
+            	}
             	self::$codeProcessed[$vHost->getName()] = true;
+            	unset($hash);
             }
             
             // Save instance

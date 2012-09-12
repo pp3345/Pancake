@@ -23,7 +23,7 @@
     function PHPErrorHandler($errtype, $errstr, $errfile = "Unknown", $errline = 0, $errcontext = array()) {
     	if(vars::$errorHandler 
     	&& vars::$errorHandler['for'] & $errtype 
-    	&& !($errtype & (\E_ERROR | \E_PARSE | \E_CORE_ERROR | \E_CORE_WARNING | \E_COMPILE_ERROR | \E_COMPILE_WARNING)) 
+    	&& !($errtype & /* .eval 'return \E_ERROR | \E_PARSE | \E_CORE_ERROR | \E_CORE_WARNING | \E_COMPILE_ERROR | \E_COMPILE_WARNING;' */) 
     	&& is_callable(vars::$errorHandler['call']) 
     	&& vars::$executingErrorHandler = true 
     	&& call_user_func(vars::$errorHandler['call'], $errtype, $errstr, $errfile, $errline, $errcontext) !== false) {
@@ -39,26 +39,27 @@
         if(!(error_reporting() & $errtype) || !error_reporting() || !ini_get('display_errors'))
             return true;
         
-        $typeNames = array( \E_ERROR => 'Fatal error',
-                            \E_WARNING => 'Warning',
-                            \E_PARSE => 'Parse error',
-                            \E_NOTICE => 'Notice',
-                            \E_CORE_ERROR => 'PHP Fatal error', 
-                            \E_CORE_WARNING => 'PHP Warning',
-                            \E_COMPILE_ERROR => 'PHP Fatal error',
-                            \E_COMPILE_WARNING => 'PHP Warning',
-                            \E_USER_ERROR => 'Fatal error',
-                            \E_USER_WARNING => 'Warning',
-                            \E_USER_NOTICE => 'Notice',
-                            \E_STRICT => 'Strict Standards',
-                            \E_RECOVERABLE_ERROR => 'Catchable fatal error',
-                            \E_DEPRECATED => 'Deprecated',
-                            \E_USER_DEPRECATED => 'Deprecated');
+        $typeNames = array( /* .constant 'E_ERROR' */ => 'Fatal error',
+                            /* .constant 'E_WARNING' */ => 'Warning',
+                            /* .constant 'E_PARSE' */ => 'Parse error',
+                            /* .constant 'E_NOTICE' */ => 'Notice',
+                            /* .constant 'E_CORE_ERROR' */ => 'PHP Fatal error', 
+                            /* .constant 'E_CORE_WARNING' */ => 'PHP Warning',
+                            /* .constant 'E_COMPILE_ERROR' */ => 'PHP Fatal error',
+                            /* .constant 'E_COMPILE_WARNING' */ => 'PHP Warning',
+                            /* .constant 'E_USER_ERROR' */ => 'Fatal error',
+                            /* .constant 'E_USER_WARNING' */ => 'Warning',
+                            /* .constant 'E_USER_NOTICE' */ => 'Notice',
+                            /* .constant 'E_STRICT' */ => 'Strict Standards',
+                            /* .constant 'E_RECOVERABLE_ERROR' */ => 'Catchable fatal error',
+                            /* .constant 'E_DEPRECATED' */ => 'Deprecated',
+                            /* .constant 'E_USER_DEPRECATED' */ => 'Deprecated');
         
-        if(vars::$Pancake_currentThread->vHost->useHTMLErrors())
+        #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->useHTMLErrors();' */
        		echo "<br />" . "\r\n" . "<b>" . $typeNames[$errtype] . "</b>:  " . $errstr . " in <b>" . $errfile . "</b> on line <b>" . $errline . "</b><br />" . "\r\n";
-        else
+        #.else
         	echo $typeNames[$errtype].': '.$errstr.' in '.$errfile .' on line '.$errline."\n";
+       	#.endif
         
         return true;
     }
@@ -119,10 +120,10 @@
     	
     	$packages = array();
         
-      	if(strlen($data) > (socket_get_option(vars::$requestSocket, \SOL_SOCKET, \SO_SNDBUF) - 1024)
-      	&& (socket_set_option(vars::$requestSocket, \SOL_SOCKET, \SO_SNDBUF, strlen($data) + 1024) + 1)
-        && strlen($data) > (socket_get_option(vars::$requestSocket, \SOL_SOCKET, \SO_SNDBUF) - 1024)) {
-      		$packageSize = socket_get_option(vars::$requestSocket, \SOL_SOCKET, \SO_SNDBUF) - 1024;
+      	if(strlen($data) > (socket_get_option(vars::$requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_SNDBUF' */) - 1024)
+      	&& (socket_set_option(vars::$requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_SNDBUF' */, strlen($data) + 1024) + 1)
+        && strlen($data) > (socket_get_option(vars::$requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_SNDBUF' */) - 1024)) {
+      		$packageSize = socket_get_option(vars::$requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_SNDBUF' */) - 1024;
       		
       		for($i = 0;$i < ceil($data / $packageSize);$i++)
       			$packages[] = substr($data, $i * $packageSize, $i * $packageSize + $packageSize);
@@ -139,12 +140,13 @@
     }
     
     function PHPDisabledFunction($functionName) {
-    	if(\PHP_MINOR_VERSION == 3 && \PHP_RELEASE_VERSION < 6)
+    	#.if PHP_MINOR_VERSION == 3 && PHP_RELEASE_VERSION < 6
     		$backtrace = debug_backtrace();
-    	else
-    		$backtrace = debug_backtrace(\DEBUG_BACKTRACE_PROVIDE_OBJECT, 2);
+    	#.else
+    		$backtrace = debug_backtrace(/* .constant 'DEBUG_BACKTRACE_PROVIDE_OBJECT' */, 2);
+    	#.endif
     	
-    	PHPErrorHandler(\E_WARNING, $functionName . '() has been disabled for security reasons', $backtrace[1]["file"], $backtrace[1]["line"]);
+    	PHPErrorHandler(/* .constant 'E_WARNING' */, $functionName . '() has been disabled for security reasons', $backtrace[1]["file"], $backtrace[1]["line"]);
     	
     	return null;
     }
@@ -152,24 +154,23 @@
     /**
     * Recursive CodeCache-build
     * 
-    * @param vHost $vHost
     * @param string $fileName Filename, relative to the vHosts document root
     */
-    function cacheFile(vHost $vHost, $fileName) {
+    function cacheFile($fileName) {
         global $Pancake_cacheFiles;
-        if($vHost->isExcludedFile($fileName))
+        if(vars::$Pancake_currentThread->vHost->isExcludedFile($fileName))
             return;
-        if(is_dir($vHost->getDocumentRoot() . $fileName)) {
-            $directory = scandir($vHost->getDocumentRoot() . $fileName);
+        if(is_dir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->getDocumentRoot();' */ . $fileName)) {
+            $directory = scandir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->getDocumentRoot();' */ . $fileName);
             if(substr($fileName, -1, 1) != '/')
                 $fileName .= '/';
             foreach($directory as $file)
                 if($file != '..' && $file != '.')
-                    cacheFile($vHost, $fileName . $file);
+                    cacheFile($fileName . $file);
         } else {
-            if(MIME::typeOf($vHost->getDocumentRoot() . $fileName) != 'text/x-php')
+            if(MIME::typeOf(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->getDocumentRoot();' */ . $fileName) != 'text/x-php')
                 return;
-            $Pancake_cacheFiles[] = $vHost->getDocumentRoot() . $fileName;
+            $Pancake_cacheFiles[] = /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->getDocumentRoot();' */ . $fileName;
         }
     }
     
@@ -205,13 +206,15 @@
     		$reflect = new \ReflectionObject($data);
     		$objects[] = $data;
     		
-    		if(vars::$Pancake_currentThread->vHost->shouldDestroyDestructorOnObjectDestroy() && $reflect->hasMethod('__destruct')) {
-    			global $destroyedDestructors;
-
-    			$name = 'Pancake_DestroyedDestructor' . mt_rand();
-    			dt_rename_method($reflect->getName(), '__destruct', $name);
-    			$destroyedDestructors[$reflect->getName()] = $name;
-    		}
+    		#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldDestroyDestructorOnObjectDestroy();' */
+    			if($reflect->hasMethod('__destruct')) {
+	    			global $destroyedDestructors;
+	
+	    			$name = 'Pancake_DestroyedDestructor' . mt_rand();
+	    			dt_rename_method($reflect->getName(), '__destruct', $name);
+	    			$destroyedDestructors[$reflect->getName()] = $name;
+	    		}
+	    	#.endif
     		
     		foreach($reflect->getProperties() as $property) {
     			$property->setAccessible(true);

@@ -16,25 +16,28 @@
 
     #.mapVariable '$Pancake_sockets' '$Pancake_sockets'
     #.mapVariable '$Pancake_vHosts' '$Pancake_vHosts'
-    #.mapVariable '$Pancake_postMaxSize' '$Pancake_postMaxSize'
     #.mapVariable '$Pancake_currentThread' '$Pancake_currentThread'
+    #.mapVariable '$message' '$message'
+    #.mapVariable '$code' '$code'
+    #.mapVariable '$vHost' '$vHost'
     
     global $Pancake_sockets;
     global $Pancake_vHosts;
-    global $Pancake_postMaxSize;
-
-    #.include 'invalidHTTPRequest.exception.php'
     
     // Precalculate post_max_size in bytes
-    $Pancake_postMaxSize = 
-    /* .eval '$size = strtolower(ini_get("post_max_size"));
-    if(strpos($size, "k"))
-        $size = (int) $size * 1024;
-    else if(strpos($size, "m"))
-        $size = (int) $size * 1024 * 1024;
-    else if(strpos($size, "g"))
-        $size = (int) $size * 1024 * 1024 * 1024;
-    return $size;' */;
+    // There is no possible way to keep this in a more readable way thanks to the nice Zend Tokenizer
+   	#.define 'POST_MAX_SIZE' /* .eval '$size = strtolower(ini_get("post_max_size")); if(strpos($size, "k")) $size = (int) $size * 1024; else if(strpos($size, "m")) $size = (int) $size * 1024 * 1024; else if(strpos($size, "g")) $size = (int) $size * 1024 * 1024 * 1024; return $size;' */
+
+    #.include 'invalidHTTPRequest.exception.php'
+    #.include 'mime.class.php'
+    
+    // Do not rename properties in HTTPRequest class as the properties in the PHPWorkers will have different names
+    #.if /* .config 'compressproperties' */
+    	#.config 'compressproperties' false
+    #.endif
+    #.include 'HTTPRequest.class.php'
+    
+    MIME::load();
     
     $listenSockets = $listenSocketsOrig = $Pancake_sockets;
     

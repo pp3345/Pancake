@@ -9,8 +9,10 @@
     
     /* See php.net for further documentation on the SAPI-functions */
 
+	#.if 0
     if(Pancake\PANCAKE !== true)
         exit;
+    #.endif
     
     const PHP_SAPI = 'pancake';
     
@@ -61,7 +63,7 @@
         return Pancake\vars::$Pancake_request->getAnswerHeadersArray();
     }
     
-    if(PHP_MINOR_VERSION >= 4) {
+    #.if PHP_MINOR_VERSION >= 4
         function http_response_code($response_code = 0) {  
             
             if($response_code)
@@ -80,7 +82,7 @@
         function session_register_shutdown() {
         	return register_shutdown_function('session_write_close');
         }
-    }
+    #.endif
     
     function phpinfo($what = INFO_ALL) {
         Pancake\vars::$Pancake_request->setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -97,110 +99,114 @@
         // Modify it
         $phpInfo = str_replace('<td class="v">Command Line Interface </td>', '<td class="v">Pancake Embedded SAPI </td>', $phpInfo);
         
-        if(Pancake\vars::$Pancake_request->getvHost()->exposePancakeInPHPInfo() && $what == INFO_ALL) {
-            $pancakeAdd =  '<table border="0" cellpadding="3" width="600">';
-            $pancakeAdd .= '<tr class="h"><td>';
-            $pancakeAdd .= '<a href="http://www.pancakehttp.net">';
-            if(ini_get('expose_php') && Pancake\Config::get('main.exposepancake') === true)
-                $pancakeAdd .= '<img border="0" src="?=PAN8DF095AE-6639-4C6F-8831-5AB8FBD64D8B" alt="Pancake Logo">';
-            $pancakeAdd .= '<h1 class="p">Pancake Version ' . Pancake\VERSION .'</h1>';
-            $pancakeAdd .= '</a>';
-            $pancakeAdd .= '</td></tr></table><br />';
-            $pancakeAdd .= '<table border="0" cellpadding="3" width="600">';
-            $pancakeAdd .= '<tr><td class="e">Debug Mode</td><td class="v">'.(Pancake\Config::get('main.debugmode') ? 'enabled' : 'disabled').'</td></tr>';
-            $pancakeAdd .= '<tr><td class="e">User</td><td class="v">'.Pancake\Config::get('main.user').'</td></tr>';
-            $pancakeAdd .= '<tr><td class="e">Group</td><td class="v">'.Pancake\Config::get('main.group').'</td></tr>';
-            
-            $pancakeAdd .= '<tr><td class="e">Included Configuration files</td><td class="v">';
-            foreach(Pancake\Config::get('include') as $include) {
-                if(isset($first)) $pancakeAdd .= ', ';
-                $pancakeAdd .= $include;
-                $first = true;
-            }
-            $pancakeAdd .= '</td></tr>';
-            
-            $pancakeAdd .= '<tr><td class="e">Running RequestWorkers</td><td class="v">'.Pancake\Config::get('main.requestworkers').'</td></tr>';
-            $pancakeAdd .= '<tr><td class="e">RequestWorker processing limit</td><td class="v">'.(Pancake\Config::get('main.requestworkerlimit') ? Pancake\Config::get('main.requestworkerlimit') . ' requests' : '<i>no limit</i>').'</td></tr>';
-            $pancakeAdd .= '<tr><td class="e">Expose Pancake</td><td class="v">' . (Pancake\Config::get('main.exposepancake') ? 'enabled' : 'disabled') . '</td></tr>';
-            $pancakeAdd .= '<tr><td class="e">Timestamps</td><td class="v">' . Pancake\Config::get('main.dateformat') . '</td></tr>';
-            $pancakeAdd .= '<tr><td class="e">Sizeprefixes</td><td class="v">' . (Pancake\Config::get('main.sizeprefix') == 'si' ? 'SI' : 'binary') . '</td></tr>';
-            $pancakeAdd .= '<tr><td class="e">Current vHost</td><td class="v">' . Pancake\vars::$Pancake_currentThread->vHost->getName() . '</td></tr>';
-            $pancakeAdd .= '<tr><td class="e">Path for temporary files</td><td class="v">' . Pancake\Config::get('main.tmppath') . '</td></tr>';
-            $pancakeAdd .= '<tr><td class="e">Path to requestlog</td><td class="v">' . Pancake\Config::get('main.logging.request') . '</td></tr>';
-            $pancakeAdd .= '<tr><td class="e">Path to systemlog</td><td class="v">' . Pancake\Config::get('main.logging.system') . '</td></tr>';
-            $pancakeAdd .= '<tr><td class="e">Path to errorlog</td><td class="v">' . Pancake\Config::get('main.logging.error') . '</td></tr>';
-            
-            $pancakeAdd .= '</table><br/>';
-            
-            $pancakeAdd .= '<table border="0" cellpadding="3" width="600">';
-            $pancakeAdd .= '<tr class="v"><td>';
-            $pancakeAdd .= 'Pancake Copyright (c) 2012 Yussuf Khalil <br/>';
-            $pancakeAdd .= 'Find out more about Pancake at <a href="http://www.pancakehttp.net">pancakehttp.net</a>';
-            $pancakeAdd .= '</td></tr>';  
-            $pancakeAdd .= '</table><br/>';
-            
-            if(Pancake\vars::$Pancake_request->getvHost()->exposePancakevHostsInPHPInfo()) {
-            	$vHostsDone = array();
-            	
-                $pancakeAdd .= '<h1>Virtual Hosts</h1>';
-                
-                foreach(Pancake\vars::$Pancake_vHosts as $vHost) {
-                    if(in_array($vHost->getID(), $vHostsDone))
-                        continue;
-                    
-                    $pancakeAdd .= '<h2>'.$vHost->getName().'</h2>';
-                    
-                    $pancakeAdd .= '<table border="0" cellpadding="3" width="600">';
-                    
-                    $pancakeAdd .= '<tr><td class="e">Running PHPWorkers</td><td class="v">' . $vHost->getPHPWorkerAmount() . '</td></tr>';
-                    $pancakeAdd .= '<tr><td class="e">PHPWorker processing limit</td><td class="v">'.($vHost->getPHPWorkerLimit() ? $vHost->getPHPWorkerLimit() . ' requests' : '<i>no limit</i>').'</td></tr>';
-                    $pancakeAdd .= '<tr><td class="e">Is Default</td><td class="v">' . ($vHost->isDefault() ? 'yes' : 'no') . '</td></tr>';
-                    $pancakeAdd .= '<tr><td class="e">Document Root</td><td class="v">' . $vHost->getDocumentRoot() . '</td></tr>';
-                    $pancakeAdd .= '<tr><td class="e">GZIP-compression</td><td class="v">' . ($vHost->allowGZIPCompression() ? 'enabled' : 'disabled') . '</td></tr>';
-                    if($vHost->allowGZIPCompression()) {
-                        $pancakeAdd .= '<tr><td class="e">Minimum filesize for GZIP-compression</td><td class="v">' . Pancake\formatFilesize($vHost->getGZIPMinimum()) . '</td></tr>';
-                        $pancakeAdd .= '<tr><td class="e">GZIP-level</td><td class="v">' . $vHost->getGZIPLevel() . '</td></tr>';
-                    }
-                    
-                    $pancakeAdd .= '<tr><td class="e">Per-Write Limit</td><td class="v">' . Pancake\formatFilesize($vHost->getWriteLimit()) . '</td></tr>';
-                    $pancakeAdd .= '<tr><td class="e">Directory Listings</td><td class="v">' . ($vHost->allowDirectoryListings() ? 'enabled' : 'disabled') . '</td></tr>';
-                    $pancakeAdd .= '<tr><td class="e">Index Files</td><td class="v">';
-                    
-                    unset($first);
-                    foreach($vHost->getIndexFiles() as $indexFile) {
-                        if(isset($first)) $pancakeAdd .= ', ';
-                        $pancakeAdd .= $indexFile;
-                        $first = true;
-                    }
-                    
-                    $pancakeAdd .= '</td></tr>';
-                    
-                    $pancakeAdd .= '<tr><td class="e">Hosts</td><td class="v">';
-                    
-                    unset($first);
-                    foreach($vHost->getListen() as $listen) {
-                        if(isset($first)) $pancakeAdd .= ', ';
-                        $pancakeAdd .= $listen;
-                        $first = true;
-                    }
-                    
-                    $pancakeAdd .= '</td></tr>';
-                    
-                    $pancakeAdd .= '</table><br/>';
-                    
-                    $vHostsDone[] = $vHost->getID();
-                }
-            }
-            
-            $phpInfo = str_replace('<div class="center">', '<div class="center">' . $pancakeAdd, $phpInfo);
-        }
-                                                         
-        if($what == INFO_ALL || $what & INFO_ENVIRONMENT) {
+        #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->exposePancakeInPHPInfo();' */
+	        if($what == /* .constant 'INFO_ALL' */) {
+	            $pancakeAdd =  '<table border="0" cellpadding="3" width="600">';
+	            $pancakeAdd .= '<tr class="h"><td>';
+	            $pancakeAdd .= '<a href="http://www.pancakehttp.net">';
+	            // expose_php can not be changed at run time
+	            #.if /* .eval 'return ini_get("expose_php") && Pancake\Config::get("main.exposepancake") === true;' */
+	                $pancakeAdd .= '<img border="0" src="?=PAN8DF095AE-6639-4C6F-8831-5AB8FBD64D8B" alt="Pancake Logo">';
+	            #.endif
+	            $pancakeAdd .= /* .eval "return '<h1 class=\"p\">Pancake Version ' . Pancake\VERSION .'</h1>';" */;
+	            $pancakeAdd .= '</a>';
+	            $pancakeAdd .= '</td></tr></table><br />';
+	            $pancakeAdd .= '<table border="0" cellpadding="3" width="600">';
+	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">Debug Mode</td><td class=\"v\">'.(Pancake\Config::get('main.debugmode') ? 'enabled' : 'disabled').'</td></tr>';" */;
+	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">User</td><td class=\"v\">'.Pancake\Config::get('main.user').'</td></tr>';" */;
+	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">Group</td><td class=\"v\">'.Pancake\Config::get('main.group').'</td></tr>';" */;
+	            
+	            $pancakeAdd .= '<tr><td class="e">Included Configuration files</td><td class="v">';
+	            foreach(Pancake\Config::get('include') as $include) {
+	                if(isset($first)) $pancakeAdd .= ', ';
+	                $pancakeAdd .= $include;
+	                $first = true;
+	            }
+	            $pancakeAdd .= '</td></tr>';
+	            
+	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">Running RequestWorkers</td><td class=\"v\">'.Pancake\Config::get('main.requestworkers').'</td></tr>';" */;
+	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">RequestWorker processing limit</td><td class=\"v\">'.(Pancake\Config::get('main.requestworkerlimit') ? Pancake\Config::get('main.requestworkerlimit') . ' requests' : '<i>no limit</i>').'</td></tr>';" */;
+	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">Expose Pancake</td><td class=\"v\">' . (Pancake\Config::get('main.exposepancake') ? 'enabled' : 'disabled') . '</td></tr>';" */;
+	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">Timestamps</td><td class=\"v\">' . Pancake\Config::get('main.dateformat') . '</td></tr>';" */;
+	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">Sizeprefixes</td><td class=\"v\">' . (Pancake\Config::get('main.sizeprefix') == 'si' ? 'SI' : 'binary') . '</td></tr>';" */;
+	            $pancakeAdd .= /* .eval 'global $Pancake_currentThread; return "<tr><td class=\"e\">Current vHost</td><td class=\"v\">" . $Pancake_currentThread->vHost->getName() . "</td></tr>";' */;
+	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">Path for temporary files</td><td class=\"v\">' . Pancake\Config::get('main.tmppath') . '</td></tr>';" */;
+	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">Path to requestlog</td><td class=\"v\">' . Pancake\Config::get('main.logging.request') . '</td></tr>';" */;
+	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">Path to systemlog</td><td class=\"v\">' . Pancake\Config::get('main.logging.system') . '</td></tr>';" */;
+	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">Path to errorlog</td><td class=\"v\">' . Pancake\Config::get('main.logging.error') . '</td></tr>';" */;
+	            
+	            $pancakeAdd .= '</table><br/>';
+	            
+	            $pancakeAdd .= '<table border="0" cellpadding="3" width="600">';
+	            $pancakeAdd .= '<tr class="v"><td>';
+	            $pancakeAdd .= 'Pancake Copyright (c) 2012 Yussuf Khalil <br/>';
+	            $pancakeAdd .= 'Find out more about Pancake at <a href="http://www.pancakehttp.net">pancakehttp.net</a>';
+	            $pancakeAdd .= '</td></tr>';  
+	            $pancakeAdd .= '</table><br/>';
+	            
+	            #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->exposePancakevHostsInPHPInfo();' */
+	            	$vHostsDone = array();
+	            	
+	                $pancakeAdd .= '<h1>Virtual Hosts</h1>';
+	                
+	                foreach(Pancake\vars::$Pancake_vHosts as $vHost) {
+	                    if(in_array($vHost->getID(), $vHostsDone))
+	                        continue;
+	                    
+	                    $pancakeAdd .= '<h2>'.$vHost->getName().'</h2>';
+	                    
+	                    $pancakeAdd .= '<table border="0" cellpadding="3" width="600">';
+	                    
+	                    $pancakeAdd .= '<tr><td class="e">Running PHPWorkers</td><td class="v">' . $vHost->getPHPWorkerAmount() . '</td></tr>';
+	                    $pancakeAdd .= '<tr><td class="e">PHPWorker processing limit</td><td class="v">'.($vHost->getPHPWorkerLimit() ? $vHost->getPHPWorkerLimit() . ' requests' : '<i>no limit</i>').'</td></tr>';
+	                    $pancakeAdd .= '<tr><td class="e">Is Default</td><td class="v">' . ($vHost->isDefault() ? 'yes' : 'no') . '</td></tr>';
+	                    $pancakeAdd .= '<tr><td class="e">Document Root</td><td class="v">' . $vHost->getDocumentRoot() . '</td></tr>';
+	                    $pancakeAdd .= '<tr><td class="e">GZIP-compression</td><td class="v">' . ($vHost->allowGZIPCompression() ? 'enabled' : 'disabled') . '</td></tr>';
+	                    if($vHost->allowGZIPCompression()) {
+	                        $pancakeAdd .= '<tr><td class="e">Minimum filesize for GZIP-compression</td><td class="v">' . Pancake\formatFilesize($vHost->getGZIPMinimum()) . '</td></tr>';
+	                        $pancakeAdd .= '<tr><td class="e">GZIP-level</td><td class="v">' . $vHost->getGZIPLevel() . '</td></tr>';
+	                    }
+	                    
+	                    $pancakeAdd .= '<tr><td class="e">Per-Write Limit</td><td class="v">' . Pancake\formatFilesize($vHost->getWriteLimit()) . '</td></tr>';
+	                    $pancakeAdd .= '<tr><td class="e">Directory Listings</td><td class="v">' . ($vHost->allowDirectoryListings() ? 'enabled' : 'disabled') . '</td></tr>';
+	                    $pancakeAdd .= '<tr><td class="e">Index Files</td><td class="v">';
+	                    
+	                    unset($first);
+	                    foreach($vHost->getIndexFiles() as $indexFile) {
+	                        if(isset($first)) $pancakeAdd .= ', ';
+	                        $pancakeAdd .= $indexFile;
+	                        $first = true;
+	                    }
+	                    
+	                    $pancakeAdd .= '</td></tr>';
+	                    
+	                    $pancakeAdd .= '<tr><td class="e">Hosts</td><td class="v">';
+	                    
+	                    unset($first);
+	                    foreach($vHost->getListen() as $listen) {
+	                        if(isset($first)) $pancakeAdd .= ', ';
+	                        $pancakeAdd .= $listen;
+	                        $first = true;
+	                    }
+	                    
+	                    $pancakeAdd .= '</td></tr>';
+	                    
+	                    $pancakeAdd .= '</table><br/>';
+	                    
+	                    $vHostsDone[] = $vHost->getID();
+	                }
+	            #.endif
+	            
+	            $phpInfo = str_replace('<div class="center">', '<div class="center">' . $pancakeAdd, $phpInfo);
+	        }
+        #.endif  
+                                                    
+        if($what == /* .constant 'INFO_ALL' */ || $what & /* .constant 'INFO_ENVIRONMENT' */) {
             // Replace environment information
             $env = '<h2>Evnironment</h2>';
             $env .= '<table border="0" cellpadding="3" width="600">';
             $env .= '<tbody><tr class="h"><th>Variable</th><th>Value</th></tr>';
-            $env .= '<tr><td class="e">USER </td><td class="v">'.Pancake\Config::get('main.user').' </td></tr>';
+            $env .= /* .eval "return '<tr><td class=\"e\">USER </td><td class=\"v\">'.Pancake\Config::get('main.user').' </td></tr>';" */;
             $env .= '</tbody></table>';
             
             $phpInfo = preg_replace('~<h2>Environment</h2>\s*<table border="0" cellpadding="3" width="600">[\s\S]*</table>~U', $env, $phpInfo);
@@ -218,7 +224,7 @@
         if(!is_uploaded_file($filename))
             return false;
         if(!rename($filename, $destination)) {
-            Pancake\PHPErrorHandler(E_WARNING, "Unable to move '" . $filename . "' to '" . $destination . "'");
+            Pancake\PHPErrorHandler(/* .constant 'E_WARNING' */, "Unable to move '" . $filename . "' to '" . $destination . "'");
             return false;
         }
         return true;
@@ -248,21 +254,21 @@
     function ob_end_clean() {
         if(ob_get_level() > 0)
             return Pancake\PHPFunctions\OutputBuffering\endClean();
-        Pancake\PHPErrorHandler(E_NOTICE, 'ob_end_clean(): failed to delete buffer. No buffer to delete');
+        Pancake\PHPErrorHandler(/* .constant 'E_NOTICE' */, 'ob_end_clean(): failed to delete buffer. No buffer to delete');
         return false;
     }
     
     function ob_end_flush() {
         if(ob_get_level() > 0)
             return Pancake\PHPFunctions\OutputBuffering\endFlush();
-        Pancake\PHPErrorHandler(E_NOTICE, 'ob_end_flush(): failed to delete and flush buffer. No buffer to delete or flush');
+        Pancake\PHPErrorHandler(/* .constant 'E_NOTICE' */, 'ob_end_flush(): failed to delete and flush buffer. No buffer to delete or flush');
         return false;
     }
     
     function ob_get_flush() {
         if(ob_get_level() > 0)
             return Pancake\PHPFunctions\OutputBuffering\getFlush();
-        Pancake\PHPErrorHandler(E_NOTICE, 'ob_get_flush(): failed to delete and flush buffer. No buffer to delete or flush');
+        Pancake\PHPErrorHandler(/* .constant 'E_NOTICE' */, 'ob_get_flush(): failed to delete and flush buffer. No buffer to delete or flush');
         return false;
     }
     
@@ -290,7 +296,7 @@
         return false;
     }
     
-    function filter_input($type, $variable_name, $filter = FILTER_DEFAULT, $options = FILTER_FLAG_NONE) {
+    function filter_input($type, $variable_name, $filter = /* .constant 'FILTER_DEFAULT' */, $options = /* .constant 'FILTER_FLAG_NONE' */) {
         // Create bitmask of flags
         if(is_array($options)) {
         	$flags = 0;
@@ -302,33 +308,33 @@
         
         // Get variable
         switch($type) {
-            case INPUT_GET:
+            case /* .constant 'INPUT_GET' */:
                 $GET = Pancake\vars::$Pancake_request->getGETParams();   
                 if(!array_key_exists($variable_name, $GET))
-                    return $flags & FILTER_NULL_ON_FAILURE ? false : null;
+                    return $flags & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
                 $var = $GET[$variable_name];
                 break;
-            case INPUT_POST:
+            case /* .constant 'INPUT_POST' */:
                 $POST = Pancake\vars::$Pancake_request->getPOSTParams();   
                 if(!array_key_exists($variable_name, $POST))
-                    return $flags & FILTER_NULL_ON_FAILURE ? false : null;
+                    return $flags & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
                 $var = $POST[$variable_name];
                 break;
-            case INPUT_COOKIE:
+            case /* .constant 'INPUT_COOKIE' */:
                 $COOKIE = Pancake\vars::$Pancake_request->getCookies();   
                 if(!array_key_exists($variable_name, $COOKIE))
-                    return $flags & FILTER_NULL_ON_FAILURE ? false : null;
+                    return $flags & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
                 $var = $COOKIE[$variable_name];
                 break;
-            case INPUT_SERVER:
+            case /* .constant 'INPUT_SERVER' */:
                 $SERVER = Pancake\vars::$Pancake_request->createSERVER();   
                 if(!array_key_exists($variable_name, $SERVER))
-                    return $flags & FILTER_NULL_ON_FAILURE ? false : null;
+                    return $flags & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
                 $var = $SERVER[$variable_name];
                 break;
-            case INPUT_ENV:
+            case /* .constant 'INPUT_ENV' */:
                 if(!array_key_exists($variable_name, $_ENV))
-                    return $flags & FILTER_NULL_ON_FAILURE ? false : null;
+                    return $flags & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
                 $var = $_ENV[$variable_name];
                 break;
         }
@@ -344,41 +350,41 @@
         		$options['flags'] = 0;
         	
             switch($type) {
-                case INPUT_GET:
+                case /* .constant 'INPUT_GET' */:
                     $GET = Pancake\vars::$Pancake_request->getGETParams();   
                     if(!array_key_exists($key, $GET)) {
-                        $endArray[$key] = $options['flags'] & FILTER_NULL_ON_FAILURE ? false : null;
+                        $endArray[$key] = $options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
                         continue 2;
                     }
                     $var = $GET[$key];
                     break;
-                case INPUT_POST:
+                case /* .constant 'INPUT_POST' */:
                     $POST = Pancake\vars::$Pancake_request->getPOSTParams();   
                     if(!array_key_exists($key, $POST)) {
-                        $endArray[$key] = $options['flags'] & FILTER_NULL_ON_FAILURE ? false : null;
+                        $endArray[$key] = $options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
                         continue 2;
                     }
                     $var = $POST[$key];
                     break;
-                case INPUT_COOKIE:
+                case /* .constant 'INPUT_COOKIE' */:
                     $COOKIE = Pancake\vars::$Pancake_request->getCookies();   
                     if(!array_key_exists($key, $COOKIE)) {
-                        $endArray[$key] = $options['flags'] & FILTER_NULL_ON_FAILURE ? false : null;
+                        $endArray[$key] = $options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
                         continue 2;
                     }
                     $var = $COOKIE[$key];
                     break;
-                case INPUT_SERVER:
+                case /* .constant 'INPUT_SERVER' */:
                     $SERVER = Pancake\vars::$Pancake_request->createSERVER();   
                     if(!array_key_exists($key, $SERVER)) {
-                        $endArray[$key] = $options['flags'] & FILTER_NULL_ON_FAILURE ? false : null;
+                        $endArray[$key] = $options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
                         continue 2;
                     }
                     $var = $SERVER[$key];
                     break;
-                case INPUT_ENV:
+                case /* .constant 'INPUT_ENV' */:
                     if(!array_key_exists($key, $_ENV)) {
-                        $endArray[$key] = $options['flags'] & FILTER_NULL_ON_FAILURE ? false : null;
+                        $endArray[$key] = $options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
                         continue 2;
                     }
                     $var = $_ENV[$key];
@@ -426,17 +432,23 @@
     	return ini_set($varname, $newvalue);
     }
     
-    if(PHP_MINOR_VERSION == 3 && PHP_RELEASE_VERSION < 6) {
+    #.if PHP_MINOR_VERSION == 3 && PHP_RELEASE_VERSION < 6
         function debug_backtrace($provide_object = true) {
             return Pancake\workBacktrace(Pancake\PHPFunctions\debugBacktrace($provide_object));
         }
-    } else {
-        function debug_backtrace($options = DEBUG_BACKTRACE_PROVIDE_OBJECT, $limit = 0) {
+    #.else
+        function debug_backtrace($options = /* .constant 'DEBUG_BACKTRACE_PROVIDE_OBJECT' */, $limit = 0) {
         	if($limit)
         		$limit += 3;
-            return Pancake\workBacktrace(PHP_MINOR_VERSION >= 4 ? Pancake\PHPFunctions\debugBacktrace($options, $limit) : Pancake\PHPFunctions\debugBacktrace($options));
+            return Pancake\workBacktrace(
+            #.if PHP_MINOR_VERSION >= 4
+            	Pancake\PHPFunctions\debugBacktrace($options, $limit) 
+            #.else
+            	Pancake\PHPFunctions\debugBacktrace($options)
+            #.endif
+            );
         }
-    }
+   	#.endif
     
     function debug_print_backtrace($options = 0, $limit = 0) {
     	if($limit)
@@ -503,7 +515,7 @@
     
     function set_error_handler($error_handler, $error_types = null) {
     	if(!$error_types)
-    		$error_types = E_ALL | E_STRICT;
+    		$error_types = /* .eval 'return E_ALL | E_STRICT;' */;
     	if(!is_callable($error_handler))
     		return null;
     	$returnValue = Pancake\vars::$errorHandler;
@@ -554,13 +566,17 @@
 	function error_get_last() {
 		$lastError = Pancake\PHPFunctions\errorGetLast();
 		
-   		return is_array($lastError) && $lastError['type'] == \E_ERROR ? $lastError : Pancake\vars::$lastError;
+   		return is_array($lastError) && $lastError['type'] == /* .constant 'E_ERROR' */ ? $lastError : Pancake\vars::$lastError;
 	}
 	
 	function session_id($id = "") {
-		if(((PHP_MINOR_VERSION >= 4 && session_status() == 1)
-		|| (PHP_MINOR_VERSION == 3 && !Pancake\vars::$sessionID))
-			&& !$id)
+		if(
+		#.if PHP_MINOR_VERSION >= 4
+			session_status() == 1
+		#.else
+			!Pancake\vars::$sessionID
+		#.endif
+		&& !$id)
 			return '';
 		if($id)
 			Pancake\vars::$sessionID = $id;
@@ -568,11 +584,13 @@
 	}
     
 	function session_set_save_handler($open, $close = true, $read = null, $write = null, $destroy = null, $gc = null) {
-		if(PHP_MINOR_VERSION >= 4 && is_object($open) && in_array('SessionHandlerInterface', class_implements($open))) {
+		#.if PHP_MINOR_VERSION >= 4
+		if(is_object($open) && in_array('SessionHandlerInterface', class_implements($open))) {
 			$retval = Pancake\PHPFunctions\setSessionSaveHandler($open, false);
 			if($close && $retval)
 				session_register_shutdown();
 		} else
+		#.endif
 			$retval = Pancake\PHPFunctions\setSessionSaveHandler($open, $close, $read, $write, $destroy, $gc);
 		if($retval)
 			return Pancake\vars::$resetSessionSaveHandler = true;

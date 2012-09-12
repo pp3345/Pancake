@@ -11,13 +11,21 @@
 	#.mapVariable '$Pancake_sockets' '$Pancake_sockets'
 	#.mapVariable '$Pancake_vHosts' '$Pancake_vHosts'
 	#.mapVariable '$shutdownCall' '$shutdownCall'
+	#.mapVariable '$vHost' '$vHost'
+	
+	#.define 'PHPWORKER' true
     
     namespace {
-    	#.include 'php/sapi.php';
+    	#.include 'php/sapi.php'
     }
     
     namespace Pancake {
-    	#.include 'php/util.php';
+    	#.include 'php/util.php'
+    	
+    	#.if /* .config 'compressproperties' */
+    		#.config 'compressproperties' false
+    	#.endif
+    	#.include 'HTTPRequest.class.php'
 	    vars::$Pancake_currentThread = $Pancake_currentThread;
 	    unset($Pancake_currentThread);
 	    
@@ -88,9 +96,13 @@
 		#.endif
 	   	
 	    #.if /* .eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->getCodeCacheFiles();' */
+	    	// MIME types are only needed for CodeCache
+	    	#.include 'mime.class.php'
+	    	MIME::load();
+		    
 		    // Get a list of files to cache
 		    foreach(vars::$Pancake_currentThread->vHost->getCodeCacheFiles() as $cacheFile)
-		        cacheFile(vars::$Pancake_currentThread->vHost, $cacheFile);
+		        cacheFile($cacheFile);
 	    
 		    // Load CodeCache
 		    foreach($Pancake_cacheFiles as $cacheFile) {

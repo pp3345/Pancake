@@ -31,13 +31,8 @@
     require_once 'configuration.class.php';
     require_once 'functions.php';
     require_once 'thread.class.php';
-    require_once 'threads/requestWorker.class.php';
-    require_once 'threads/phpWorker.class.php';
-    require_once 'threads/codeProcessor.class.php';
-    require_once 'HTTPRequest.class.php';
     require_once 'IPC.class.php';
     require_once 'vHost.class.php';
-    require_once 'mime.class.php';
     
     // Set error reporting
     error_reporting(ERROR_REPORTING);
@@ -206,10 +201,7 @@
     }
     
     // Load IPC
-    IPC::create();  
-    
-    // Load MIME-types
-    MIME::load();
+    IPC::create();
     
     // Dirty workaround for error-logging (else may get permission denied)
     trigger_error('Nothing', \E_USER_NOTICE);
@@ -310,6 +302,9 @@
         
         for($i = 0;$i < $vHost->getPHPWorkerAmount();$i++) {
             cleanGlobals(array('i', 'vHosts', 'vHost', 'Pancake_phpSockets'));
+            
+            require_once 'threads/phpWorker.class.php';
+            
             $thread = new PHPWorker($vHost);
             if(isset($Pancake_currentThread)) {
                 require $thread->codeFile;
@@ -331,6 +326,8 @@
                        
     cleanGlobals(array('Pancake_phpSockets'));
 
+    require_once 'threads/requestWorker.class.php';
+    
     // Create RequestWorkers
     for($i = 0;$i < Config::get('main.requestworkers');$i++) {
         $thread = new RequestWorker(); 

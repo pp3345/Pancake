@@ -7,10 +7,12 @@
     /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
     
+	#.if 0
     namespace Pancake;
     
     if(PANCAKE !== true)
-        exit;                                                       
+        exit;     
+    #.endif                                                  
 
     class HTTPRequest {
         private $requestHeaders = array();
@@ -97,6 +99,7 @@
                                             509 => 'Bandwith Limit Exceeded',
                                             510 => 'Not Extended');
         
+        #.ifndef 'PHPWORKER'
         /**
         * Creates a new HTTPRequest-object
         * 
@@ -129,9 +132,11 @@
             
             $this->requestLine = $requestHeaders[0];
             
+            #.if /* .eval 'return Pancake\Config::get("main.exposepancake") === true;' */
             // HyperText CoffeePot Control Protocol :-)
-            if(($firstLine[0] == 'BREW' || $firstLine[0] == 'WHEN' || $firstLine[2] == 'HTCPCP/1.0') && Config::get('main.exposepancake') === true)
+            if($firstLine[0] == 'BREW' || $firstLine[0] == 'WHEN' || $firstLine[2] == 'HTCPCP/1.0')
                 throw new invalidHTTPRequestException('No coffee here. I\'m a Pancake. Try again at 1.3.3.7', 418, $requestHeader);
+            #.endif
             
             // Check protocol version
             if(strtoupper($firstLine[2]) == 'HTTP/1.1')
@@ -148,10 +153,29 @@
             $this->requestType = $firstLine[0];
             
             // Check if request method is allowed
-            if(($this->requestType == 'HEAD'    && Config::get('main.allowhead')    !== true)
-            || ($this->requestType == 'TRACE'   && Config::get('main.allowtrace')   !== true)
-            || ($this->requestType == 'OPTIONS' && Config::get('main.allowoptions') !== true)) 
+            #.if /* .eval 'return Pancake\Config::get("main.allowhead") !== true || Pancake\Config::get("main.allowtrace") !== true || Pancake\Config::get("main.allowoptions") !== true;' */
+            	#.if /* .eval 'return Pancake\Config::get("main.allowhead") !== true;' */
+            		if($this->requestType == 'HEAD'
+            		#.def 'RTYPE_FORBIDDEN' true
+            	#.endif
+            	#.if /* .eval 'return Pancake\Config::get("main.allowtrace") !== true;' */
+            		#.ifdef 'RTYPE_FORBIDDEN'
+            			|| $this->requestType == 'TRACE'
+            		#.else
+            			if($this->requestType == 'TRACE'
+            			#.def 'RTYPE_FORBIDDEN' true
+            		#.endif
+            	#.endif
+            	#.if /* .eval 'return Pancake\Config::get("main.allowoptions") !== true;' */
+            		#.ifdef 'RTYPE_FORBIDDEN'
+            			|| $this->requestType == 'OPTIONS'
+            		#.else
+            			if($this->requestType == 'OPTIONS'
+            		#.endif
+            	#.endif
+            	)
                 throw new invalidHTTPRequestException('The request method is not allowed: '.$this->requestType, 405, $requestHeader); 
+            #.endif
             
             // Read Headers
             foreach($requestHeaders as $header) {
@@ -163,17 +187,17 @@
             
             // Check if Content-Length is given and not too large on POST
             if($this->requestType == 'POST') {
-                global $Pancake_postMaxSize;
-                
-                if($this->getRequestHeader('Content-Length') > $Pancake_postMaxSize)
+                if($this->getRequestHeader('Content-Length') > /* .constant 'POST_MAX_SIZE' */)
                     throw new invalidHTTPRequestException('The uploaded content is too large.', 413, $requestHeader);
                 if($this->getRequestHeader('Content-Length') === null)
                     throw new invalidHTTPRequestException('Your request can\'t be processed without a given Content-Length', 411, $requestHeader);
-            } 
+            }
             
-            // Enough informations for TRACE gathered
-            if($this->requestType == 'TRACE')
-                return;
+            #.if /* .eval 'return Pancake\Config::get("main.allowtrace");' */
+	            // Enough information for TRACE gathered
+	            if($this->requestType == 'TRACE')
+	                return;
+	        #.endif
             
             // Check for Host-Header
             if(!$this->getRequestHeader('Host') && $this->protocolVersion == '1.1')
@@ -396,13 +420,13 @@
                     preg_match('~Content-Disposition: form-data;[ ]?name="(.*?)";?[ ]?(?:filename="(.*?)")?(?:\r\n)?(?:Content-Type: (.*))?~', $dispParts[0], $data);
                     // [ 0 => string, 1 => name, 2 => filename, 3 => Content-Type ]
                     if(isset($data[2]) && isset($data[3])) {
-                        $tmpFileName = tempnam(Config::get('main.tmppath'), 'UPL');
+                        $tmpFileName = tempnam(/* .eval 'return Pancake\Config::get("main.tmppath");' */, 'UPL');
                         file_put_contents($tmpFileName, $dispParts[1]);
                         
                         $dataArray = array(
                                             'name' => $data[2],
                                             'type' => $data[3],
-                                            'error' => \UPLOAD_ERR_OK,
+                                            'error' => /* .constant 'UPLOAD_ERR_OK' */,
                                             'size' => strlen($dispParts[1]),
                                             'tmp_name' => $tmpFileName);
                         
@@ -421,7 +445,7 @@
                                 $paramDefinitions[$paramDefinition]++;
                                 $dataArray = array( 'name' => array( $paramDefinitions[$paramDefinition] - 1 => $data[2]),
                                                     'type' => array( $paramDefinitions[$paramDefinition] - 1 => $data[3]),
-                                                    'error' => array( $paramDefinitions[$paramDefinition] - 1 => \UPLOAD_ERR_OK),
+                                                    'error' => array( $paramDefinitions[$paramDefinition] - 1 => /* .constant 'UPLOAD_ERR_OK' */),
                                                     'size' => array( $paramDefinitions[$paramDefinition] - 1 => strlen($dispParts[1])),
                                                     'tmp_name' => array( $paramDefinitions[$paramDefinition] - 1 => $tmpFileName));
                             }
@@ -457,6 +481,7 @@
             }
             return true;
         }
+        #.endif
         
         /**
         * Set answer on invalid request
@@ -492,6 +517,7 @@
             $this->answerBody .= '</html>';
         }
        
+        #.ifdef 'PHPWORKER'
         /**
         * Build answer headers
         *  
@@ -538,7 +564,7 @@
             
             return $answer;
         }
-        
+        #.endif
         /**
         * Set answer header
         * 
@@ -571,6 +597,7 @@
             	unset($this->answerHeaders[$headerName]);
         }
         
+        #.ifndef 'PHPWORKER'
         /**
         * Removes all headers that are ready to be sent
         * 
@@ -632,7 +659,7 @@
             
             return $_SERVER;
         }
-        
+        #.endif
         /**
         * Get the value of a single Request-Header
         * 
@@ -899,6 +926,7 @@
             return $this->acceptedCompressions[strtolower($compression)] === true;
         }
         
+        #.ifdef 'PHPWORKER'
         /**
          * Returns a (not human-readable) string representation of the object
          * 
@@ -917,6 +945,7 @@
         	. serialize($this->requestType)
         	. serialize($this->requestLine);
         }
+        #.endif
         
         /**
         * Get message corresponding to an answer code
