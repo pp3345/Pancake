@@ -106,7 +106,9 @@
 	    
 		    // Load CodeCache
 		    foreach($Pancake_cacheFiles as $cacheFile) {
-		    	set_time_limit(vars::$Pancake_currentThread->vHost->getMaxExecutionTime());
+		    	#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->getMaxExecutionTime();' */
+	        		set_time_limit(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->getMaxExecutionTime();' */);
+	        	#.endif
 		        require_once $cacheFile;
 		        set_time_limit(0);
 		    }
@@ -342,13 +344,13 @@
 		                if(!in_array($func, vars::$Pancake_funcsPre['user']))
 		                    $body .= $func . "\r\n";
 		            $body .= "\r\n";
-		            if(\PHP_MINOR_VERSION >= 4) {
+		            #.if PHP_MINOR_VERSION >= 4
 		                $body .= 'New traits:' . "\r\n";
 		                foreach(get_declared_traits() as $trait)
 		                    if(!in_array($trait, vars::$Pancake_traitsPre))
 		                        $body .= $trait . "\r\n";
 		                $body .= "\r\n";
-		            }
+		            #.endif
 		            $body .= 'New includes:' . "\r\n"; 
 		            foreach(get_included_files() as $include)
 		                if(!in_array($include, vars::$Pancake_includesPre))
@@ -361,7 +363,7 @@
 		            vars::$Pancake_request->setAnswerCode(200);
 		        }
 	        #.endif
-	        
+
 	        // Update request object and send it to RequestWorker
 	        if(!vars::$invalidRequest)
 	            vars::$Pancake_request->setAnswerBody($contents);
