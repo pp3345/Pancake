@@ -14,9 +14,15 @@
         exit;     
     #.endif                                                  
 
+    #.ifdef 'PHPWORKER'
+    	#.macro 'p' 'private'
+    #.else
+    	#.macro 'p' 'public'
+    #.endif
+    
     class HTTPRequest {
-        private $requestHeaders = array();
-        private $answerHeaders = array();
+        /*.p*/ $requestHeaders = array();
+        /*.p*/ $answerHeaders = array();
         private $protocolVersion = '1.0';
         private $requestType = null;
         private $answerCode = 0;

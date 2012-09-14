@@ -25,7 +25,7 @@
     global $Pancake_vHosts;
     
     // Precalculate post_max_size in bytes
-    // There is no possible way to keep this in a more readable way thanks to the nice Zend Tokenizer
+    // It is impossible to keep this in a more readable way thanks to the nice Zend Tokenizer
    	#.define 'POST_MAX_SIZE' /* .eval '$size = strtolower(ini_get("post_max_size")); if(strpos($size, "k")) $size = (int) $size * 1024; else if(strpos($size, "m")) $size = (int) $size * 1024 * 1024; else if(strpos($size, "g")) $size = (int) $size * 1024 * 1024 * 1024; return $size;' */
 
     #.include 'invalidHTTPRequest.exception.php'
@@ -229,19 +229,23 @@
         } else if($key = array_search($requestSocket, $listenSocketsOrig))
             unset($listenSocketsOrig[$key]);
         
-        if($requests[$socketID]->getRequestType() == 'TRACE')
-            goto write;
+        #.if /* .eval 'return Pancake\Config::get("main.allowtrace");' */
+	        if($requests[$socketID]->getRequestType() == 'TRACE')
+	            goto write;
+	    #.endif
         
-        // Check for "OPTIONS"-requestmethod
-        if($requests[$socketID]->getRequestType() == 'OPTIONS')
-            $requests[$socketID]->setHeader('Allow', 
-            /* .eval '$allow = "GET, POST, OPTIONS";
-            if(Pancake\Config::get("main.allowhead") === true)
-                $allow .= ", HEAD";
-            if(Pancake\Config::get("main.allowtrace") === true)
-                $allow .= ", TRACE";
-            return $allow;'
-             */);
+	    #.if /* .eval 'return Pancake\Config::get("main.allowoptions");' */
+	        // Check for "OPTIONS"-requestmethod
+	        if($requests[$socketID]->getRequestType() == 'OPTIONS')
+	            $requests[$socketID]->setHeader('Allow', 
+	            /* .eval '$allow = "GET, POST, OPTIONS";
+	            if(Pancake\Config::get("main.allowhead") === true)
+	                $allow .= ", HEAD";
+	            if(Pancake\Config::get("main.allowtrace") === true)
+	                $allow .= ", TRACE";
+	            return $allow;'
+	             */);
+	    #.endif
         
         // Output debug information
         #.if Pancake\DEBUG_MODE === true
@@ -308,18 +312,23 @@
             socket_set_nonblock($socket);
             // @ - Do not spam errorlog with Resource temporarily unavailable if there is no PHPWorker available
             @socket_connect($socket, $requests[$socketID]->getvHost()->getSocketName());
-           	
+            
             if(socket_last_error($socket) == 11) {
-      			$waits[$socketID]++;
-            	
-            	if($waits[$socketID] > /* .eval 'return Pancake\Config::get("main.waitslotwaitlimit");' */) {
-            		$requests[$socketID]->invalidRequest(new invalidHTTPRequestException('There was no worker available to serve your request. Please try again later.', 500));
-            		goto write;
-            	}	
-            	
-            	$waitSlotsOrig[$socketID] = $requestSocket;
-            	
-            	goto clean;
+            	#.if /* .eval 'return Pancake\Config::get("main.waitslotwaitlimit");' */
+	      			$waits[$socketID]++;
+	            	
+	            	if($waits[$socketID] > /* .eval 'return Pancake\Config::get("main.waitslotwaitlimit");' */) {
+	            		$requests[$socketID]->invalidRequest(new invalidHTTPRequestException('There was no worker available to serve your request. Please try again later.', 500));
+	            		goto write;
+	            	}	
+	            	
+	            	$waitSlotsOrig[$socketID] = $requestSocket;
+	            	
+	            	goto clean;
+	        	#.else
+	            	$requests[$socketID]->invalidRequest(new invalidHTTPRequestException('There was no worker available to serve your request. Please try again later.', 500));
+	            	goto write;
+	           	#.endif
             }
             
             unset($waitSlotsOrig[$socketID]);
