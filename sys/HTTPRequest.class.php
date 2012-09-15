@@ -23,35 +23,35 @@
     class HTTPRequest {
         /*.p*/ $requestHeaders = array();
         /*.p*/ $answerHeaders = array();
-        private $protocolVersion = '1.0';
-        private $requestType = null;
-        private $answerCode = 0;
-        private $answerBody = null;
-        private $requestFilePath = null;
-        private $GETParameters = array();
-        private $POSTParameters = array();
-        private $cookies = array();
-        private $setCookies = array();
+        /*.p*/ $protocolVersion = '1.0';
+        /*.p*/ $requestType = null;
+        /*.p*/ $answerCode = 0;
+        /*.p*/ $answerBody = null;
+        /*.p*/ $requestFilePath = null;
+        /*.p*/ $GETParameters = array();
+        /*.p*/ $POSTParameters = array();
+        /*.p*/ $cookies = array();
+        /*.p*/ $setCookies = array();
         /**
          * @var vHost
          */
-        private $vHost = null;
-        private $requestLine = null;
-        private $rangeFrom = 0;
-        private $rangeTo = 0;
-        private $acceptedCompressions = array();
-        private $requestURI = null;
-        private $remoteIP = null;
-        private $remotePort = 0;
-        private $localIP = null;
-        private $localPort = 0;
-        private $mimeType = null;
-        private $uploadedFiles = array();
-        private $uploadedFileTempNames = array();
-        private $queryString = null;
-        private $requestTime = 0;
-        private $requestMicrotime = 0;
-        private static $answerCodes = array(
+        /*.p*/ $vHost = null;
+        /*.p*/ $requestLine = null;
+        /*.p*/ $rangeFrom = 0;
+        /*.p*/ $rangeTo = 0;
+        /*.p*/ $acceptedCompressions = array();
+        /*.p*/ $requestURI = null;
+        /*.p*/ $remoteIP = null;
+       	/*.p*/ $remotePort = 0;
+        /*.p*/ $localIP = null;
+        /*.p*/ $localPort = 0;
+        /*.p*/ $mimeType = null;
+        /*.p*/ $uploadedFiles = array();
+        /*.p*/ $uploadedFileTempNames = array();
+        /*.p*/ $queryString = null;
+        /*.p*/ $requestTime = 0;
+        /*.p*/ $requestMicrotime = 0;
+        /*.p*/ static $answerCodes = array(
                                             100 => 'Continue',
                                             101 => 'Switching Protocols',
                                             102 => 'Processing',
@@ -819,14 +819,6 @@
         */
         public function setAnswerBody($value) {
             return $this->answerBody = $value;
-        }
-        
-        /**
-        * Get the RequestWorker-instance handling this request
-        * 
-        */
-        public function getRequestWorker() {
-            return $this->requestWorker;
         }
         
         /**

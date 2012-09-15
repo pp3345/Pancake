@@ -21,6 +21,21 @@
     #.mapVariable '$code' '$code'
     #.mapVariable '$vHost' '$vHost'
     
+    #.macro 'REQUEST_TYPE' '$requestObject->requestType'
+    #.macro 'GET_PARAMS' '$requestObject->GETParameters'
+    #.macro 'MIME_TYPE' '$requestObject->mimeType'
+    #.macro 'VHOST' '$requestObject->vHost'
+    #.macro 'REQUEST_FILE_PATH' '$requestObject->requestFilePath'
+    #.macro 'RANGE_FROM' '$requestObject->rangeFrom'
+    #.macro 'RANGE_TO' '$requestObject->rangeTo'
+    #.macro 'BUILD_ANSWER_HEADERS' '$requestObject->buildAnswerHeaders()'
+    #.macro 'ANSWER_BODY' '$requestObject->answerBody'
+    #.macro 'REMOTE_IP' '$requestObject->remoteIP'
+    #.macro 'REMOTE_PORT' '$requestObject->remotePort'
+    #.macro 'REQUEST_LINE' '$requestObject->requestLine'
+    #.macro 'ANSWER_CODE' '$requestObject->answerCode'
+    #.macro 'UPLOADED_FILES' '$requestObject->uploadedFiles'
+    
     global $Pancake_sockets;
     global $Pancake_vHosts;
     
@@ -76,6 +91,7 @@
     	// Check if there are requests waiting for a PHPWorker
     	foreach((array) $waitSlots as $socketID => $requestSocket) {
 			unset($waitSlots[$socketID]);
+			$requestObject = $requests[$socketID];
     		goto load;
     	}
     	
@@ -84,6 +100,7 @@
         	unset($liveWriteSockets[$index]);
         	
         	$socketID = (int) $requestSocket;
+        	$requestObject = $requests[$socketID];
             goto liveWrite;
         }
         
@@ -94,11 +111,13 @@
             if(isset($liveReadSockets[(int) $socket]) || socket_get_option($socket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_KEEPALIVE' */)) {
                 $socketID = (int) $socket;
                 $requestSocket = $socket;
+                $requestObject = $requests[$socketID];
                 break;
             }
             if(isset($phpSockets[(int) $socket])) {
                 $requestSocket = $phpSockets[(int) $socket];
                 $socketID = (int) $requestSocket;
+                $requestObject = $requests[$socketID];
                 
                 socket_set_block($socket);
                 
@@ -118,10 +137,10 @@
                 else
                 	$obj = unserialize(socket_read($socket, $length));
                 
-                if($obj instanceof HTTPRequest && !($requests[$socketID]->getvHost()->shouldCompareObjects() && (string) $requests[$socketID] != (string) $obj))
-                	$requests[$socketID] = $obj;
+                if($obj instanceof HTTPRequest && !(/* .VHOST */->shouldCompareObjects() && (string) $requestObject != (string) $obj))
+                	$requestObject = $requests[$socketID] = $obj;
                 else
-                	$requests[$socketID]->invalidRequest(new invalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
+                	$requestObject->invalidRequest(new invalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
                 
                 unset($listenSocketsOrig[array_search($socket, $listenSocketsOrig)]);
                 unset($phpSockets[(int) $socket]);
@@ -202,16 +221,16 @@
             
             // Create request object / Read Headers
             try {
-                $requests[$socketID] = new HTTPRequest($ip, $port, $lip, $lport);
-                $requests[$socketID]->init($socketData[$socketID]);
+                $requestObject = $requests[$socketID] = new HTTPRequest($ip, $port, $lip, $lport);
+                $requestObject->init($socketData[$socketID]);
             } catch(invalidHTTPRequestException $e) {
-                $requests[$socketID]->invalidRequest($e);
+                $requestObject->invalidRequest($e);
                 goto write;
             }
         }
         
         // Check for POST and get all POST-data
-        if($requests[$socketID]->getRequestType() == 'POST') {
+        if(/* .REQUEST_TYPE */ == 'POST') {
             if(strlen($postData[$socketID]) >= $requests[$socketID]->getRequestHeader('Content-Length')) {
                 if(strlen($postData[$socketID]) > $requests[$socketID]->getRequestHeader('Content-Length'))
                     $postData[$socketID] = substr($postData[$socketID], 0, $requests[$socketID]->getRequestHeader('Content-Length'));
@@ -230,13 +249,13 @@
             unset($listenSocketsOrig[$key]);
         
         #.if /* .eval 'return Pancake\Config::get("main.allowtrace");' */
-	        if($requests[$socketID]->getRequestType() == 'TRACE')
+	        if(/* .REQUEST_TYPE */ == 'TRACE')
 	            goto write;
 	    #.endif
         
 	    #.if /* .eval 'return Pancake\Config::get("main.allowoptions");' */
 	        // Check for "OPTIONS"-requestmethod
-	        if($requests[$socketID]->getRequestType() == 'OPTIONS')
+	        if(/* .REQUEST_TYPE */ == 'OPTIONS')
 	            $requests[$socketID]->setHeader('Allow', 
 	            /* .eval '$allow = "GET, POST, OPTIONS";
 	            if(Pancake\Config::get("main.allowhead") === true)
@@ -249,7 +268,7 @@
         
         // Output debug information
         #.if Pancake\DEBUG_MODE === true
-        if(array_key_exists('pancakedebug', $requests[$socketID]->getGETParams())) {
+        if(array_key_exists('pancakedebug', /* .GET_PARAMS */)) {
             $requests[$socketID]->setHeader('Content-Type', 'text/plain');
                                                     
             $body = 'Received Headers:'."\r\n";
@@ -266,8 +285,8 @@
         #.endif
         
         #.if /* .eval 'return ini_get("expose_php");' */
-        if(array_key_exists("", $requests[$socketID]->getGETParams())) {
-            $_GET = $requests[$socketID]->getGETParams();
+        if(array_key_exists("", /* .GET_PARAMS */)) {
+            $_GET = /* .GET_PARAMS */;
             switch($_GET[""]) {
                 case 'PHPE9568F34-D428-11d2-A769-00AA001ACF42':
                     $logo = file_get_contents('logo/php.gif');
@@ -307,11 +326,11 @@
         load:
         
         // Check for PHP
-        if($requests[$socketID]->getMIMEType() == 'text/x-php' && $requests[$socketID]->getvHost()->getPHPWorkerAmount()) {
+        if(/* .MIME_TYPE */ == 'text/x-php' && /* .VHOST */->getPHPWorkerAmount()) {
             $socket = socket_create(/* .constant 'AF_UNIX' */, /* .constant 'SOCK_SEQPACKET' */, 0);
             socket_set_nonblock($socket);
             // @ - Do not spam errorlog with Resource temporarily unavailable if there is no PHPWorker available
-            @socket_connect($socket, $requests[$socketID]->getvHost()->getSocketName());
+            @socket_connect($socket, /* .VHOST */->getSocketName());
             
             if(socket_last_error($socket) == 11) {
             	#.if /* .eval 'return Pancake\Config::get("main.waitslotwaitlimit");' */
@@ -334,7 +353,7 @@
             unset($waitSlotsOrig[$socketID]);
             unset($waits[$socketID]);
             
-            $data = serialize($requests[$socketID]);
+            $data = serialize($requestObject);
             
             $packages = array();
             
@@ -363,7 +382,7 @@
         }
         
         // Get time of last modification
-        $modified = filemtime($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath());
+        $modified = filemtime(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */);
         // Set Last-Modified-Header as RFC 2822
         $requests[$socketID]->setHeader('Last-Modified', date('r', $modified));
         
@@ -374,15 +393,15 @@
         }
         
         // Check for directory
-        if(is_dir($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath())) {
-            $directory = scandir($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath());
+        if(is_dir(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */)) {
+            $directory = scandir(/* .VHOST */->getDocumentRoot(). /* .REQUEST_FILE_PATH */);
             $requests[$socketID]->setHeader('Content-Type', 'text/html; charset=utf-8');
             
             // Build directory listing
             $body =  '<!doctype html>';
             $body .= '<html>';
             $body .= '<head>';
-            $body .= '<title>Index of '.$requests[$socketID]->getRequestFilePath().'</title>';
+            $body .= '<title>Index of ' . /* .REQUEST_FILE_PATH */ . '</title>';
             $body .= '<style>';
                 $body .= 'body{font-family:"Arial"}';
                 $body .= 'thead{font-weight:bold}';
@@ -390,7 +409,7 @@
             $body .= '</style>';
             $body .= '</head>';
             $body .= '<body>';
-            $body .= '<h1>Index of '.$requests[$socketID]->getRequestFilePath().'</h1>';
+            $body .= '<h1>Index of ' . /* .REQUEST_FILE_PATH */ . '</h1>';
             $body .= '<hr/>';
             $body .= '<table>';
                 $body .= '<thead><tr>';
@@ -402,7 +421,7 @@
                 $body .= '<tbody>';
                     $body .= '<tr>';
                         $body .= '<td>';
-                            $dirname = dirname($requests[$socketID]->getRequestFilePath());
+                            $dirname = dirname(/* .REQUEST_FILE_PATH */);
                             $body .= '<a href="http://'.$requests[$socketID]->getRequestHeader('Host').$dirname.'">../</a>';
                         $body .= '</td>';
                         $body .= '<td>';
@@ -412,29 +431,29 @@
                     foreach($directory as $file) {
                         if($file == '.' 
                         || $file == '..'
-                        || !is_readable($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath().'/'.$file))
+                        || !is_readable(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH*/.'/'.$file))
                             continue;
                         
                         $body .= '<tr>';
                             $body .= '<td>';
-                                if(substr($requests[$socketID]->getRequestFilePath(), -1) != '/') $add = '/';
-                                if(is_dir($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath().'/'.$file))
-                                    $body .= '<a href="http://'.$requests[$socketID]->getRequestHeader('Host').$requests[$socketID]->getRequestFilePath().$add.$file.'/">'.$file.'/</a>';
+                                if(substr(/* .REQUEST_FILE_PATH*/, -1) != '/') $add = '/';
+                                if(is_dir(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH*/.'/'.$file))
+                                    $body .= '<a href="http://'.$requests[$socketID]->getRequestHeader('Host')./* .REQUEST_FILE_PATH*/.$add.$file.'/">'.$file.'/</a>';
                                 else
-                                    $body .= '<a href="http://'.$requests[$socketID]->getRequestHeader('Host').$requests[$socketID]->getRequestFilePath().$add.$file.'">'.$file.'</a>';
+                                    $body .= '<a href="http://'.$requests[$socketID]->getRequestHeader('Host')./* .REQUEST_FILE_PATH*/.$add.$file.'">'.$file.'</a>';
                             $body .= '</td>';
                             $body .= '<td>';
-                                if(is_dir($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath().'/'.$file))
+                                if(is_dir(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH*/.'/'.$file))
                                     $body .= 'Directory';
                                 else
-                                    $body .= MIME::typeOf($requests[$socketID]->getvHost()->getDocumentRoot() . $requests[$socketID]->getRequestFilePath() . '/' . $file);
+                                    $body .= MIME::typeOf(/* .VHOST */->getDocumentRoot() . /* .REQUEST_FILE_PATH*/ . '/' . $file);
                             $body .= '</td>';
                             $body .= '<td>';
-                                $body .= date(/* .eval 'return Pancake\Config::get("main.dateformat");' */, filemtime($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath().'/'.$file));
+                                $body .= date(/* .eval 'return Pancake\Config::get("main.dateformat");' */, filemtime(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH*/.'/'.$file));
                             $body .= '</td>';
-                            if(!is_dir($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath().'/'.$file)) {
+                            if(!is_dir(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH*/.'/'.$file)) {
                                 $body .= '<td>';
-                                    $body .= formatFilesize(filesize($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath().'/'.$file));
+                                    $body .= formatFilesize(filesize(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH*/.'/'.$file));
                                 $body .= '</td>';
                             }
                         $body .= '</tr>';
@@ -452,53 +471,53 @@
             $body .= '</html>';
             $requests[$socketID]->setAnswerBody($body);
         } else {
-            $requests[$socketID]->setHeader('Content-Type', $requests[$socketID]->getMIMEType()); 
+            $requests[$socketID]->setHeader('Content-Type', /* .MIME_TYPE */); 
             $requests[$socketID]->setHeader('Accept-Ranges', 'bytes'); 
             
             // Check if GZIP-compression should be used  
-            if($requests[$socketID]->acceptsCompression('gzip') && $requests[$socketID]->getvHost()->allowGZIPCompression() === true && filesize($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath()) >= $requests[$socketID]->getvHost()->getGZIPMimimum()) {
+            if($requests[$socketID]->acceptsCompression('gzip') && /* .VHOST */->allowGZIPCompression() === true && filesize(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */) >= /* .VHOST */->getGZIPMimimum()) {
                 // Set encoding-header
                 $requests[$socketID]->setHeader('Content-Encoding', 'gzip');
                 // Create temporary file
                 $gzipPath[$socketID] = tempnam(/* .eval 'return Pancake\Config::get("main.tmppath");' */, 'GZIP');
-                $gzipFileHandle = gzopen($gzipPath[$socketID], 'w' . $requests[$socketID]->getvHost()->getGZIPLevel());
+                $gzipFileHandle = gzopen($gzipPath[$socketID], 'w' . /* .VHOST */->getGZIPLevel());
                 // Load uncompressed requested file
-                $requestedFileHandle = fopen($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath(), 'r');
+                $requestedFileHandle = fopen(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */, 'r');
                 // Compress file
                 while(!feof($requestedFileHandle))
-                    gzwrite($gzipFileHandle, fread($requestedFileHandle, $requests[$socketID]->getvHost()->getWriteLimit()));
+                    gzwrite($gzipFileHandle, fread($requestedFileHandle, /* .VHOST */->getWriteLimit()));
                 // Close GZIP-resource and open normal file-resource
                 gzclose($gzipFileHandle);
                 $requestFileHandle[$socketID] = fopen($gzipPath[$socketID], 'r');
                 // Set Content-Length
-                $requests[$socketID]->setHeader('Content-Length', filesize($gzipPath[$socketID]) - $requests[$socketID]->getRangeFrom());
+                $requests[$socketID]->setHeader('Content-Length', filesize($gzipPath[$socketID]) - /* .RANGE_FROM */);
             } else {
-                $requests[$socketID]->setHeader('Content-Length', filesize($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath()) - $requests[$socketID]->getRangeFrom());
-                $requestFileHandle[$socketID] = fopen($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath(), 'r');
+                $requests[$socketID]->setHeader('Content-Length', filesize(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */) - /* .RANGE_FROM */);
+                $requestFileHandle[$socketID] = fopen(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */, 'r');
             }
             
             // Check if a specific range was requested
-            if($requests[$socketID]->getRangeFrom()) {
+            if(/* .RANGE_FROM */) {
                 $requests[$socketID]->setAnswerCode(206);
-                fseek($requestFileHandle[$socketID], $requests[$socketID]->getRangeFrom());
+                fseek($requestFileHandle[$socketID], /* .RANGE_FROM */);
                 if($gzipPath[$socketID])
-                    $requests[$socketID]->setHeader('Content-Range', 'bytes ' . $requests[$socketID]->getRangeFrom().'-'.(filesize($gzipPath[$socketID]) - 1).'/'.filesize($gzipPath[$socketID]));
+                    $requests[$socketID]->setHeader('Content-Range', 'bytes ' . /* .RANGE_FROM */.'-'.(filesize($gzipPath[$socketID]) - 1).'/'.filesize($gzipPath[$socketID]));
                 else
-                    $requests[$socketID]->setHeader('Content-Range', 'bytes ' . $requests[$socketID]->getRangeFrom().'-'.(filesize($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath()) - 1).'/'.filesize($requests[$socketID]->getvHost()->getDocumentRoot().$requests[$socketID]->getRequestFilePath()));
+                    $requests[$socketID]->setHeader('Content-Range', 'bytes ' . /* .RANGE_FROM */.'-'.(filesize(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */) - 1).'/'.filesize(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */));
             }
         }
         
         write:
 
         // Get Answer Headers
-        $writeBuffer[$socketID] = $requests[$socketID]->buildAnswerHeaders();
+        $writeBuffer[$socketID] = /* .BUILD_ANSWER_HEADERS */;
 
         // Get Answer Body if set and request method isn't HEAD
-        if($requests[$socketID]->getRequestType() != 'HEAD')
-            $writeBuffer[$socketID] .= $requests[$socketID]->getAnswerBody();
+        if(/* .REQUEST_TYPE */ != 'HEAD')
+            $writeBuffer[$socketID] .= /* .ANSWER_BODY */;
 
         // Output request information
-        out('REQ '.$requests[$socketID]->getAnswerCode().' '.$requests[$socketID]->getRemoteIP().': '.$requests[$socketID]->getRequestLine().' on vHost '.(($requests[$socketID]->getvHost()) ? $requests[$socketID]->getvHost()->getName() : null).' (via '.$requests[$socketID]->getRequestHeader('Host').' from '.$requests[$socketID]->getRequestHeader('Referer').') - '.$requests[$socketID]->getRequestHeader('User-Agent'), /* .constant 'Pancake\REQUEST' */);
+        out('REQ './* .ANSWER_CODE */.' './* .REMOTE_IP */.': './* .REQUEST_LINE */.' on vHost '.((/* .VHOST */) ? /* .VHOST */->getName() : null).' (via '.$requests[$socketID]->getRequestHeader('Host').' from '.$requests[$socketID]->getRequestHeader('Referer').') - '.$requests[$socketID]->getRequestHeader('User-Agent'), /* .constant 'Pancake\REQUEST' */);
 
         // Check if user wants keep-alive connection
         if($requests[$socketID]->getAnswerHeader('Connection') == 'keep-alive')
@@ -531,18 +550,18 @@
         #.if /* .eval 'return Pancake\Config::get("main.writebufferhardmaxconcurrent");' */
         && count($writeBuffer) < /* .eval 'return Pancake\Config::get("main.writebufferhardmaxconcurrent");' */
         #.endif
-        && $requests[$socketID]->getRequestType() != 'HEAD' 
+        && /* .REQUEST_TYPE */ != 'HEAD' 
         && $writtenLength)
         	$writeBuffer[$socketID] .= fread($requestFileHandle[$socketID], 
         			#.if /* .eval 'return Pancake\Config::get("main.writebuffersoftmaxconcurrent");' */
         			(count($writeBuffer) > /* .eval 'return Pancake\Config::get("main.writebuffersoftmaxconcurrent");' */ ? /* .eval 'return Pancake\Config::get("main.writebuffermin");' */ : $requests[$socketID]->getvHost()->getWriteLimit())
 					#.else
-        			$requests[$socketID]->getvHost()->getWriteLimit()
+        			/* .VHOST */->getWriteLimit()
         			#.endif
         			- strlen($writeBuffer[$socketID]));
 
         // Check if more data is available
-        if(strlen($writeBuffer[$socketID]) || (is_resource($requestFileHandle[$socketID]) && !feof($requestFileHandle[$socketID]) && $requests[$socketID]->getRequestType() != 'HEAD')) {
+        if(strlen($writeBuffer[$socketID]) || (is_resource($requestFileHandle[$socketID]) && !feof($requestFileHandle[$socketID]) && /* .REQUEST_TYPE */ != 'HEAD')) {
             // Event-based writing - In the time the client is still downloading we can process other requests
             if(!@in_array($requestSocket, $liveWriteSocketsOrig))
                 $liveWriteSocketsOrig[] = $requestSocket;
@@ -564,7 +583,7 @@
             if(!in_array($requestSocket, $listenSocketsOrig, true) && $requests[$socketID]->getAnswerHeader('Connection') == 'keep-alive')
                 $listenSocketsOrig[] = $requestSocket;
                
-            foreach((array) $requests[$socketID]->getUploadedFiles() as $file)
+            foreach((array) /* .UPLOADED_FILES */ as $file)
                 @unlink($file['tmp_name']); 
         }
         
@@ -617,6 +636,7 @@
         unset($body);
         unset($directory);
         unset($requestSocket);
+        unset($requestObject);
         unset($socket);
         unset($add);
         unset($continue);
