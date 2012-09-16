@@ -180,7 +180,7 @@
             		#.endif
             	#.endif
             	)
-                throw new invalidHTTPRequestException('The request method is not allowed: '.$this->requestType, 405, $requestHeader); 
+                throw new invalidHTTPRequestException('Disallowed request method: '.$this->requestType, 405, $requestHeader); 
             #.endif
             
             // Read Headers
@@ -531,7 +531,7 @@
         public function buildAnswerHeaders() {
         	#.if /* .eval 'return Pancake\Config::get("main.allowtrace");' */
             // Check for TRACE
-            if($this->getRequestType() == 'TRACE' && $this->getAnswerCode() != 405) {
+            if($this->getRequestType() == 'TRACE') {
                 $answer = $this->getRequestLine()."\r\n";
                 $answer .= $this->getRequestHeaders()."\r\n";
                 return $answer;
@@ -678,7 +678,7 @@
         */
         public function getRequestHeader($headerName, $caseSensitive = true) {
             if($caseSensitive || isset($this->requestHeaders[$headerName]))
-            	return  isset($this->requestHeaders[$headerName]) ? $this->requestHeaders[$headerName] : null;
+            	return isset($this->requestHeaders[$headerName]) ? $this->requestHeaders[$headerName] : null;
             else {
             	$headerName = strtolower($headerName);
             	foreach($this->requestHeaders as $name => $value) {
