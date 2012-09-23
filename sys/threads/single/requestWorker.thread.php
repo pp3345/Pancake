@@ -36,6 +36,19 @@
     #.macro 'ANSWER_CODE' '$requestObject->answerCode'
     #.macro 'UPLOADED_FILES' '$requestObject->uploadedFiles'
     #.macro 'SIMPLE_GET_REQUEST_HEADER' '(isset($requestObject->requestHeaders[$headerName]) ? $requestObject->requestHeaders[$headerName] : null)' '$headerName'
+    #.macro 'QUERY_STRING' '$requestObject->queryString'
+    #.macro 'PROTOCOL_VERSION' '$requestObject->protocolVersion'
+    #.macro 'REQUEST_URI' '$requestObject->requestURI'
+    #.macro 'LOCAL_IP' '$requestObject->localIP'
+    #.macro 'LOCAL_PORT' '$requestObject->localPort'
+    
+    #.if /* .eval 'return (bool) Pancake\Config::get("main.secureports");' */ && 0
+    	#.define 'SUPPORT_TLS' true
+    #.endif
+    
+    #.if /* .eval 'return (bool) Pancake\Config::get("fastcgi");' */
+    	#.define 'SUPPORT_FASTCGI' true
+    #.endif
     
     global $Pancake_sockets;
     global $Pancake_vHosts;
@@ -47,11 +60,25 @@
     #.include 'invalidHTTPRequest.exception.php'
     #.include 'mime.class.php'
     
+    #.ifdef 'SUPPORT_TLS'
+    	#.include 'TLSConnection.class.php'
+    #.endif
+    
+    #.ifdef 'SUPPORT_FASTCGI'
+    	#.include 'FastCGI.class.php'
+    #.endif
+    
     // Do not rename properties in HTTPRequest class as the properties in the PHPWorkers will have different names
     #.if /* .config 'compressproperties' */
     	#.config 'compressproperties' false
     #.endif
     #.include 'HTTPRequest.class.php'
+    
+    #.ifdef 'SUPPORT_FASTCGI'
+    	foreach($Pancake_vHosts as $vHost) {
+			$vHost->initializeFastCGI();
+    	}
+    #.endif
     
     MIME::load();
     
@@ -60,6 +87,12 @@
     // Initialize some variables
     #.if /* .eval 'return Pancake\Config::get("main.maxconcurrent");' */
     $decliningNewRequests = false;
+    #.endif
+    #.ifdef 'SUPPORT_TLS'
+    $secureConnection = array();
+    #.endif
+    #.ifdef 'SUPPORT_FASTCGI'
+    $fastCGISockets = array();
     #.endif
     $liveWriteSocketsOrig = array();
     $liveReadSockets = array();
@@ -109,12 +142,38 @@
         foreach($listenSockets as $index => $socket) {
         	unset($listenSockets[$index]);
         	
+        	if(isset($fastCGISockets[(int) $socket])) {
+        		$fastCGI = $fastCGISockets[(int) $socket];
+        		do {
+        			if(!($newData = socket_read($socket, (isset($result) ? ($result & 32768 ? $result ^ 32768 : $result) : 8))))
+        				goto clean;
+        			if(isset($result) && $result & /* .constant 'FCGI_APPEND_DATA' */)
+        				$data .= $newData;
+        			else
+        				$data = $newData;
+        			$result = $fastCGI->upstreamRecord($data);
+        		} while(!is_array($result));
+        		 
+        		if(is_array($result)) {
+        			$requestSocket = $result[0];
+        			$socketID = (int) $requestSocket;
+        			$requestObject = $result[1];
+        	
+        			unset($result);
+        			goto write;
+        		}
+        		 
+        		unset($result);
+        		goto clean;
+        	}
+        	
             if(isset($liveReadSockets[(int) $socket]) || socket_get_option($socket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_KEEPALIVE' */)) {
                 $socketID = (int) $socket;
                 $requestSocket = $socket;
                 $requestObject = $requests[$socketID];
                 break;
             }
+            
             if(isset($phpSockets[(int) $socket])) {
                 $requestSocket = $phpSockets[(int) $socket];
                 $socketID = (int) $requestSocket;
@@ -163,6 +222,12 @@
 
             $socketData[$socketID] = "";
             
+            #.ifdef 'SUPPORT_TLS'
+            	socket_getsockname($requestSocket, $ip, $port);
+            	if(in_array($port, Config::get("main.secureports")))
+            		$secureConnection[$socketID] = new TLSConnection;
+            #.endif
+            
             // Set O_NONBLOCK-flag
             socket_set_nonblock($requestSocket);
             break;
@@ -178,6 +243,14 @@
         // We should not close the socket if socket_read() returns bool(false) - This might lead to problems with slow connections
         if($bytes === "")
             goto close;
+        
+        #.ifdef 'SUPPORT_TLS'
+        	if($secureConnection[$socketID] && strlen($bytes) >= 5) {
+        		socket_set_block($requestSocket);
+        		socket_write($requestSocket, $secureConnection[$socketID]->data($bytes));
+        		goto close;
+        	}
+        #.endif
         
         // Check if request was already initialized and we are only reading POST-data
         if(isset($requests[$socketID])) {
@@ -325,6 +398,18 @@
         #.endif
         
         load:
+        
+        #.ifdef 'SUPPORT_FASTCGI'
+        	// FastCGI
+        	if($fastCGI = /* .VHOST */->getFastCGI(/* .MIME_TYPE */)) {
+        		$fastCGI->makeRequest($requestObject, $requestSocket);
+        		if(!in_array($fastCGI->socket, $listenSocketsOrig)) {
+        			$listenSocketsOrig[] = $fastCGI->socket;
+        			$fastCGISockets[(int) $fastCGI->socket] = $fastCGI;
+        		}
+        		goto clean;
+        	}
+        #.endif
         
         // Check for PHP
         if(/* .MIME_TYPE */ == 'text/x-php' && /* .VHOST */->getPHPWorkerAmount()) {

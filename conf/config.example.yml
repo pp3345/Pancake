@@ -38,3 +38,9 @@ moody:
   compressvariables: true
   compressproperties: true
   deletecomments: true
+FastCGI:                                                        # FastCGI upstream server configurations
+#  php:                                                         # This example configuration could be used to use the native php-fpm SAPI instead of the Pancake SAPI for executing PHP
+#    type: unix
+#    address: /var/run/php5-fpm.socket
+#    mimeTypes:
+#      - text/x-php

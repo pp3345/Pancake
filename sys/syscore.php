@@ -8,7 +8,7 @@
     /****************************************************************/
     
     namespace Pancake;
-    
+
     if(defined('Pancake\PANCAKE'))
         exit;
 
@@ -209,7 +209,7 @@
     // Create sockets
     // IPv6
     foreach((array) Config::get('main.ipv6') as $interface) { 
-        foreach(Config::get('main.listenports') as $listenPort) {
+        foreach(\array_merge(Config::get('main.listenports'), Config::get('main.secureports')) as $listenPort) {
             // Create socket
             $socket = socket_create(\AF_INET6, \SOCK_STREAM, \SOL_TCP);
             
@@ -235,7 +235,7 @@
     
     // IPv4
     foreach((array) Config::get('main.ipv4') as $interface) {
-        foreach(Config::get('main.listenports') as $listenPort) {
+        foreach(\array_merge(Config::get('main.listenports'), Config::get('main.secureports')) as $listenPort) {
             // Create socket
             $socket = socket_create(\AF_INET, \SOCK_STREAM, \SOL_TCP);
             

@@ -62,3 +62,5 @@ vhosts:
       - index.php
       - index.html
       - index.htm
+    FastCGI:                                                    # List of FastCGI configurations enabled for this vHost
+#      - php

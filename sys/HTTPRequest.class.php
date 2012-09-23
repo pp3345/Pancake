@@ -51,6 +51,9 @@
         /*.p*/ $queryString = null;
         /*.p*/ $requestTime = 0;
         /*.p*/ $requestMicrotime = 0;
+    	#.ifdef 'SUPPORT_FASTCGI'
+   			/*.p*/ $rawAnswerHeaderData = "";
+    	#.endif
         /*.p*/ static $answerCodes = array(
                                             100 => 'Continue',
                                             101 => 'Switching Protocols',
@@ -569,6 +572,9 @@
             // Build Answer
             $answer = 'HTTP/'.$this->getProtocolVersion().' '.$this->getAnswerCode().' '.self::getCodeString($this->getAnswerCode())."\r\n";
             $answer .= $this->getAnswerHeaders();
+            #.ifdef 'SUPPORT_FASTCGI'
+            	$answer .= $this->rawAnswerHeaderData . "\r\n";
+            #.endif
             $answer .= "\r\n";
             
             return $answer;

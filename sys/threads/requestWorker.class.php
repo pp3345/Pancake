@@ -34,7 +34,9 @@
         				. md5_file('HTTPRequest.class.php')
         				. md5_file('invalidHTTPRequest.exception.php')
         				. md5_file('mime.class.php')
-        				. md5_file('moody.cphp'));
+        				. md5_file('moody.cphp')
+        				. md5_file('TLSConnection.class.php')
+        				. md5_file('FastCGI.class.php'));
         		if(!(file_exists('threads/single/requestWorker.thread.hash')
         		&& file_get_contents('threads/single/requestWorker.thread.hash') == $hash)) {
         			require_once 'threads/codeProcessor.class.php';

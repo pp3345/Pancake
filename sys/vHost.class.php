@@ -55,6 +55,7 @@
         private $predefinedConstants = array();
         private $deletePredefinedConstantsAfterCodeCacheLoad = false;
         private $fixStaticMethodCalls = false;
+        private $fastCGI = array();
         static private $defaultvHost = null;
         
         /**
@@ -110,6 +111,7 @@
             $this->deletePredefinedConstantsAfterCodeCacheLoad = (bool) $config['phpdeletepredefinedconstantsaftercodecacheload'];
             $this->phpMaxExecutionTime = (int) $config['phpmaxexecutiontime'];
             $this->fixStaticMethodCalls = (!$this->phpCodeCache) || ($this->phpCodeCache && $config['phpfixstaticmethodcalls'] === false) ? false : true;
+            $this->fastCGI = (array) $config['fastcgi'];
             
             // Check for Hosts to listen on
             $this->listen = (array) $config['listen'];
@@ -574,6 +576,34 @@
          */
         public function shouldFixStaticMethodCalls() {
         	return $this->fixStaticMethodCalls;
+        }
+        
+        /**
+         * Initializes the configured FastCGI upstream servers for this vHost
+         * 
+         */
+        public function initializeFastCGI() {
+        	$fCGIs = array();
+        	
+        	foreach($this->fastCGI as $fastCGI) {
+        		$fCGIs[] = FastCGI::getInstance($fastCGI);
+        	}
+        	
+        	$this->fastCGI = array();
+        	
+        	foreach($fCGIs as $fastCGI) {
+        		foreach($fastCGI->getMimeTypes() as $mime)
+        			$this->fastCGI[$mime] = $fastCGI;
+        	}
+        }
+        
+        /**
+         * Returns the FastCGI instance for a given mime type, if any
+         *
+         */
+        public function getFastCGI($mimeType) {
+        	if(isset($this->fastCGI[$mimeType]))
+        		return $this->fastCGI[$mimeType];
         }
         
         /**
