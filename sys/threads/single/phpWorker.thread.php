@@ -14,7 +14,8 @@
     
     // Load SAPI functions and PHP runtime utilities
     require_once 'php/sapi.php';
-    require_once 'php/util.php';    
+    require_once 'php/util.php';
+    require_once 'invalidHTTPRequest.exception.php';
         
     vars::$Pancake_currentThread = $Pancake_currentThread;
     unset($Pancake_currentThread);
