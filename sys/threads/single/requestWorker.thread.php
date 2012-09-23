@@ -458,7 +458,7 @@
         $writeBuffer[$socketID] = $requests[$socketID]->buildAnswerHeaders();
 
         // Get Answer Body if set and request method isn't HEAD
-        if($requests[$socketID]->getRequestType() != 'HEAD')
+        if($requests[$socketID]->getRequestType() != 'HEAD' || Config::get('main.allowhead') !== true)
             $writeBuffer[$socketID] .= $requests[$socketID]->getAnswerBody();
 
         // Output request information
