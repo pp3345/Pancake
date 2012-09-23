@@ -279,8 +279,7 @@
         } else if(array_key_exists(session_name(), Pancake\vars::$Pancake_request->getCookies())) {
         	$cookie = Pancake\vars::$Pancake_request->getCookies();
             session_id($cookie[session_name()]);
-        } else
-        	Pancake\PHPFunctions\sessionID("");
+        }
         
         if(Pancake\PHPFunctions\sessionStart()) {
         	Pancake\vars::$sessionID = session_id();
