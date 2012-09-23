@@ -166,12 +166,38 @@ typedef struct {
 			$body .= /* .eval 'return "\xf" . chr(strlen("Pancake\\\" . \Pancake\VERSION)) . "SERVER_SOFTWAREPancake\\\" . \Pancake\VERSION;' */;
 			$body .= "\xb" . chr(strlen(/* .LOCAL_IP */)) . "SERVER_ADDR" . /* .LOCAL_IP */;
 
-			$strlen = (strlen($body) < 256 ? ("\0" . chr(strlen($body))) : (chr(256 >> 8) . chr(strlen($body) & 255)));
+			// HTTP header data
+			foreach($requestObject->requestHeaders as $headerName => $headerValue) {
+				$headerName = 'HTTP_' . str_replace('-', '_', strtoupper($headerName));
+				$headerValue = str_split($headerValue, 254);
+				foreach($headerValue as $headerValuePart)
+					$body .= chr(strlen($headerName)) . chr(strlen($headerValuePart)) . $headerName . $headerValuePart;
+			}
 			
+			if(/* .RAW_POST_DATA */) {
+				$body .= "\xc" . chr(strlen($requestObject->getRequestHeader('Content-Type', false))) . "CONTENT_TYPE" . $requestObject->getRequestHeader('Content-Type', false);
+				$body .= "\xe" . chr(strlen(/* .SIMPLE_GET_REQUEST_HEADER '"Content-Length"' */)) . "CONTENT_LENGTH" . /* .SIMPLE_GET_REQUEST_HEADER '"Content-Length"' */;
+			}
+
+			$strlen = (strlen($body) < 256 ? ("\0" . chr(strlen($body))) : (/* .eval 'return chr(256 >> 8);' */ . chr(strlen($body) & 255)));
+			var_dump($body);
 			socket_write($this->socket, "\1\4" . $requestID . $strlen . "\0\0" . $body);
 			
 			/* Empty FCGI_PARAMS */
 			socket_write($this->socket, "\1\4" . $requestID . "\0\0\0\0");
+			
+			if(/* .RAW_POST_DATA */) {
+				$rawPostData = str_split(/* .RAW_POST_DATA */, 65534);
+				
+				foreach($rawPostData as $recordData) {
+					/* FCGI_STDIN */
+					$contentLength = (strlen($recordData) < 256 ? ("\0" . chr(strlen($recordData))) : (/* .eval 'return chr(256 >> 8);' */ . chr(strlen($recordData) & 255)));
+					socket_write($this->socket, "\1\5" . $requestID . $contentLength . "\0\0" . $recordData);
+				}
+				
+				/* Empty FCGI_STDIN */
+				socket_write($this->socket, "\1\5" . $requestID . "\0\0\0\0");
+			}
 			
 			$this->requests[$requestIDInt] = $requestObject;
 			$this->requestSockets[$requestIDInt] = $requestSocket;
@@ -194,7 +220,7 @@ typedef struct {
 			
 			switch($type) {
 				case /* .constant 'FCGI_STDOUT' */:
-					if(!$this->requests[$requestID]->anserBody) {
+					if(!$this->requests[$requestID]->anserBody && strpos($data, "\r\n\r\n")) {
 						$contentBody = explode("\r\n\r\n", $data, 2);
 						$this->requests[$requestID]->rawAnswerHeaderData .= $contentBody[0];
 						/*
@@ -207,7 +233,7 @@ typedef struct {
 					}
 					if(isset($contentBody) && isset($contentBody[1]))
 						$this->requests[$requestID]->answerBody .= $contentBody[1];
-					else
+					else if(!isset($contentBody))
 						$this->requests[$requestID]->answerBody .= $data;
 					return 8;
 				case /* .constant 'FCGI_END_REQUEST' */:

@@ -22,9 +22,11 @@
     namespace Pancake {
     	#.include 'php/util.php'
     	
+    	
     	#.if /* .config 'compressproperties' */
     		#.config 'compressproperties' false
     	#.endif
+    	#.include 'invalidHTTPRequest.exception.php'
     	#.include 'HTTPRequest.class.php'
 	    vars::$Pancake_currentThread = $Pancake_currentThread;
 	    unset($Pancake_currentThread);

@@ -41,6 +41,7 @@
     #.macro 'REQUEST_URI' '$requestObject->requestURI'
     #.macro 'LOCAL_IP' '$requestObject->localIP'
     #.macro 'LOCAL_PORT' '$requestObject->localPort'
+    #.macro 'RAW_POST_DATA' '$requestObject->rawPOSTData'
     
     #.if /* .eval 'return (bool) Pancake\Config::get("main.secureports");' */ && 0
     	#.define 'SUPPORT_TLS' true
@@ -57,7 +58,6 @@
     // It is impossible to keep this in a more readable way thanks to the nice Zend Tokenizer
    	#.define 'POST_MAX_SIZE' /* .eval '$size = strtolower(ini_get("post_max_size")); if(strpos($size, "k")) $size = (int) $size * 1024; else if(strpos($size, "m")) $size = (int) $size * 1024 * 1024; else if(strpos($size, "g")) $size = (int) $size * 1024 * 1024 * 1024; return $size;' */
 
-    #.include 'invalidHTTPRequest.exception.php'
     #.include 'mime.class.php'
     
     #.ifdef 'SUPPORT_TLS'
@@ -73,6 +73,7 @@
     	#.config 'compressproperties' false
     #.endif
     #.include 'HTTPRequest.class.php'
+    #.include 'invalidHTTPRequest.exception.php'
     
     #.ifdef 'SUPPORT_FASTCGI'
     	foreach($Pancake_vHosts as $vHost) {
@@ -142,6 +143,7 @@
         foreach($listenSockets as $index => $socket) {
         	unset($listenSockets[$index]);
         	
+        	#.ifdef 'SUPPORT_FASTCGI'
         	if(isset($fastCGISockets[(int) $socket])) {
         		$fastCGI = $fastCGISockets[(int) $socket];
         		do {
@@ -166,6 +168,7 @@
         		unset($result);
         		goto clean;
         	}
+        	#.endif
         	
             if(isset($liveReadSockets[(int) $socket]) || socket_get_option($socket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_KEEPALIVE' */)) {
                 $socketID = (int) $socket;
@@ -310,7 +313,7 @@
                     $postData[$socketID] = substr($postData[$socketID], 0, /* .SIMPLE_GET_REQUEST_HEADER '"Content-Length"' */);
                 if($key = array_search($requestSocket, $listenSocketsOrig))
                     unset($listenSocketsOrig[$key]);
-                $requests[$socketID]->readPOSTData($postData[$socketID]);
+                /* .RAW_POST_DATA */ = $postData[$socketID];
             } else {
                 // Event-based reading
                 if(!in_array($requestSocket, $listenSocketsOrig)) {
@@ -402,6 +405,7 @@
         #.ifdef 'SUPPORT_FASTCGI'
         	// FastCGI
         	if($fastCGI = /* .VHOST */->getFastCGI(/* .MIME_TYPE */)) {
+        		out('ACCESS FASTCGI');
         		$fastCGI->makeRequest($requestObject, $requestSocket);
         		if(!in_array($fastCGI->socket, $listenSocketsOrig)) {
         			$listenSocketsOrig[] = $fastCGI->socket;

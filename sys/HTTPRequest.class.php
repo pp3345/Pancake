@@ -51,6 +51,7 @@
         /*.p*/ $queryString = null;
         /*.p*/ $requestTime = 0;
         /*.p*/ $requestMicrotime = 0;
+    	/*.p*/ $rawPOSTData = "";
     	#.ifdef 'SUPPORT_FASTCGI'
    			/*.p*/ $rawAnswerHeaderData = "";
     	#.endif
@@ -371,6 +372,7 @@
             if(!$this->getRequestHeader('Host'))
                 $this->requestHeaders['Host'] = $this->vHost->getHost();                  
         }
+        #.endif
         
         /**
         * Processes the POST request body
@@ -490,7 +492,6 @@
             }
             return true;
         }
-        #.endif
         
         /**
         * Set answer on invalid request
@@ -573,7 +574,8 @@
             $answer = 'HTTP/'.$this->getProtocolVersion().' '.$this->getAnswerCode().' '.self::getCodeString($this->getAnswerCode())."\r\n";
             $answer .= $this->getAnswerHeaders();
             #.ifdef 'SUPPORT_FASTCGI'
-            	$answer .= $this->rawAnswerHeaderData . "\r\n";
+            	if($this->rawAnswerHeaderData)
+            		$answer .= $this->rawAnswerHeaderData . "\r\n";
             #.endif
             $answer .= "\r\n";
             
@@ -849,6 +851,10 @@
         * 
         */
         public function getPOSTParams() {
+        	if($this->rawPOSTData) {
+        		$this->readPOSTData($this->rawPOSTData);
+        		$this->rawPOSTData = "";
+        	}
             return $this->POSTParameters;
         }
         
