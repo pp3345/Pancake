@@ -513,7 +513,7 @@
             $this->answerBody .= '<body>';
                 $this->answerBody .= '<h1>'.$this->answerCode.' '.$this->getCodeString($this->answerCode).'</h1>';
                 $this->answerBody .= '<hr/>';
-                $this->answerBody .= '<strong>'.($this->answerCode >= 500 ? 'Your HTTP-Request could not be processed' : 'Your HTTP-Request was invalid').'.</strong> Error description:<br/>';
+                $this->answerBody .= '<strong>'.($this->answerCode >= 500 ? 'Your HTTP request could not be processed' : 'Your HTTP request was invalid').'.</strong> Error description:<br/>';
                 $this->answerBody .= $exception->getMessage().'<br/><br/>';
                 if($exception->getHeader()) {
                     $this->answerBody .= "<strong>Headers:</strong><br/>";

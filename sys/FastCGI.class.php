@@ -36,7 +36,7 @@
 	#.define 'FCGI_OVERLOADED'       2
 	#.define 'FCGI_UNKNOWN_ROLE'     3
 	
-	#.define 'FCGI_APPEND_DATA' 1048576
+	#.define 'FCGI_APPEND_DATA' 1048576 
 	
 	class FastCGI {
 		private static $instances = array();
@@ -46,6 +46,9 @@
 		private $requests = array();
 		private $requestSockets = array();
 		private $lastHeaders = array();
+		private $address = "";
+		private $port = 0;
+		private $type = "";
 		
 		public static function getInstance($name) {
 			if(!isset(self::$instances[$name]))
@@ -60,25 +63,39 @@
 				throw new \Exception('Undefined FastCGI configuration: ' . $name);
 			
 			$this->mimeTypes = $config['mimetypes'];
+			$this->address = $config['address'];
+			$this->port = $config['port'];
+			$this->type = $config['type'];
 			
-			switch($config['type']) {
+			$this->connect();
+		}
+		
+		private function connect() {
+			switch($this->type) {
 				case 'ipv6':
 					$this->socket = socket_create(/* .constant 'AF_INET6' */, /* .constant 'SOCK_STREAM' */, /* .constant 'SOL_TCP' */);
-					if(!socket_connect($this->socket, $config['address'], $config['port']))
-						throw new \Exception('Unable to connect to FastCGI upstream server');
+					if(!socket_connect($this->socket, $this->address, $this->port)) {
+						trigger_error('Unable to connect to FastCGI upstream server at ipv6:' . $this->address . ':' . $this->port, /* .constant 'E_USER_ERROR' */);
+						return false;
+					}
 					break;
 				case 'ipv4':
 					$this->socket = socket_create(/* .constant 'AF_INET' */, /* .constant 'SOCK_STREAM' */, /* .constant 'SOL_TCP' */);
-					if(!socket_connect($this->socket, $config['address'], $config['port']))
-						throw new \Exception('Unable to connect to FastCGI upstream server');
+					if(!socket_connect($this->socket, $this->address, $this->port)) {
+						trigger_error('Unable to connect to FastCGI upstream server at ipv4:' . $this->address . ':' . $this->port, /* .constant 'E_USER_ERROR' */);
+						return false;
+					}
 					break;
 				default:
 					$this->socket = socket_create(/* .constant 'AF_UNIX' */, /* .constant 'SOCK_STREAM' */, 0);
-					if(!socket_connect($this->socket, $config['address']))
-						throw new \Exception('Unable to connect to FastCGI upstream server');
+					if(!socket_connect($this->socket, $this->address)) {
+						trigger_error('Unable to connect to FastCGI upstream server at unix:' . $this->address, /* .constant 'E_USER_ERROR' */);
+						return false;
+					}
 			}
-			
+				
 			socket_set_option($this->socket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_KEEPALIVE' */, 1);
+			return true;
 		}
 		
 		public function getMimeTypes() {
@@ -91,7 +108,13 @@
 			$requestID = ($requestIDInt < 256 ? "\0" . chr($requestIDInt) : chr($requestIDInt >> 8) . chr($requestIDInt));
 			
 			/* VERSION . TYPE . REQUEST_ID (2) . CONTENT_LENGTH (2) . PADDING_LENGTH . RESERVED . ROLE (2) . FLAG . RESERVED (5) */
-			socket_write($this->socket, "\1\1" .  $requestID . "\0\x8\0\0\0\1\1\0\0\0\0\0");
+			if(!socket_write($this->socket, "\1\1" .  $requestID . "\0\x8\0\0\0\1\1\0\0\0\0\0")) {
+				if(!$this->connect()) {
+					$requestObject->invalidRequest(new invalidHTTPRequestException("Failed to connect to FastCGI upstream server", 502));
+					return false;
+				} else
+					socket_write($this->socket, "\1\1" .  $requestID . "\0\x8\0\0\0\1\1\0\0\0\0\0");
+			}
 			
 			/* FCGI_PARAMS */
 			$body = "\xf" . chr(strlen(/* .VHOST */->getDocumentRoot() . /* .REQUEST_FILE_PATH */)) . "SCRIPT_FILENAME" . /* .VHOST */->getDocumentRoot() . /* .REQUEST_FILE_PATH */;
@@ -136,7 +159,7 @@
 				foreach($rawPostData as $recordData) {
 					/* FCGI_STDIN */
 					$strlen = strlen($recordData);
-					$contentLength = ($strlen < 256 ? ("\0" . $strlen) : (chr($strlen >> 8) . chr(strlen($recordData))));
+					$contentLength = ($strlen < 256 ? ("\0" . $strlen) : (chr($strlen >> 8) . chr($strlen)));
 					socket_write($this->socket, "\1\5" . $requestID . $contentLength . "\0\0" . $recordData);
 				}
 				
@@ -152,17 +175,31 @@
 		}
 		
 		public function upstreamRecord($data) {
+			if($data === "") {
+				/* Upstream server closed connection */
+				
+				foreach($this->requests as $requestID => $request) {
+					$request->invalidRequest(new invalidHTTPRequestException("The FastCGI upstream server unexpectedly closed the network connection.", 502));
+					
+					$retval = array($this->requestSockets[$requestID], $request);
+					unset($this->requestSockets[$requestID], $this->requests[$requestID]);
+					return $retval;
+				}
+				
+				$this->connect();
+				return 0;
+			}
 			if(strlen($data) < 8)
 				return /* .constant 'FCGI_APPEND_DATA' */ | (8 - strlen($data));
 			
-			$contentLength = (int) ((ord($data[4]) << 8) + ord($data[5]));
-			$requestID = (int) ((ord($data[2]) << 8) + ord($data[3]));
+			$contentLength = (ord($data[4]) << 8) + ord($data[5]);
+			$requestID = (ord($data[2]) << 8) + ord($data[3]);
 			$paddingLength = ord($data[6]);
 			
 			if(strlen($data) < (8 + $contentLength + $paddingLength))
 				return /* .constant 'FCGI_APPEND_DATA' */ | (8 + $contentLength + $paddingLength - strlen($data));
 			
-			$type = (int) ord($data[1]);
+			$type = ord($data[1]);
 			
 			$data = substr($data, 8, $contentLength);
 			
@@ -180,7 +217,9 @@
 				case /* .constant 'FCGI_END_REQUEST' */:
 					switch(ord($data[4])) {
 						case /* .constant 'FCGI_REQUEST_COMPLETE' */:
-							return array($this->requestSockets[$requestID], $this->requests[$requestID]);
+							$retval = array($this->requestSockets[$requestID], $this->requests[$requestID]);
+							unset($this->requestSockets[$requestID], $this->requests[$requestID]);
+							return $retval;
 					}
 			}
 		}

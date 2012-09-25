@@ -147,13 +147,17 @@
         	if(isset($fastCGISockets[(int) $socket])) {
         		$fastCGI = $fastCGISockets[(int) $socket];
         		do {
-        			if(!($newData = socket_read($socket, (isset($result) ? ($result & /* .constant 'FCGI_APPEND_DATA' */ ? $result ^ /* .constant 'FCGI_APPEND_DATA' */ : $result) : 8))))
-        				goto clean;
+        			$newData = socket_read($socket, (isset($result) ? ($result & /* .constant 'FCGI_APPEND_DATA' */ ? $result ^ /* .constant 'FCGI_APPEND_DATA' */ : $result) : 8));
         			if(isset($result) && $result & /* .constant 'FCGI_APPEND_DATA' */)
         				$data .= $newData;
         			else
         				$data = $newData;
         			$result = $fastCGI->upstreamRecord($data);
+        			if($result === 0) {
+        				unset($fastCGISockets[(int) $socket]);
+        				unset($listenSocketsOrig[array_search($socket, $listenSocketsOrig)]);
+        				goto clean;
+        			}
         		} while(!is_array($result));
         		 
         		if(is_array($result)) {
@@ -405,7 +409,8 @@
         #.ifdef 'SUPPORT_FASTCGI'
         	// FastCGI
         	if($fastCGI = /* .VHOST */->getFastCGI(/* .MIME_TYPE */)) {
-        		$fastCGI->makeRequest($requestObject, $requestSocket);
+        		if($fastCGI->makeRequest($requestObject, $requestSocket) === false)
+        			goto write;
         		if(!in_array($fastCGI->socket, $listenSocketsOrig)) {
         			$listenSocketsOrig[] = $fastCGI->socket;
         			$fastCGISockets[(int) $fastCGI->socket] = $fastCGI;
