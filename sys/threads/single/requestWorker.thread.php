@@ -147,7 +147,7 @@
         	if(isset($fastCGISockets[(int) $socket])) {
         		$fastCGI = $fastCGISockets[(int) $socket];
         		do {
-        			if(!($newData = socket_read($socket, (isset($result) ? ($result & 32768 ? $result ^ 32768 : $result) : 8))))
+        			if(!($newData = socket_read($socket, (isset($result) ? ($result & /* .constant 'FCGI_APPEND_DATA' */ ? $result ^ /* .constant 'FCGI_APPEND_DATA' */ : $result) : 8))))
         				goto clean;
         			if(isset($result) && $result & /* .constant 'FCGI_APPEND_DATA' */)
         				$data .= $newData;
@@ -405,7 +405,6 @@
         #.ifdef 'SUPPORT_FASTCGI'
         	// FastCGI
         	if($fastCGI = /* .VHOST */->getFastCGI(/* .MIME_TYPE */)) {
-        		out('ACCESS FASTCGI');
         		$fastCGI->makeRequest($requestObject, $requestSocket);
         		if(!in_array($fastCGI->socket, $listenSocketsOrig)) {
         			$listenSocketsOrig[] = $fastCGI->socket;
