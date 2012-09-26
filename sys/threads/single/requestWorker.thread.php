@@ -76,9 +76,8 @@
     #.include 'invalidHTTPRequest.exception.php'
     
     #.ifdef 'SUPPORT_FASTCGI'
-    	foreach($Pancake_vHosts as $vHost) {
+    	foreach($Pancake_vHosts as $vHost)
 			$vHost->initializeFastCGI();
-    	}
     #.endif
     
     MIME::load();

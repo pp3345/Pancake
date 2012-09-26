@@ -108,7 +108,7 @@
 			$requestID = ($requestIDInt < 256 ? "\0" . chr($requestIDInt) : chr($requestIDInt >> 8) . chr($requestIDInt));
 			
 			/* VERSION . TYPE . REQUEST_ID (2) . CONTENT_LENGTH (2) . PADDING_LENGTH . RESERVED . ROLE (2) . FLAG . RESERVED (5) */
-			if(!socket_write($this->socket, "\1\1" .  $requestID . "\0\x8\0\0\0\1\1\0\0\0\0\0")) {
+			if(!@socket_write($this->socket, "\1\1" .  $requestID . "\0\x8\0\0\0\1\1\0\0\0\0\0")) {
 				if(!$this->connect()) {
 					$requestObject->invalidRequest(new invalidHTTPRequestException("Failed to connect to FastCGI upstream server", 502));
 					return false;
@@ -127,7 +127,7 @@
 			$body .= "\xb" . chr(strlen(/* .REMOTE_IP */)) . "REMOTE_ADDR" . /* .REMOTE_IP */;
 			$body .= "\xb" . chr(strlen(/* .VHOST */->getHost())) . "SERVER_NAME" . /* .VHOST */->getHost();
 			$body .= "\xb" . chr(strlen(/* .LOCAL_PORT */)) . "SERVER_PORT" . /* .LOCAL_PORT */;
-			$body .= /* .eval 'return "\xf" . chr(strlen("Pancake\\\" . \Pancake\VERSION)) . "SERVER_SOFTWAREPancake\\\" . \Pancake\VERSION;' */;
+			$body .= /* .eval 'return "\xf" . chr(strlen("Pancake/" . \Pancake\VERSION)) . "SERVER_SOFTWAREPancake/" . \Pancake\VERSION;' */;
 			$body .= "\xb" . chr(strlen(/* .LOCAL_IP */)) . "SERVER_ADDR" . /* .LOCAL_IP */;
 
 			if(/* .RAW_POST_DATA */) {
@@ -159,7 +159,7 @@
 				foreach($rawPostData as $recordData) {
 					/* FCGI_STDIN */
 					$strlen = strlen($recordData);
-					$contentLength = ($strlen < 256 ? ("\0" . $strlen) : (chr($strlen >> 8) . chr($strlen)));
+					$contentLength = ($strlen < 256 ? ("\0" . chr($strlen)) : (chr($strlen >> 8) . chr($strlen)));
 					socket_write($this->socket, "\1\5" . $requestID . $contentLength . "\0\0" . $recordData);
 				}
 				
@@ -216,6 +216,9 @@
 					return 8;
 				case /* .constant 'FCGI_END_REQUEST' */:
 					switch(ord($data[4])) {
+						default:
+							$this->requests[$requestID]->invalidRequest(new invalidHTTPRequestException('The upstream server is currently overloaded.', 502));
+							// fallthrough
 						case /* .constant 'FCGI_REQUEST_COMPLETE' */:
 							$retval = array($this->requestSockets[$requestID], $this->requests[$requestID]);
 							unset($this->requestSockets[$requestID], $this->requests[$requestID]);
