@@ -138,6 +138,11 @@
 			// HTTP header data
 			foreach($requestObject->requestHeaders as $headerName => $headerValue) {
 				$headerName = 'HTTP_' . str_replace('-', '_', strtoupper($headerName));
+				if($headerName == 'HTTP_CONNECTION'
+				|| $headerName == 'HTTP_CONTENT_TYPE'
+				|| $headerName == 'HTTP_CONTENT_LENGTH'
+				|| $headerName == 'HTTP_AUTHORIZATION')
+					continue;
 				$strlenName = strlen($headerName);
 				$strlenValue = strlen($headerValue);
 				if($strlenName < 128 && $strlenValue < 128)
