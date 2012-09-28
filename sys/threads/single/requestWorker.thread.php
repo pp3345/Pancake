@@ -157,12 +157,11 @@
         				unset($listenSocketsOrig[array_search($socket, $listenSocketsOrig)]);
         				goto clean;
         			}
-        		} while(!is_array($result));
+        		} while($result & /* .constant 'FCGI_APPEND_DATA' */);
         		 
         		if(is_array($result)) {
-        			$requestSocket = $result[0];
+        			list($requestSocket, $requestObject) = $result;
         			$socketID = (int) $requestSocket;
-        			$requestObject = $result[1];
         	
         			unset($result);
         			goto write;
