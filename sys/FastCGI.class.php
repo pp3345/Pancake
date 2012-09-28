@@ -199,6 +199,7 @@
 			
 			$contentLength = (ord($data[4]) << 8) + ord($data[5]);
 			$requestID = (ord($data[2]) << 8) + ord($data[3]);
+			$requestObject = $this->requests[$requestID];
 			$paddingLength = ord($data[6]);
 			
 			if(strlen($data) < (8 + $contentLength + $paddingLength))
@@ -210,23 +211,35 @@
 			
 			switch($type) {
 				case /* .constant 'FCGI_STDOUT' */:
-					if(!$this->requests[$requestID]->anserBody && strpos($data, "\r\n\r\n")) {
+					if(!isset($requestObject->headerDataCompleted)) {
+						if(strpos($data, "\r\n\r\n"))
+							$requestObject->headerDataCompleted = true;
 						$contentBody = explode("\r\n\r\n", $data, 2);
-						$this->requests[$requestID]->rawAnswerHeaderData .= $contentBody[0];
+						foreach(explode("\r\n", $contentBody[0]) as $header) {
+							list($headerName, $headerValue) = explode(":", $header, 2);
+							if($headerName == 'Status') {
+								$requestObject->setAnswerCode((int) $headerValue);
+								continue;
+							}
+							$requestObject->setHeader(trim($headerName), trim($headerValue), false);
+						}
+						
+						if(isset($contentBody[1]))
+							$requestObject->answerBody .= $contentBody[1];
+						return 8;
 					}
-					if(isset($contentBody) && isset($contentBody[1]))
-						$this->requests[$requestID]->answerBody .= $contentBody[1];
-					else if(!isset($contentBody))
-						$this->requests[$requestID]->answerBody .= $data;
+					
+					$requestObject->answerBody .= $data;
+					
 					return 8;
 				case /* .constant 'FCGI_END_REQUEST' */:
 					switch(ord($data[4])) {
 						default:
-							$this->requests[$requestID]->invalidRequest(new invalidHTTPRequestException('The upstream server is currently overloaded.', 502));
+							$requestObject->invalidRequest(new invalidHTTPRequestException('The upstream server is currently overloaded.', 502));
 							// fallthrough
 						case /* .constant 'FCGI_REQUEST_COMPLETE' */:
-							$retval = array($this->requestSockets[$requestID], $this->requests[$requestID]);
-							unset($this->requestSockets[$requestID], $this->requests[$requestID]);
+							$retval = array($this->requestSockets[$requestID], $requestObject);
+							unset($this->requestSockets[$requestID], $requestObject);
 							return $retval;
 					}
 			}
