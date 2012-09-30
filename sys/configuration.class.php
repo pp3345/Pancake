@@ -138,12 +138,12 @@
         * 
         * @param string $path YAML-path to requested configuration-value
         */
-        static public function get($path) {
+        static public function get($path, $defaultValue = null) {
             $path = explode('.', $path);
             $data = self::$configuration;
             foreach($path as $part)
                 $data = $data[$part];
-            return $data;
+            return $data !== null ? $data : $defaultValue;
         }
     }
 ?>

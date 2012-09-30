@@ -56,6 +56,8 @@
         private $deletePredefinedConstantsAfterCodeCacheLoad = false;
         private $fixStaticMethodCalls = false;
         private $fastCGI = array();
+        private $exceptionPageHandler = "";
+        private $directoryPageHandler = "";
         static private $defaultvHost = null;
         
         /**
@@ -112,6 +114,8 @@
             $this->phpMaxExecutionTime = (int) $config['phpmaxexecutiontime'];
             $this->fixStaticMethodCalls = (!$this->phpCodeCache) || ($this->phpCodeCache && $config['phpfixstaticmethodcalls'] === false) ? false : true;
             $this->fastCGI = (array) $config['fastcgi'];
+            $this->exceptionPageHandler = $config['exceptionpagehandler'] && is_readable($config['exceptionpagehandler']) ? $config['exceptionpagehandler'] : getcwd() . '/php/exceptionPageHandler.php';
+            $this->directoryPageHandler = $config['directorypagehandler'] && is_readable($config['directorypagehandler']) ? $config['directorypagehandler'] : getcwd() . '/php/directoryPageHandler.php';
             
             // Check for Hosts to listen on
             $this->listen = (array) $config['listen'];
@@ -604,6 +608,24 @@
         public function getFastCGI($mimeType) {
         	if(isset($this->fastCGI[$mimeType]))
         		return $this->fastCGI[$mimeType];
+        }
+        
+        /**
+         * Returns the exception page handler for this vHost
+         * 
+         * @return string
+         */
+        public function getExceptionPageHandler() {
+        	return $this->exceptionPageHandler;
+        }
+        
+        /**
+         * Returns the directory page handler for this vHost
+         *
+         * @return string
+         */
+        public function getDirectoryPageHandler() {
+        	return $this->directoryPageHandler;
         }
         
         /**

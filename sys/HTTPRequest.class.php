@@ -496,32 +496,17 @@
         * @param invalidHTTPRequestException $exception
         */
         public function invalidRequest(invalidHTTPRequestException $exception) {
-            $this->setHeader('Content-Type', 'text/html; charset=utf-8');
-            $this->answerCode = $exception->getCode();
-            $this->answerBody = '<!doctype html>';
-            $this->answerBody .= '<html>';
-            $this->answerBody .= '<head>';
-                $this->answerBody .= '<title>'.$this->answerCode.' '.$this->getCodeString($this->answerCode).'</title>';
-                $this->answerBody .= '<style>';
-                    $this->answerBody .= 'body{font-family:"Arial"}';
-                    $this->answerBody .= 'hr{border:1px solid #000}';
-                $this->answerBody .= '</style>';
-            $this->answerBody .= '</head>';
-            $this->answerBody .= '<body>';
-                $this->answerBody .= '<h1>'.$this->answerCode.' '.$this->getCodeString($this->answerCode).'</h1>';
-                $this->answerBody .= '<hr/>';
-                $this->answerBody .= '<strong>'.($this->answerCode >= 500 ? 'Your HTTP request could not be processed' : 'Your HTTP request was invalid').'.</strong> Error description:<br/>';
-                $this->answerBody .= $exception->getMessage().'<br/><br/>';
-                if($exception->getHeader()) {
-                    $this->answerBody .= "<strong>Headers:</strong><br/>";
-                    $this->answerBody .= nl2br($exception->getHeader());
-                }
-                #.if /* .eval 'return Pancake\Config::get("main.exposepancake");' */ === true
-                    $this->answerBody .= '<hr/>';
-                    $this->answerBody .= /* .eval "return 'Pancake ' . Pancake\VERSION;" */;
-                #.endif
-            $this->answerBody .= '</body>';
-            $this->answerBody .= '</html>';
+        	$requestObject = $this;
+        	
+        	$this->answerCode = $exception->getCode();
+        	$this->setHeader('Content-Type', MIME::typeOf($this->vHost->getExceptionPageHandler()));
+        	
+        	ob_start();
+        	
+        	if(!include($this->vHost->getExceptionPageHandler()))
+        		include 'php/exceptionPageHandler.php';
+        	
+        	$this->answerBody = ob_get_clean();
         }
        
         #.ifndef 'PHPWORKER'

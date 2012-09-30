@@ -489,82 +489,26 @@
             $directory = scandir(/* .VHOST */->getDocumentRoot(). /* .REQUEST_FILE_PATH */);
             $requests[$socketID]->setHeader('Content-Type', 'text/html; charset=utf-8');
             
-            // Build directory listing
-            $body =  '<!doctype html>';
-            $body .= '<html>';
-            $body .= '<head>';
-            $body .= '<title>Index of ' . /* .REQUEST_FILE_PATH */ . '</title>';
-            $body .= '<style>';
-                $body .= 'body{font-family:"Arial"}';
-                $body .= 'thead{font-weight:bold}';
-                $body .= 'hr{border:1px solid #000}';
-            $body .= '</style>';
-            $body .= '</head>';
-            $body .= '<body>';
-            $body .= '<h1>Index of ' . /* .REQUEST_FILE_PATH */ . '</h1>';
-            $body .= '<hr/>';
-            $body .= '<table>';
-                $body .= '<thead><tr>';
-                    $body .= '<th>Filename</th>';
-                    $body .= '<th>Type</th>';
-                    $body .= '<th>Last Modified</th>';
-                    $body .= '<th>Size</th>';
-                $body .= '</tr></thead>';
-                $body .= '<tbody>';
-                    $body .= '<tr>';
-                        $body .= '<td>';
-                            $dirname = dirname(/* .REQUEST_FILE_PATH */);
-                            $body .= '<a href="http://' . /* .SIMPLE_GET_REQUEST_HEADER '"Host"' */ . $dirname . '">../</a>';
-                        $body .= '</td>';
-                        $body .= '<td>';
-                            $body .= 'Directory';
-                        $body .= '</td>';
-                    $body .= '</tr>';
-                    foreach($directory as $file) {
-                        if($file == '.' 
-                        || $file == '..'
-                        || !is_readable(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH*/.'/'.$file))
-                            continue;
-                        
-                        $body .= '<tr>';
-                            $body .= '<td>';
-                                if(substr(/* .REQUEST_FILE_PATH*/, -1) != '/') $add = '/';
-                                if(is_dir(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH*/.'/'.$file))
-                                    $body .= '<a href="http://'./* .SIMPLE_GET_REQUEST_HEADER '"Host"' */./* .REQUEST_FILE_PATH*/.$add.$file.'/">'.$file.'/</a>';
-                                else
-                                    $body .= '<a href="http://'./* .SIMPLE_GET_REQUEST_HEADER '"Host"' */./* .REQUEST_FILE_PATH*/.$add.$file.'">'.$file.'</a>';
-                            $body .= '</td>';
-                            $body .= '<td>';
-                                if(is_dir(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH*/.'/'.$file))
-                                    $body .= 'Directory';
-                                else
-                                    $body .= MIME::typeOf(/* .VHOST */->getDocumentRoot() . /* .REQUEST_FILE_PATH*/ . '/' . $file);
-                            $body .= '</td>';
-                            $body .= '<td>';
-                                $body .= date(/* .eval 'return Pancake\Config::get("main.dateformat");' */, filemtime(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH*/.'/'.$file));
-                            $body .= '</td>';
-                            if(!is_dir(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH*/.'/'.$file)) {
-                                $body .= '<td>';
-                                    $body .= formatFilesize(filesize(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH*/.'/'.$file));
-                                $body .= '</td>';
-                            }
-                        $body .= '</tr>';
-                    }
-                $body .= '</tbody>';
-            $body .= '</table>';
+            $files = array();
             
+            foreach($directory as $file) {
+            	if($file == '.')
+            		continue;
+            	$isDir = is_dir(/* .VHOST */->getDocumentRoot() . /* .REQUEST_FILE_PATH*/ . $file);
+            	$files[] = array('name' => $file, 'address' => 'http://' . /* .SIMPLE_GET_REQUEST_HEADER '"Host"' */ . /* .REQUEST_FILE_PATH*/ . $file . ($isDir ? '/' : ''), 'directory' => $isDir, 'type' => MIME::typeOf($file), 'modified' => filemtime(/* .VHOST */->getDocumentRoot().  /* .REQUEST_FILE_PATH*/ . $file), 'size' => filesize(/* .VHOST */->getDocumentRoot() . /* .REQUEST_FILE_PATH*/ . $file));
+            }
             
-            #.if /* .eval 'return Pancake\Config::get("main.exposepancake");' */ === true
-                $body .= '<hr/>';
-                $body .= /* .eval 'return "Pancake " . Pancake\VERSION;' */;
-            #.endif
-            
-            $body .= '</body>';
-            $body .= '</html>';
-            $requests[$socketID]->setAnswerBody($body);
+            $requestObject->setHeader('Content-Type', 'text/html; charset=utf-8');
+             
+            ob_start();
+             
+            if(!include(/* .VHOST */->getDirectoryPageHandler()))
+            	include 'php/directoryPageHandler.php';
+             
+            /* .ANSWER_BODY */ = ob_get_clean();
         } else {
-            $requests[$socketID]->setHeader('Content-Type', /* .MIME_TYPE */); 
-            $requests[$socketID]->setHeader('Accept-Ranges', 'bytes'); 
+            $requestObject->setHeader('Content-Type', /* .MIME_TYPE */); 
+            $requestObject->setHeader('Accept-Ranges', 'bytes'); 
             
             // Check if GZIP-compression should be used  
             if($requests[$socketID]->acceptsCompression('gzip') && /* .VHOST */->allowGZIPCompression() === true && filesize(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */) >= /* .VHOST */->getGZIPMimimum()) {
