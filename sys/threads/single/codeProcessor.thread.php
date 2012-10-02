@@ -35,6 +35,9 @@
 		Configuration::set($name, $value);
 	}
 	
+	if(!Configuration::get('deletewhitespaces', false))
+		Configuration::set('supportwhitespacedeletion', false);
+	
 	try {
 		$tokens = Token::tokenize(file_get_contents($Pancake_currentThread->processFile), $Pancake_currentThread->processFile);
 		
