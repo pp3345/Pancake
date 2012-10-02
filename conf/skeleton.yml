@@ -26,3 +26,8 @@ main:
   waitslottime: 5000
   waitslotwaitlimit: 5
   socketbacklog: 100
+moody:
+  deletewhitespaces: false
+  compressvariables: false
+  compressproperties: false
+  deletecomments: true
