@@ -62,6 +62,12 @@
     // It is impossible to keep this in a more readable way thanks to the nice Zend Tokenizer
    	#.define 'POST_MAX_SIZE' /* .eval '$size = strtolower(ini_get("post_max_size")); if(strpos($size, "k")) $size = (int) $size * 1024; else if(strpos($size, "m")) $size = (int) $size * 1024 * 1024; else if(strpos($size, "g")) $size = (int) $size * 1024 * 1024 * 1024; return $size;' */
 
+    // Do not rename properties in HTTPRequest class as the properties in the PHPWorkers will have different names
+    // In order not to get problems with later used properties, always deactivate the setting
+    #.if /* .config 'compressproperties' */
+    	#.config 'compressproperties' false
+    #.endif
+    
     #.include 'mime.class.php'
     
     #.ifdef 'SUPPORT_TLS'
@@ -72,10 +78,6 @@
     	#.include 'FastCGI.class.php'
     #.endif
     
-    // Do not rename properties in HTTPRequest class as the properties in the PHPWorkers will have different names
-    #.if /* .config 'compressproperties' */
-    	#.config 'compressproperties' false
-    #.endif
     #.include 'HTTPRequest.class.php'
     #.include 'invalidHTTPRequest.exception.php'
     
@@ -433,7 +435,7 @@
 	      			$waits[$socketID]++;
 	            	
 	            	if($waits[$socketID] > /* .eval 'return Pancake\Config::get("main.waitslotwaitlimit");' */) {
-	            		$requests[$socketID]->invalidRequest(new invalidHTTPRequestException('There was no worker available to serve your request. Please try again later.', 500));
+	            		$requestObject->invalidRequest(new invalidHTTPRequestException('There was no worker available to serve your request. Please try again later.', 500));
 	            		goto write;
 	            	}	
 	            	
@@ -441,7 +443,7 @@
 	            	
 	            	goto clean;
 	        	#.else
-	            	$requests[$socketID]->invalidRequest(new invalidHTTPRequestException('There was no worker available to serve your request. Please try again later.', 500));
+	            	$requestObject->invalidRequest(new invalidHTTPRequestException('There was no worker available to serve your request. Please try again later.', 500));
 	            	goto write;
 	           	#.endif
             }

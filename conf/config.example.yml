@@ -35,8 +35,8 @@ include:                                                        # Additional con
   - ../conf/mime.yml
 moody:
   deletewhitespaces: false
-  compressvariables: true
-  compressproperties: true
+  compressvariables: false
+  compressproperties: false
   deletecomments: true
 FastCGI:                                                        # FastCGI upstream server configurations
 #  php:                                                         # This example configuration could be used to use the native php-fpm SAPI instead of the Pancake SAPI for executing PHP
