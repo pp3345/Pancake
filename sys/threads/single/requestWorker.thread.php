@@ -341,7 +341,7 @@
 	    #.if /* .eval 'return Pancake\Config::get("main.allowoptions");' */
 	        // Check for "OPTIONS"-requestmethod
 	        if(/* .REQUEST_TYPE */ == 'OPTIONS')
-	            $requests[$socketID]->setHeader('Allow', 
+	            $requestObject->setHeader('Allow', 
 	            /* .eval '$allow = "GET, POST, OPTIONS";
 	            if(Pancake\Config::get("main.allowhead") === true)
 	                $allow .= ", HEAD";
@@ -354,16 +354,16 @@
         // Output debug information
         #.if Pancake\DEBUG_MODE === true
         if(array_key_exists('pancakedebug', /* .GET_PARAMS */)) {
-            $requests[$socketID]->setHeader('Content-Type', 'text/plain');
+            $requestObject->setHeader('Content-Type', 'text/plain');
                                                     
-            $body = 'Received Headers:'."\r\n";
-            $body .= $requests[$socketID]->getRequestLine()."\r\n";
-            $body .= $requests[$socketID]->getRequestHeaders()."\r\n";
-            $body .= 'Received POST content:'."\r\n";
+            $body = 'Received Headers:' . "\r\n";
+            $body .= /* .REQUEST_LINE */ . "\r\n";
+            $body .= $requestObject->getRequestHeaders() . "\r\n";
+            $body .= 'Received POST content:' . "\r\n";
             $body .= $postData[$socketID] . "\r\n\r\n";
-            $body .= 'Dump of RequestObject:'."\r\n";
-            $body .= print_r($requests[$socketID], true);
-            $requests[$socketID]->setAnswerBody($body);
+            $body .= 'Dump of RequestObject:' . "\r\n";
+            $body .= print_r($requestObject, true);
+            /* .ANSWER_BODY */ = $body;
             
             goto write;
         }
@@ -375,15 +375,15 @@
             switch($_GET[""]) {
                 case 'PHPE9568F34-D428-11d2-A769-00AA001ACF42':
                     $logo = file_get_contents('logo/php.gif');
-                    $requests[$socketID]->setHeader('Content-Type', 'image/gif');
+                    $requestObject->setHeader('Content-Type', 'image/gif');
                 break;
                 case 'PHPE9568F35-D428-11d2-A769-00AA001ACF42':
                     $logo = file_get_contents('logo/zend.gif');
-                    $requests[$socketID]->setHeader('Content-Type', 'image/gif');
+                    $requestObject->setHeader('Content-Type', 'image/gif');
                 break;
                 case 'PHPE9568F36-D428-11d2-A769-00AA001ACF42':
                     $logo = file_get_contents('logo/php_egg.gif');
-                    $requests[$socketID]->setHeader('Content-Type', 'image/gif');
+                    $requestObject->setHeader('Content-Type', 'image/gif');
                 break;
                 case 'PHPB8B5F2A0-3C92-11d3-A3A9-4C7B08C10000':
                     ob_start();
@@ -395,13 +395,13 @@
                 #.if /* .eval 'return Pancake\Config::get("main.exposepancake");' */ === true
                 case 'PAN8DF095AE-6639-4C6F-8831-5AB8FBD64D8B':
                     $logo = file_get_contents('logo/pancake.png');
-                    $requests[$socketID]->setHeader('Content-Type', 'image/png');
+                    $requestObject->setHeader('Content-Type', 'image/png');
                     break;
           		#.endif
                 default:
                     goto load;
             }
-            $requests[$socketID]->setAnswerBody($logo);
+            /* .ANSWER_BODY */ = $logo;
             unset($logo);
             unset($_GET);
             goto write;
@@ -482,11 +482,11 @@
         // Get time of last modification
         $modified = filemtime(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */);
         // Set Last-Modified-Header as RFC 2822
-        $requests[$socketID]->setHeader('Last-Modified', date('r', $modified));
+        $requestObject->setHeader('Last-Modified', date('r', $modified));
         
         // Check for If-Modified-Since
         if(strtotime(/* .SIMPLE_GET_REQUEST_HEADER '"If-Modified-Since"' */) == $modified) {
-        	$requests[$socketID]->setAnswerCode(304);
+        	/* .ANSWER_CODE */ = 304;
             goto write;
         }
         
@@ -536,9 +536,9 @@
             $requestObject->setHeader('Accept-Ranges', 'bytes'); 
             
             // Check if GZIP-compression should be used  
-            if($requests[$socketID]->acceptsCompression('gzip') && /* .VHOST */->allowGZIPCompression() === true && filesize(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */) >= /* .VHOST */->getGZIPMimimum()) {
+            if($requestObject->acceptsCompression('gzip') && /* .VHOST */->allowGZIPCompression() === true && filesize(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */) >= /* .VHOST */->getGZIPMimimum()) {
                 // Set encoding-header
-                $requests[$socketID]->setHeader('Content-Encoding', 'gzip');
+                $requestObject->setHeader('Content-Encoding', 'gzip');
                 // Create temporary file
                 $gzipPath[$socketID] = tempnam(/* .eval 'return Pancake\Config::get("main.tmppath");' */, 'GZIP');
                 $gzipFileHandle = gzopen($gzipPath[$socketID], 'w' . /* .VHOST */->getGZIPLevel());
@@ -551,20 +551,20 @@
                 gzclose($gzipFileHandle);
                 $requestFileHandle[$socketID] = fopen($gzipPath[$socketID], 'r');
                 // Set Content-Length
-                $requests[$socketID]->setHeader('Content-Length', filesize($gzipPath[$socketID]) - /* .RANGE_FROM */);
+                $requestObject->setHeader('Content-Length', filesize($gzipPath[$socketID]) - /* .RANGE_FROM */);
             } else {
-                $requests[$socketID]->setHeader('Content-Length', filesize(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */) - /* .RANGE_FROM */);
+                $requestObject->setHeader('Content-Length', filesize(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */) - /* .RANGE_FROM */);
                 $requestFileHandle[$socketID] = fopen(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */, 'r');
             }
             
             // Check if a specific range was requested
             if(/* .RANGE_FROM */) {
-                $requests[$socketID]->setAnswerCode(206);
+                /* .ANSWER_CODE */ = 206;
                 fseek($requestFileHandle[$socketID], /* .RANGE_FROM */);
                 if($gzipPath[$socketID])
-                    $requests[$socketID]->setHeader('Content-Range', 'bytes ' . /* .RANGE_FROM */.'-'.(filesize($gzipPath[$socketID]) - 1).'/'.filesize($gzipPath[$socketID]));
+                    $requestObject->setHeader('Content-Range', 'bytes ' . /* .RANGE_FROM */.'-'.(filesize($gzipPath[$socketID]) - 1).'/'.filesize($gzipPath[$socketID]));
                 else
-                    $requests[$socketID]->setHeader('Content-Range', 'bytes ' . /* .RANGE_FROM */.'-'.(filesize(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */) - 1).'/'.filesize(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */));
+                    $requestObject->setHeader('Content-Range', 'bytes ' . /* .RANGE_FROM */.'-'.(filesize(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */) - 1).'/'.filesize(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */));
             }
         }
         
@@ -583,7 +583,7 @@
         out('REQ './* .ANSWER_CODE */.' './* .REMOTE_IP */.': './* .REQUEST_LINE */.' on vHost '.((/* .VHOST */) ? /* .VHOST */->getName() : null).' (via './* .SIMPLE_GET_REQUEST_HEADER '"Host"' */.' from './* .SIMPLE_GET_REQUEST_HEADER "'Referer'" */.') - './* .SIMPLE_GET_REQUEST_HEADER '"User-Agent"' */, /* .constant 'Pancake\REQUEST' */);
 
         // Check if user wants keep-alive connection
-        if($requests[$socketID]->getAnswerHeader('Connection') == 'keep-alive')
+        if($requestObject->getAnswerHeader('Connection') == 'keep-alive')
             socket_set_option($requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_KEEPALIVE' */, 1);
 
         // Increment amount of processed requests
@@ -640,7 +640,7 @@
         close:
 
         // Close socket
-        if(!isset($requests[$socketID]) || $requests[$socketID]->getAnswerHeader('Connection') != 'keep-alive') {
+        if(!isset($requests[$socketID]) || $requestObject->getAnswerHeader('Connection') != 'keep-alive') {
             @socket_shutdown($requestSocket);
             socket_close($requestSocket);
 
@@ -649,7 +649,7 @@
         }
         
         if(isset($requests[$socketID])) {
-            if(!in_array($requestSocket, $listenSocketsOrig, true) && $requests[$socketID]->getAnswerHeader('Connection') == 'keep-alive')
+            if(!in_array($requestSocket, $listenSocketsOrig, true) && $requestObject->getAnswerHeader('Connection') == 'keep-alive')
                 $listenSocketsOrig[] = $requestSocket;
                
             foreach((array) /* .UPLOADED_FILES */ as $file)
