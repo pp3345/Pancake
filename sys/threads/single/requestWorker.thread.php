@@ -51,6 +51,10 @@
     	#.define 'SUPPORT_FASTCGI' true
     #.endif
     
+    #.if /* .config 'compressvariables' */
+    	#.define 'COMPRESS_VARIABLES' true
+    #.endif
+    
     global $Pancake_sockets;
     global $Pancake_vHosts;
     
@@ -487,21 +491,40 @@
         // Check for directory
         if(is_dir(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */)) {
             $directory = scandir(/* .VHOST */->getDocumentRoot(). /* .REQUEST_FILE_PATH */);
-            $requests[$socketID]->setHeader('Content-Type', 'text/html; charset=utf-8');
-            
+            #.config 'compressvariables' false
             $files = array();
+            #.ifdef 'COMPRESS_VARIABLES'
+            	#.config 'compressvariables' true
+            #.endif
             
             foreach($directory as $file) {
             	if($file == '.')
             		continue;
             	$isDir = is_dir(/* .VHOST */->getDocumentRoot() . /* .REQUEST_FILE_PATH*/ . $file);
-            	$files[] = array('name' => $file, 'address' => 'http://' . /* .SIMPLE_GET_REQUEST_HEADER '"Host"' */ . /* .REQUEST_FILE_PATH*/ . $file . ($isDir ? '/' : ''), 'directory' => $isDir, 'type' => MIME::typeOf($file), 'modified' => filemtime(/* .VHOST */->getDocumentRoot().  /* .REQUEST_FILE_PATH*/ . $file), 'size' => filesize(/* .VHOST */->getDocumentRoot() . /* .REQUEST_FILE_PATH*/ . $file));
+            	#.config 'compressvariables' false
+            	$files[] =
+            	#.ifdef 'COMPRESS_VARIABLES'
+            		#.config 'compressvariables' true
+            	#.endif
+            	array('name' => $file,
+            			'address' => 'http://' . /* .SIMPLE_GET_REQUEST_HEADER '"Host"' */ . /* .REQUEST_FILE_PATH*/ . $file . ($isDir ? '/' : ''),
+            			'directory' => $isDir,
+            			'type' => MIME::typeOf($file),
+            			'modified' => filemtime(/* .VHOST */->getDocumentRoot().  /* .REQUEST_FILE_PATH*/ . $file),
+            			'size' => filesize(/* .VHOST */->getDocumentRoot() . /* .REQUEST_FILE_PATH*/ . $file));
             }
             
             $requestObject->setHeader('Content-Type', 'text/html; charset=utf-8');
-             
+            
+     		#.ifdef 'COMPRESS_VARIABLES'
+     			#.config 'compressvariables' false
+     			$requestObject = 
+     			#.config 'compressvariables' true
+     			$requestObject;
+            #.endif
+            
             ob_start();
-             
+            
             if(!include(/* .VHOST */->getDirectoryPageHandler()))
             	include 'php/directoryPageHandler.php';
              

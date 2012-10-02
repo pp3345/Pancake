@@ -65,7 +65,7 @@
 			$this->mimeTypes = $config['mimetypes'];
 			$this->address = $config['address'];
 			$this->port = $config['port'];
-			$this->type = $config['type'];
+			$this->type = strtolower($config['type']);
 			
 			$this->connect();
 		}
@@ -218,18 +218,18 @@
 						foreach(explode("\r\n", $contentBody[0]) as $header) {
 							list($headerName, $headerValue) = explode(":", $header, 2);
 							if($headerName == 'Status') {
-								$requestObject->setAnswerCode((int) $headerValue);
+								/* .ANSWER_CODE */ = (int) $headerValue;
 								continue;
 							}
 							$requestObject->setHeader(trim($headerName), trim($headerValue), false);
 						}
 						
 						if(isset($contentBody[1]))
-							$requestObject->answerBody .= $contentBody[1];
+							/* .ANSWER_BODY */ .= $contentBody[1];
 						return 8;
 					}
 					
-					$requestObject->answerBody .= $data;
+					/* .ANSWER_BODY */ .= $data;
 					
 					return 8;
 				case /* .constant 'FCGI_END_REQUEST' */:

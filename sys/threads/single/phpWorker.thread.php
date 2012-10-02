@@ -14,6 +14,10 @@
 	#.mapVariable '$vHost' '$vHost'
 	
 	#.define 'PHPWORKER' true
+	
+	#.if /* .config 'compressvariables' */
+		#.define 'COMPRESS_VARIABLES' true
+	#.endif
     
     namespace {
     	#.include 'php/sapi.php'
