@@ -125,7 +125,7 @@
 			$body .= "\x11\x7GATEWAY_INTERFACECGI/1.1";
 			$body .= "\xb" . chr(strlen(/* .REQUEST_URI */)) . "REQUEST_URI" . /* .REQUEST_URI */;
 			$body .= "\xb" . chr(strlen(/* .REMOTE_IP */)) . "REMOTE_ADDR" . /* .REMOTE_IP */;
-			$body .= "\xb" . chr(strlen(/* .VHOST */->hosts[0])) . "SERVER_NAME" . /* .VHOST */->hosts[0];
+			$body .= "\xb" . chr(strlen(/* .VHOST */->listen[0])) . "SERVER_NAME" . /* .VHOST */->listen[0];
 			$body .= "\xb" . chr(strlen(/* .LOCAL_PORT */)) . "SERVER_PORT" . /* .LOCAL_PORT */;
 			$body .= /* .eval 'return "\xf" . chr(strlen("Pancake/" . \Pancake\VERSION)) . "SERVER_SOFTWAREPancake/" . \Pancake\VERSION;' */;
 			$body .= "\xb" . chr(strlen(/* .LOCAL_IP */)) . "SERVER_ADDR" . /* .LOCAL_IP */;
