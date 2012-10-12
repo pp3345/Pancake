@@ -55,7 +55,7 @@
                             /* .constant 'E_DEPRECATED' */ => 'Deprecated',
                             /* .constant 'E_USER_DEPRECATED' */ => 'Deprecated');
         
-        #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->useHTMLErrors();' */
+        #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpHTMLErrors;' */
        		echo "<br />" . "\r\n" . "<b>" . $typeNames[$errtype] . "</b>:  " . $errstr . " in <b>" . $errfile . "</b> on line <b>" . $errline . "</b><br />" . "\r\n";
         #.else
         	echo $typeNames[$errtype].': '.$errstr.' in '.$errfile .' on line '.$errline."\n";
@@ -158,19 +158,21 @@
     */
     function cacheFile($fileName) {
         global $Pancake_cacheFiles;
-        if(vars::$Pancake_currentThread->vHost->isExcludedFile($fileName))
+        #.if /* .eval 'global $Pancake_vHost; return (bool) $Pancake_vHosts->phpCodeCacheExcludes;' */
+        if(isset(vars::$Pancake_currentThread->vHost->phpCodeCacheExcludes[$fileName]))
             return;
-        if(is_dir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->getDocumentRoot();' */ . $fileName)) {
-            $directory = scandir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->getDocumentRoot();' */ . $fileName);
+        #.endif
+        if(is_dir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' */ . $fileName)) {
+            $directory = scandir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' */ . $fileName);
             if(substr($fileName, -1, 1) != '/')
                 $fileName .= '/';
             foreach($directory as $file)
                 if($file != '..' && $file != '.')
                     cacheFile($fileName . $file);
         } else {
-            if(MIME::typeOf(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->getDocumentRoot();' */ . $fileName) != 'text/x-php')
+            if(MIME::typeOf(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' */ . $fileName) != 'text/x-php')
                 return;
-            $Pancake_cacheFiles[] = /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->getDocumentRoot();' */ . $fileName;
+            $Pancake_cacheFiles[] = /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' */ . $fileName;
         }
     }
     
@@ -188,7 +190,7 @@
         $newBacktrace = array();
         
         foreach($backtrace as $index => $tracePart) {
-			if(vars::$executingErrorHandler && ((isset($tracePart['file']) && strpos($tracePart['file'], '/sys/php/util.php')) || (isset($tracePart['function']) && $tracePart['function'] == 'Pancake\PHPErrorHandler')))
+			if(vars::$executingErrorHandler && ((isset($tracePart['file']) && strpos($tracePart['file'], '/sys/threads/single/phpWorker.thread')) || (isset($tracePart['function']) && $tracePart['function'] == 'Pancake\PHPErrorHandler')))
 				continue;
         	$newBacktrace[] = $tracePart;
         }
@@ -206,7 +208,7 @@
     		$reflect = new \ReflectionObject($data);
     		$objects[] = $data;
     		
-    		#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldDestroyDestructorOnObjectDestroy();' */
+    		#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetObjectsDestroyDestructor;' */
     			if($reflect->hasMethod('__destruct')) {
 	    			global $destroyedDestructors;
 	
@@ -257,7 +259,9 @@
         public static $Pancake_includesPre = array();
         public static $Pancake_classesPre = array();
         public static $Pancake_interfacesPre = array();
+        #.if PHP_MINOR_VERSION >= 4
         public static $Pancake_traitsPre = array();
+        #.endif
         public static $Pancake_exclude = array();
         public static $Pancake_vHosts = array();
         public static $Pancake_processedRequests = 0;

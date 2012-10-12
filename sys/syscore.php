@@ -151,7 +151,7 @@
     dt_show_plain_info(false);
     
     // Set thread title 
-    dt_set_proctitle('Pancake HTTP-Server '.VERSION);
+    dt_set_proctitle('Pancake HTTP Server ' . VERSION);
     
     // Set PANCAKE_DEBUG_MODE
     if(isset($startOptions['debug']) || Config::get('main.debugmode') === true) {
@@ -282,25 +282,27 @@
     }
     
     // Check if the default vHost is set
-    if(!(vHost::getDefault() instanceof vHost)) {
+    if(!(vHost::$defaultvHost instanceof vHost)) {
         out('You need to specify a default vHost. (Set isdefault: true)', SYSTEM, false);
         abort();
     }
     
     // Set vHosts by Names
-    foreach($vHosts as $vHost) {
-        foreach($vHost->getListen() as $address)
+    /*foreach($vHosts as $vHost) {
+        foreach($vHost->listen as $address)
             $Pancake_vHosts[$address] = $vHost;
-    }
+    }*/
+    
+    $Pancake_vHosts = $vHosts;
     
     pcntl_sigprocmask(\SIG_BLOCK, array(\SIGUSR1));
     
     // We're doing this in two steps so that all vHosts will be displayed in phpinfo()
     foreach($vHosts as $vHost) {
-    	if($vHost->getSocket())
-        	$Pancake_phpSockets[] = $vHost->getSocket();
+    	if($vHost->phpSocket)
+        	$Pancake_phpSockets[] = $vHost->phpSocket;
         
-        for($i = 0;$i < $vHost->getPHPWorkerAmount();$i++) {
+        for($i = 0;$i < $vHost->phpWorkers;$i++) {
             cleanGlobals(array('i', 'vHosts', 'vHost', 'Pancake_phpSockets'));
             
             require_once 'threads/phpWorker.class.php';

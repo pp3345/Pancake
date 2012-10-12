@@ -15,7 +15,7 @@ vhosts:
     204OnEmptyPage: false                                       # If true, Pancake will send 204 No Content instead of 200 OK when the page is empty
     PHPWorkerLimit: 1000                                        # Limit of requests a PHPWorker may process until it has to be restarted (0 for no limit)
     PHPInfoPancake: true                                        # Expose information about Pancake's configuration in phpinfo()
-    PHPInfoPancakevHosts: true                                  # Expose information about Pancake's vHosts in phpinfo() (requires phpinfopancake to be true)
+    PHPInfoPancakevHosts: false                                 # Expose information about Pancake's vHosts in phpinfo() (requires phpinfopancake to be true)
     autoDelete:                                                 # Automatically delete non-cached PHP elements after a request
       classes: true
       functions: true

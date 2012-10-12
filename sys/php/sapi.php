@@ -99,7 +99,7 @@
         // Modify it
         $phpInfo = str_replace('<td class="v">Command Line Interface </td>', '<td class="v">Pancake Embedded SAPI </td>', $phpInfo);
         
-        #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->exposePancakeInPHPInfo();' */
+        #.ifdef 'EXPOSE_PANCAKE_IN_PHPINFO'
 	        if($what == /* .constant 'INFO_ALL' */) {
 	            $pancakeAdd =  '<table border="0" cellpadding="3" width="600">';
 	            $pancakeAdd .= '<tr class="h"><td>';
@@ -129,7 +129,7 @@
 	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">Expose Pancake</td><td class=\"v\">' . (Pancake\Config::get('main.exposepancake') ? 'enabled' : 'disabled') . '</td></tr>';" */;
 	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">Timestamps</td><td class=\"v\">' . Pancake\Config::get('main.dateformat') . '</td></tr>';" */;
 	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">Sizeprefixes</td><td class=\"v\">' . (Pancake\Config::get('main.sizeprefix') == 'si' ? 'SI' : 'binary') . '</td></tr>';" */;
-	            $pancakeAdd .= /* .eval 'global $Pancake_currentThread; return "<tr><td class=\"e\">Current vHost</td><td class=\"v\">" . $Pancake_currentThread->vHost->getName() . "</td></tr>";' */;
+	            $pancakeAdd .= /* .eval 'global $Pancake_currentThread; return "<tr><td class=\"e\">Current vHost</td><td class=\"v\">" . $Pancake_currentThread->vHost->name . "</td></tr>";' */;
 	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">Path for temporary files</td><td class=\"v\">' . Pancake\Config::get('main.tmppath') . '</td></tr>';" */;
 	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">Path to requestlog</td><td class=\"v\">' . Pancake\Config::get('main.logging.request') . '</td></tr>';" */;
 	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">Path to systemlog</td><td class=\"v\">' . Pancake\Config::get('main.logging.system') . '</td></tr>';" */;
@@ -144,35 +144,30 @@
 	            $pancakeAdd .= '</td></tr>';  
 	            $pancakeAdd .= '</table><br/>';
 	            
-	            #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->exposePancakevHostsInPHPInfo();' */
-	            	$vHostsDone = array();
-	            	
+	            #.ifdef 'EXPOSE_VHOSTS_IN_PHPINFO'
 	                $pancakeAdd .= '<h1>Virtual Hosts</h1>';
-	                
+
 	                foreach(Pancake\vars::$Pancake_vHosts as $vHost) {
-	                    if(in_array($vHost->getID(), $vHostsDone))
-	                        continue;
-	                    
-	                    $pancakeAdd .= '<h2>'.$vHost->getName().'</h2>';
+	                    $pancakeAdd .= '<h2>'.$vHost->name.'</h2>';
 	                    
 	                    $pancakeAdd .= '<table border="0" cellpadding="3" width="600">';
 	                    
-	                    $pancakeAdd .= '<tr><td class="e">Running PHPWorkers</td><td class="v">' . $vHost->getPHPWorkerAmount() . '</td></tr>';
-	                    $pancakeAdd .= '<tr><td class="e">PHPWorker processing limit</td><td class="v">'.($vHost->getPHPWorkerLimit() ? $vHost->getPHPWorkerLimit() . ' requests' : '<i>no limit</i>').'</td></tr>';
-	                    $pancakeAdd .= '<tr><td class="e">Is Default</td><td class="v">' . ($vHost->isDefault() ? 'yes' : 'no') . '</td></tr>';
-	                    $pancakeAdd .= '<tr><td class="e">Document Root</td><td class="v">' . $vHost->getDocumentRoot() . '</td></tr>';
-	                    $pancakeAdd .= '<tr><td class="e">GZIP-compression</td><td class="v">' . ($vHost->allowGZIPCompression() ? 'enabled' : 'disabled') . '</td></tr>';
-	                    if($vHost->allowGZIPCompression()) {
-	                        $pancakeAdd .= '<tr><td class="e">Minimum filesize for GZIP-compression</td><td class="v">' . Pancake\formatFilesize($vHost->getGZIPMinimum()) . '</td></tr>';
-	                        $pancakeAdd .= '<tr><td class="e">GZIP-level</td><td class="v">' . $vHost->getGZIPLevel() . '</td></tr>';
+	                    $pancakeAdd .= '<tr><td class="e">Running PHPWorkers</td><td class="v">' . $vHost->phpWorkers . '</td></tr>';
+	                    $pancakeAdd .= '<tr><td class="e">PHPWorker processing limit</td><td class="v">' . ($vHost->phpWorkerLimit ? $vHost->phpWorkerLimit . ' requests' : '<i>no limit</i>') . '</td></tr>';
+	                    $pancakeAdd .= '<tr><td class="e">Is Default</td><td class="v">' . ($vHost->isDefault ? 'yes' : 'no') . '</td></tr>';
+	                    $pancakeAdd .= '<tr><td class="e">Document Root</td><td class="v">' . $vHost->documentRoot . '</td></tr>';
+	                    $pancakeAdd .= '<tr><td class="e">GZIP-compression</td><td class="v">' . ($vHost->allowGZIP ? 'enabled' : 'disabled') . '</td></tr>';
+	                    if($vHost->allowGZIP) {
+	                        $pancakeAdd .= '<tr><td class="e">Minimum filesize for GZIP-compression</td><td class="v">' . Pancake\formatFilesize($vHost->gzipMinimum) . '</td></tr>';
+	                        $pancakeAdd .= '<tr><td class="e">GZIP-level</td><td class="v">' . $vHost->gzipLevel . '</td></tr>';
 	                    }
 	                    
-	                    $pancakeAdd .= '<tr><td class="e">Per-Write Limit</td><td class="v">' . Pancake\formatFilesize($vHost->getWriteLimit()) . '</td></tr>';
-	                    $pancakeAdd .= '<tr><td class="e">Directory Listings</td><td class="v">' . ($vHost->allowDirectoryListings() ? 'enabled' : 'disabled') . '</td></tr>';
+	                    $pancakeAdd .= '<tr><td class="e">Per-Write Limit</td><td class="v">' . Pancake\formatFilesize($vHost->writeLimit) . '</td></tr>';
+	                    $pancakeAdd .= '<tr><td class="e">Directory Listings</td><td class="v">' . ($vHost->allowDirectoryListings ? 'enabled' : 'disabled') . '</td></tr>';
 	                    $pancakeAdd .= '<tr><td class="e">Index Files</td><td class="v">';
 	                    
 	                    unset($first);
-	                    foreach($vHost->getIndexFiles() as $indexFile) {
+	                    foreach($vHost->indexFiles as $indexFile) {
 	                        if(isset($first)) $pancakeAdd .= ', ';
 	                        $pancakeAdd .= $indexFile;
 	                        $first = true;
@@ -183,7 +178,7 @@
 	                    $pancakeAdd .= '<tr><td class="e">Hosts</td><td class="v">';
 	                    
 	                    unset($first);
-	                    foreach($vHost->getListen() as $listen) {
+	                    foreach($vHost->listen as $listen) {
 	                        if(isset($first)) $pancakeAdd .= ', ';
 	                        $pancakeAdd .= $listen;
 	                        $first = true;
@@ -192,8 +187,6 @@
 	                    $pancakeAdd .= '</td></tr>';
 	                    
 	                    $pancakeAdd .= '</table><br/>';
-	                    
-	                    $vHostsDone[] = $vHost->getID();
 	                }
 	            #.endif
 	            
@@ -584,7 +577,7 @@
     
 	function session_set_save_handler($open, $close = true, $read = null, $write = null, $destroy = null, $gc = null) {
 		#.if PHP_MINOR_VERSION >= 4
-		if(is_object($open) && in_array('SessionHandlerInterface', class_implements($open))) {
+		if(is_object($open) && $open instanceof SessionHandlerInterface) {
 			$retval = Pancake\PHPFunctions\setSessionSaveHandler($open, false);
 			if($close && $retval)
 				session_register_shutdown();
@@ -643,6 +636,55 @@ FUNCTIONBODY
 		
 		return true;
 	}
+	
+	#.if Pancake\DEBUG_MODE === true
+		function benchmarkFunction($functionName, $returnResults = false, $returnFunctions = false) {
+			static $benchmarkedFunctions = array();
+			
+			if($returnFunctions === true) {
+				return $benchmarkedFunctions;
+			}
+			
+			if($returnResults === true) {
+				foreach($benchmarkedFunctions as $function) {
+					$results[$function] = $function("__GET_PANCAKE_BENCHMARK_RESULTS");
+					//dt_remove_function($function);
+					//dt_rename_function('__PANCAKE_BENCHMARK__' . $function, $function);
+				}
+				//$benchmarkedFunctions = array();
+				return $results;
+			}
+			
+			if(!function_exists($functionName) || isset($benchmarkedFunctions[$functionName]))
+				return false;
+			
+			$benchmarkedFunctions[] = $functionName;
+			
+			dt_rename_function($functionName, '__PANCAKE_BENCHMARK__' . $functionName);
+			
+			eval('
+			function ' . $functionName . '($getResults = null) {
+				static $results = array();
+				
+				if($getResults === "__GET_PANCAKE_BENCHMARK_RESULTS") {
+					$retval = $results;
+					$results = null;
+					return $retval;
+				}
+				
+				$before = microtime(true);
+				$retval = call_user_func_array("__PANCAKE_BENCHMARK__' . $functionName . '", func_get_args());
+				$after = microtime(true);
+				
+				$results[] = $after - $before;
+
+				return $retval;
+			}
+			');
+			
+			return true;
+		}
+	#.endif
 	
     dt_rename_method('\Exception', 'getTrace', 'Pancake_getTraceOrig');
     dt_add_method('\Exception', 'getTrace', null, <<<'FUNCTIONBODY'

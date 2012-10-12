@@ -18,6 +18,14 @@
 	#.if /* .config 'compressvariables' */
 		#.define 'COMPRESS_VARIABLES' true
 	#.endif
+	
+	#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpInfoConfig;' false */
+		#.define 'EXPOSE_PANCAKE_IN_PHPINFO' true
+	#.endif
+	
+	#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpInfovHosts;' false */
+		#.define 'EXPOSE_VHOSTS_IN_PHPINFO' true
+	#.endif
     
     namespace {
     	#.include 'php/sapi.php'
@@ -25,22 +33,32 @@
     
     namespace Pancake {
     	#.include 'php/util.php'
-    	
-    	
+
     	#.if /* .config 'compressproperties' */
     		#.config 'compressproperties' false
     	#.endif
     	#.include 'invalidHTTPRequest.exception.php'
     	#.include 'HTTPRequest.class.php'
+    	#.include 'vHostInterface.class.php'
+    	$Pancake_currentThread->vHost = new vHostInterface($Pancake_currentThread->vHost);
 	    vars::$Pancake_currentThread = $Pancake_currentThread;
 	    unset($Pancake_currentThread);
 	    
 	    unset($Pancake_sockets);
 	    
 	    // Don't allow scripts to get information about other vHosts
-	    #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->exposePancakevHostsInPHPInfo();' */
+	    #.ifdef 'EXPOSE_VHOSTS_IN_PHPINFO'
+	    	foreach($Pancake_vHosts as &$vHost) {
+	    		if($vHost->id == vars::$Pancake_currentThread->vHost->id) {
+	    			$vHost = vars::$Pancake_currentThread->vHost;
+	    			continue;
+	    		}
+	    		
+	    		$vHost = new vHostInterface($vHost);
+	    	}
 	    	vars::$Pancake_vHosts = $Pancake_vHosts;
 	    #.endif
+	    unset($vHost);
 	    unset($Pancake_vHosts);
 	    
 	    // Clear thread cache
@@ -59,8 +77,8 @@
 	    dt_set_exit_handler('Pancake\PHPExitHandler');
 	    dt_throw_exit_exception(true);
 	    
-	    #.if /* .eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->getDisabledFunctions();' */
-		    foreach(vars::$Pancake_currentThread->vHost->getDisabledFunctions() as $function) {
+	    #.if /* .eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->phpDisabledFunctions;' */
+		    foreach(vars::$Pancake_currentThread->vHost->phpDisabledFunctions as $function) {
 		    	if(function_exists($function)) {
 		    		dt_remove_function($function);
 		    		eval('function ' . $function . '() { return Pancake\PHPDisabledFunction(__FUNCTION__); }');
@@ -70,17 +88,17 @@
 		    unset($function);
 	    #.endif
 	    
-	    #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldResetStaticClassNonObjectValues() || $Pancake_currentThread->vHost->shouldResetStaticClassObjectValues() || $Pancake_currentThread->vHost->shouldResetStaticFunctionObjectValues() || $Pancake_currentThread->vHost->shouldResetStaticFunctionNonObjectValues();' */
+	    #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetClassNonObjects || $Pancake_currentThread->vHost->resetClassObjects || $Pancake_currentThread->vHost->resetFunctionObjects || $Pancake_currentThread->vHost->resetFunctionNonObjects;' */
 	    	vars::$classes = get_declared_classes();
 	    #.endif
 	    
-	    #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldResetStaticFunctionObjectValues() || $Pancake_currentThread->vHost->shouldResetStaticFunctionNonObjectValues();' */
+	    #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetFunctionObjects || $Pancake_currentThread->vHost->resetFunctionNonObjects;' */
 	    	$functions = get_defined_functions();
 	    	vars::$functions = $functions['user'];
 	    	unset($functions);
 	    #.endif
 	    
-	    chdir(vars::$Pancake_currentThread->vHost->getDocumentRoot());
+	    chdir(vars::$Pancake_currentThread->vHost->documentRoot);
 	    
 	    #.ifdef 'STDOUT'
 	   		dt_remove_constant('STDOUT');
@@ -96,24 +114,24 @@
 	    memory_get_peak_usage(null, true);
 	    
 	    // Predefine constants
-	    #.if /* .eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->getPredefinedConstants();' */
-		    foreach(vars::$Pancake_currentThread->vHost->getPredefinedConstants() as $name => $value)
+	    #.if /* .eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->predefinedConstants;' */
+		    foreach(vars::$Pancake_currentThread->vHost->predefinedConstants as $name => $value)
 		    	define($name, $value, true);
 		#.endif
 	   	
-	    #.if /* .eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->getCodeCacheFiles();' */
+	    #.if /* .eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->phpCodeCache;' */
 	    	// MIME types are only needed for CodeCache
 	    	#.include 'mime.class.php'
 	    	MIME::load();
 		    
 		    // Get a list of files to cache
-		    foreach(vars::$Pancake_currentThread->vHost->getCodeCacheFiles() as $cacheFile)
+		    foreach(vars::$Pancake_currentThread->vHost->phpCodeCache as $cacheFile)
 		        cacheFile($cacheFile);
 	    
 		    // Load CodeCache
 		    foreach($Pancake_cacheFiles as $cacheFile) {
-		    	#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->getMaxExecutionTime();' */
-	        		set_time_limit(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->getMaxExecutionTime();' */);
+		    	#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpMaxExecutionTime;' */
+	        		set_time_limit(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpMaxExecutionTime;' */);
 	        	#.endif
 		        require_once $cacheFile;
 		        set_time_limit(0);
@@ -124,8 +142,8 @@
 		#.endif
 	    
 	    // Delete predefined constants, if wanted
-	    #.if /* .eval 'global $Pancake_currentThread; return ((bool) $Pancake_currentThread->vHost->getPredefinedConstants()) && $Pancake_currentThread->vHost->predefineConstantsOnlyForCodeCache();' */
-	    	foreach((array) vars::$Pancake_currentThread->vHost->getPredefinedConstants() as $name => $value)
+	    #.if /* .eval 'global $Pancake_currentThread; return ((bool) $Pancake_currentThread->vHost->predefinedConstants) && $Pancake_currentThread->vHost->deletePredefinedConstantsAfterCodeCacheLoad;' */
+	    	foreach((array) vars::$Pancake_currentThread->vHost->predefinedConstants as $name => $value)
 	    		dt_remove_constant($name);
 	    	
 	    	unset($name);
@@ -148,11 +166,18 @@
 	    // Ready
 	    vars::$Pancake_currentThread->parentSignal(/* .constant 'SIGUSR1' */);
 	    
+	    #.if Pancake\DEBUG_MODE === true
+	    	benchmarkFunction('gc_collect_cycles');
+	    	benchmarkFunction('socket_read');
+	    	benchmarkFunction('socket_write');
+	    	//benchmarkFunction('in_array'); !!! dt memory corruption.
+	    #.endif
+	    
 	    // Set user and group
 	    setUser();
 	
 	    // Wait for requests
-	    while(vars::$requestSocket = socket_accept(vars::$Pancake_currentThread->vHost->getSocket())) {
+	    while(vars::$requestSocket = socket_accept(vars::$Pancake_currentThread->vHost->phpSocket)) {
 	    	socket_set_block(vars::$requestSocket);
 	    	
 	    	// Get request object from RequestWorker
@@ -175,7 +200,7 @@
 	    	unset($packages);
 	    	
 	        // Change directory to document root of the vHost / requested file path
-	        chdir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->getDocumentRoot();' */ . dirname(vars::$Pancake_request->getRequestFilePath()));
+	        chdir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' */ . dirname(vars::$Pancake_request->getRequestFilePath()));
 	        
 	        // Set environment vars
 	        $_GET = vars::$Pancake_request->getGETParams();
@@ -200,10 +225,10 @@
 	        
 	        // Execute script and protect Pancake from exit() and Exceptions
 	        try {
-	        	#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->getMaxExecutionTime();' */
-	        		set_time_limit(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->getMaxExecutionTime();' */);
+	        	#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpMaxExecutionTime;' */
+	        		set_time_limit(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpMaxExecutionTime;' */);
 	        	#.endif
-	            include /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->getDocumentRoot();' */ . vars::$Pancake_request->getRequestFilePath();
+	            include /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' */ . vars::$Pancake_request->getRequestFilePath();
 	            
 	            runShutdown:
 	            
@@ -422,8 +447,8 @@
 	        }
 	        
 	        if(
-	        #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->getPHPWorkerLimit();' */
-	        (vars::$Pancake_processedRequests >= /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->getPHPWorkerLimit();' */) || 
+	        #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpWorkerLimit;' */
+	        (vars::$Pancake_processedRequests >= /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpWorkerLimit;' */) || 
 	        #.endif
 	        vars::$workerExit) {
 	        	IPC::send(9999, 1);
@@ -432,19 +457,17 @@
 	        
 	        // We're cleaning the globals here because PHP 5.4 is likely to crash when having an instance of a non-existant class
 	        cleanGlobals(vars::$Pancake_exclude, false, true);
-	        
-	        gc_collect_cycles();
 	
 	        spl_autoload_register(null, null, null, true);
 	
-	        #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldResetStaticClassNonObjectValues() || $Pancake_currentThread->vHost->shouldResetStaticClassObjectValues() || $Pancake_currentThread->vHost->shouldResetStaticFunctionObjectValues() || $Pancake_currentThread->vHost->shouldResetStaticFunctionNonObjectValues();' */
+	        #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetClassNonObjects || $Pancake_currentThread->vHost->resetClassObjects || $Pancake_currentThread->vHost->resetFunctionObjects || $Pancake_currentThread->vHost->resetFunctionNonObjects;' */
 	        	foreach(get_declared_classes() as $class) {
 	        		if(in_array($class, vars::$classes))
 	        			continue;
 	        		
 	        		$reflect = new \ReflectionClass($class);
 	        		
-	        		#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldDestroyDestructorOnObjectDestroy();' */
+	        		#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetObjectsDestroyDestructor;' */
 		        		if($reflect->hasMethod('__destruct')) {
 		        			$name = 'Pancake_DestroyedDestructor' . mt_rand();
 		        			dt_rename_method($reflect->getName(), '__destruct', $name);
@@ -452,27 +475,27 @@
 		        		}
 	        		#.endif
 	        		
-		        	#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldResetStaticClassNonObjectValues() || $Pancake_currentThread->vHost->shouldResetStaticClassObjectValues();' */
+		        	#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetClassNonObjects || $Pancake_currentThread->vHost->resetClassObjects;' */
 		        		foreach($reflect->getStaticProperties() as $name => $value) {
 		        			$prop = new \ReflectionProperty($class, $name);
 		        			$prop->setAccessible(true);
 		
-		        			#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldResetStaticClassObjectValues();' */
+		        			#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetClassObjects;' */
 			        			if(is_array($value) || is_object($value)) {
 			        				$value = recursiveClearObjects($value);
 			        					
 			        				if(!$value)
 			        					$value = null;
 			
-			        				gc_collect_cycles();
+			        				//gc_collect_cycles();
 			
 			        				$prop->setValue($value);
 			        			}
-			        			#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldResetStaticClassNonObjectValues();' */
+			        			#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetClassNonObjects;' */
 			        				else
 			        			#.endif
 			        		#.endif
-			        		#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldResetStaticClassNonObjectValues();' */
+			        		#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetClassNonObjects;' */
 			        			if(!is_object($value)) {
 			        				$prop->setValue(null);
 			        			}
@@ -484,25 +507,25 @@
 		        		}
 		        	#.endif
 	        		
-		        	#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldResetStaticFunctionObjectValues() || $Pancake_currentThread->vHost->shouldResetStaticFunctionNonObjectValues();' */
+		        	#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetFunctionObjects || $Pancake_currentThread->vHost->resetFunctionNonObjects;' */
 		        		foreach($reflect->getMethods() as $method) {
 		        			foreach($method->getStaticVariables() as $name => $value) {
-		        				#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldResetStaticFunctionObjectValues();' */
+		        				#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetFunctionObjects;' */
 			        				if(is_array($value) || is_object($value)) {
 			        					$value = recursiveClearObjects($value);
 			        					 
 			        					if(!$value)
 			        						$value = null;
 			        					 
-			        					gc_collect_cycles();
+			        					//gc_collect_cycles();
 			        					 
 			        					dt_set_method_variable($class, $method->getName(), $name, $value);
 			        				} 
-			        				#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldResetStaticFunctionNonObjectValues();' */
+			        				#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetFunctionNonObjects;' */
 			        					else 
 			        				#.endif
 			        			#.endif
-			        			#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldResetStaticFunctionNonObjectValues();' */
+			        			#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetFunctionNonObjects;' */
 			        				if(!is_object($value)) {
 			        					dt_set_method_variable($class, $method->getName(), $name, null);
 			        				}
@@ -520,7 +543,7 @@
 	        	}
 	        #.endif
 	        
-	        #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldResetStaticFunctionObjectValues() || $Pancake_currentThread->vHost->shouldResetStaticFunctionNonObjectValues();' */
+	        #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetFunctionObjects || $Pancake_currentThread->vHost->resetFunctionNonObjects;' */
 	        	$functions = get_defined_functions();
 	        	
 	        	foreach($functions['user'] as $function) {
@@ -530,22 +553,22 @@
 	        		$reflect = new \ReflectionFunction($function);
 	        		 
 	        		foreach($reflect->getStaticVariables() as $name => $value) {
-	        			#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldResetStaticFunctionObjectValues();' */
+	        			#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetFunctionObjects;' */
 		        			if(is_array($value) || is_object($value)) {
 		        				$value = recursiveClearObjects($value);
 		        				 
 		        				if(!$value)
 		        					$value = null;
 		        	
-		        				gc_collect_cycles();
+		        				//gc_collect_cycles();
 		        	
 		        				dt_set_function_variable($function, $name, $value);
 		        			} 
-		        			#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldResetStaticFunctionNonObjectValues();' */
+		        			#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetFunctionNonObjects;' */
 		        				else 
 		        			#.endif
 	        			#.endif
-		        		#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldResetStaticFunctionNonObjectValues();' */
+		        		#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetFunctionNonObjects;' */
 		        			if(!is_object($value)) {
 		        				dt_set_function_variable($function, $name, null);
 		        			}
@@ -569,86 +592,116 @@
 	        
 	        gc_collect_cycles();
 	
-	        #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldAutoDelete("functions");' */
+	        #.if /* .eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["functions"]) ? $Pancake_currentThread->vHost->autoDelete["functions"] : true);' */
 	            foreach($funcsPost['user'] as $func) {
-	                if(!in_array($func, vars::$Pancake_funcsPre['user']) && !vars::$Pancake_currentThread->vHost->isAutoDeleteExclude($func, 'functions')) {
+	                if(!in_array($func, vars::$Pancake_funcsPre['user'])
+						#.if /* .eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->autoDeleteExcludes["functions"];' */
+	                	&& !isset(vars::$Pancake_currentThread->vHost->autoDeleteExcludes['functions'][$func])
+	                	#.endif
+	                	#.if Pancake\DEBUG_MODE === true
+	                	&& strpos($func, '__PANCAKE_BENCHMARK__') !== 0
+	                	&& !in_array($func, benchmarkFunction(null, false, true))
+	                	#.endif
+	                	) {
 	                    dt_destroy_function_data($func);
-	                    gc_collect_cycles();
+	                    //gc_collect_cycles();
 	                    $deleteFunctions[] = $func;
 	                }
 	            }
 	        #.endif
 	            
-	        #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldAutoDelete("classes");' */
+	        #.if /* .eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["classes"]) ? $Pancake_currentThread->vHost->autoDelete["classes"] : true);' */
 	            foreach(get_declared_classes() as $class) {
-	                if(!in_array($class, vars::$Pancake_classesPre) && !vars::$Pancake_currentThread->vHost->isAutoDeleteExclude($class, 'classes')) {
+	                if(!in_array($class, vars::$Pancake_classesPre)
+	                	#.if /* .eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->autoDeleteExcludes["classes"];' */
+	                	&& !isset(vars::$Pancake_currentThread->vHost->autoDeleteExcludes['classes'][$class])
+	                	#.endif
+	                	) {
 	                    dt_destroy_class_data($class);
-	                    gc_collect_cycles();
+	                    //gc_collect_cycles();
 	                    $deleteClasses[] = $class;
 	                }
 	            }
 	        #.endif
 	            
-	        #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldAutoDelete("interfaces");' */
+	        #.if /* .eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["interfaces"]) ? $Pancake_currentThread->vHost->autoDelete["interfaces"] : true);' */
 	            foreach(get_declared_interfaces() as $interface) {
-	            	if(!in_array($interface, vars::$Pancake_interfacesPre) && !vars::$Pancake_currentThread->vHost->isAutoDeleteExclude($interface, 'interfaces')) {
+	            	if(!in_array($interface, vars::$Pancake_interfacesPre)
+	            		#.if /* .eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->autoDeleteExcludes["interfaces"];' */
+	            		&& !isset(vars::$Pancake_currentThread->vHost->autoDeleteExcludes['interfaces'][$interface])
+	            		#.endif
+	            		) {
 	            		dt_destroy_class_data($interface);
-	            		gc_collect_cycles();
+	            		//gc_collect_cycles();
 	            		$deleteClasses[] = $interface;
 	            	}
 	            }
 	        #.endif
 	
-	        #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldAutoDelete("constants");' */
+	        #.if /* .eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["constants"]) ? $Pancake_currentThread->vHost->autoDelete["constants"] : true);' */
 	            foreach($constsPost['user'] as $const => $constValue) {
-	                if(!array_key_exists($const, vars::$Pancake_constsPre['user']) && !vars::$Pancake_currentThread->vHost->isAutoDeleteExclude($const, 'constants')) {
+	                if(!array_key_exists($const, vars::$Pancake_constsPre['user'])
+	                	#.if /* .eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->autoDeleteExcludes["constants"];' */
+	                	&& !isset(vars::$Pancake_currentThread->vHost->autoDeleteExcludes['constants'][$const])
+	                	#.endif
+	                	) {
 	                    dt_remove_constant($const);
-	                    gc_collect_cycles();
+	                    //gc_collect_cycles();
 	                }
 	            }
 	        #.endif
 	            
-	        #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldAutoDelete("includes");' */
+	        #.if /* .eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["includes"]) ? $Pancake_currentThread->vHost->autoDelete["includes"] : true);' */
 	            foreach(get_included_files() as $include) {
-	                if(!in_array($include, vars::$Pancake_includesPre) && !vars::$Pancake_currentThread->vHost->isAutoDeleteExclude($include, 'includes')) {
+	                if(!in_array($include, vars::$Pancake_includesPre)
+	                	#.if /* .eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->autoDeleteExcludes["includes"];' */
+	                	&& !isset(vars::$Pancake_currentThread->vHost->autoDeleteExcludes['includes'][$include])
+	                	#.endif
+	                	) {
 	                    dt_remove_include($include);
-	                    gc_collect_cycles();
+	                    //gc_collect_cycles();
 	                }
 	            }
 	        #.endif
 	        
-	        #.if PHP_MINOR_VERSION >= 4 && /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldAutoDelete("traits");' */
+	        #.if PHP_MINOR_VERSION >= 4 && /* .eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["traits"]) ? $Pancake_currentThread->vHost->autoDelete["traits"] : true);' */
 	            foreach(get_declared_traits() as $trait) {
-	                if(!in_array($trait, vars::$Pancake_traitsPre) && !vars::$Pancake_currentThread->vHost->isAutoDeleteExclude($trait, 'traits')) {
+	                if(!in_array($trait, vars::$Pancake_traitsPre)
+	                	#.if /* .eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->autoDeleteExcludes["traits"];' */
+	                	&& !isset(vars::$Pancake_currentThread->vHost->autoDeleteExcludes['traits'][$trait])
+	                	#.endif
+	                	) {
 	                    dt_destroy_class_data($trait);
-	                    gc_collect_cycles();
+	                    //gc_collect_cycles();
 	                    $deleteClasses[] = $trait;
 	                }
 	            }
 	        #.endif
 	        
-	        #.if /* .eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->getForcedDeletes();' */
-		        foreach(vars::$Pancake_currentThread->vHost->getForcedDeletes() as $delete) {
+	        #.if /* .eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->forceDeletes;' */
+		        foreach(vars::$Pancake_currentThread->vHost->forceDeletes as $delete) {
 		            switch($delete['type']) {
 		                case 'classes':
 		                case 'interfaces':
+		                #.if PHP_MINOR_VERSION >= 4
 		                case 'traits':
+		                #.endif
 		                    dt_destroy_class_data($delete['name']);
-		                    gc_collect_cycles();
+		                    //gc_collect_cycles();
 		                    $deleteClasses[] = $delete['name'];
 		                break;
 		                case 'functions':
 		                    dt_destroy_function_data($delete['name']);
-		                    gc_collect_cycles();
+		                    //gc_collect_cycles();
 		                    $deleteFunctions[] = $delete['name'];
 		                break;
 		                case 'includes':
 		                    dt_remove_include($delete['name']);
-		                    gc_collect_cycles();
+		                    //gc_collect_cycles();
 		                break;
 		                case 'constants':
 		                    dt_remove_constant($delete['name']);
-		                    gc_collect_cycles();
+		                    //gc_collect_cycles();
 		                break;
 		            }
 		        }
@@ -656,16 +709,16 @@
 	        
 	        foreach((array) $deleteClasses as $class) {
 	        	dt_remove_class($class);
-	        	gc_collect_cycles();
+	        	//gc_collect_cycles();
 	        }
 	        
 	        foreach((array) $deleteFunctions as $function) {
 	        	dt_remove_function($function);
-	        	gc_collect_cycles();
+	        	//gc_collect_cycles();
 	        }
 	        
 	        // Do not activate static method call fixing if it does not make sense
-	        #.if PHP_MINOR_VERSION >= 4 && /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->shouldFixStaticMethodCalls();' */
+	        #.if PHP_MINOR_VERSION >= 4 && /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->fixStaticMethodCalls;' */
 		        if($deleteClasses)
 		        	dt_fix_static_method_calls(true);
 		    #.endif
@@ -689,6 +742,22 @@
 	       	#.endif
 	        
 	        gc_collect_cycles();
+	        
+	        #.if Pancake\DEBUG_MODE === true
+		        if($results = benchmarkFunction(null, true)) {
+		        	foreach($results as $function => $functionResults) {
+		        		foreach($functionResults as $result)
+		        			$total += $result;
+		        
+		        		out('Benchmark of function ' . $function . '(): ' . count($functionResults) . ' calls - ' . (min($functionResults) * 1000) . ' ms min - ' . ($total / count($functionResults) * 1000) . ' ms ave - ' . (max($functionResults) * 1000) . ' ms max - ' . ($total * 1000) . ' ms total', /* .constant 'Pancake\REQUEST' */);
+		        		unset($total);
+		        	}
+		        	
+		        	unset($result);
+		        	unset($functionResults);
+		        	unset($results);
+		        }
+	        #.endif
 	    }
     }
 ?>

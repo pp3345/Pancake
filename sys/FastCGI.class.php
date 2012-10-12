@@ -117,7 +117,7 @@
 			}
 			
 			/* FCGI_PARAMS */
-			$body = "\xf" . chr(strlen(/* .VHOST */->getDocumentRoot() . /* .REQUEST_FILE_PATH */)) . "SCRIPT_FILENAME" . /* .VHOST */->getDocumentRoot() . /* .REQUEST_FILE_PATH */;
+			$body = "\xf" . chr(strlen(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */)) . "SCRIPT_FILENAME" . /* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */;
 			$body .= "\xc" . chr(strlen(/* .QUERY_STRING */)) . "QUERY_STRING" . /* .QUERY_STRING */;
 			$body .= "\xe" . chr(strlen(/* .REQUEST_TYPE */)) . "REQUEST_METHOD" . /* .REQUEST_TYPE */;
 			$body .= "\xb" . chr(strlen(/* .REQUEST_FILE_PATH */)) . "SCRIPT_NAME" . /* .REQUEST_FILE_PATH */;
@@ -125,7 +125,7 @@
 			$body .= "\x11\x7GATEWAY_INTERFACECGI/1.1";
 			$body .= "\xb" . chr(strlen(/* .REQUEST_URI */)) . "REQUEST_URI" . /* .REQUEST_URI */;
 			$body .= "\xb" . chr(strlen(/* .REMOTE_IP */)) . "REMOTE_ADDR" . /* .REMOTE_IP */;
-			$body .= "\xb" . chr(strlen(/* .VHOST */->getHost())) . "SERVER_NAME" . /* .VHOST */->getHost();
+			$body .= "\xb" . chr(strlen(/* .VHOST */->hosts[0])) . "SERVER_NAME" . /* .VHOST */->hosts[0];
 			$body .= "\xb" . chr(strlen(/* .LOCAL_PORT */)) . "SERVER_PORT" . /* .LOCAL_PORT */;
 			$body .= /* .eval 'return "\xf" . chr(strlen("Pancake/" . \Pancake\VERSION)) . "SERVER_SOFTWAREPancake/" . \Pancake\VERSION;' */;
 			$body .= "\xb" . chr(strlen(/* .LOCAL_IP */)) . "SERVER_ADDR" . /* .LOCAL_IP */;

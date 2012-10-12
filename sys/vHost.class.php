@@ -17,48 +17,48 @@
     */
     class vHost {
         private static $vHosts = 0;
-        private $id = 0;
-        private $name = null;
-        private $documentRoot = null;
-        private $listen = array();
-        private $phpCodeCache = array();
-        private $phpCodeCacheExcludes = array();
-        private $phpWorkers = 0;
-        private $phpWorkerLimit = 0;
-        private $indexFiles = array();
-        private $authDirectories = array();
-        private $authFiles = array();
-        private $writeLimit = 0;
-        private $allowDirectoryListings = false;
-        private $gzipMinimum = 0;
-        private $gzipLevel = -1;
-        private $allowGZIP = false;
-        private $isDefault = false;
-        private $phpInfoConfig = true;
-        private $phpInfovHosts = true;
-        private $onEmptyPage204 = true;
-        private $rewriteRules = array();
-        private $autoDelete = array();
-        private $autoDeleteExcludes = array();
-        private $forceDeletes = array();
-        private $phpSocket = null;
-        private $phpSocketName = null;
-        private $phpHTMLErrors = true;
-        private $phpDisabledFunctions = array();
-        private $phpMaxExecutionTime = 0;
-        private $resetClassObjects = false;
-        private $resetClassNonObjects = false;
-        private $resetFunctionObjects = false;
-        private $resetFunctionNonObjects = false;
-        private $shouldCompareObjects = false;
-        private $resetObjectsDestroyDestructor = false;
-        private $predefinedConstants = array();
-        private $deletePredefinedConstantsAfterCodeCacheLoad = false;
-        private $fixStaticMethodCalls = false;
-        private $fastCGI = array();
-        private $exceptionPageHandler = "";
-        private $directoryPageHandler = "";
-        static private $defaultvHost = null;
+        public $id = 0;
+        public $name = null;
+        public $documentRoot = null;
+        public $listen = array();
+        public $phpCodeCache = array();
+        public $phpCodeCacheExcludes = array();
+        public $phpWorkers = 0;
+        public $phpWorkerLimit = 0;
+        public $indexFiles = array();
+        public $authDirectories = array();
+        public $authFiles = array();
+        public $writeLimit = 0;
+        public $allowDirectoryListings = false;
+        public $gzipMinimum = 0;
+        public $gzipLevel = -1;
+        public $allowGZIP = false;
+        public $isDefault = false;
+        public $phpInfoConfig = true;
+        public $phpInfovHosts = true;
+        public $onEmptyPage204 = true;
+        public $rewriteRules = array();
+        public $autoDelete = array();
+        public $autoDeleteExcludes = array();
+        public $forceDeletes = array();
+        public $phpSocket = null;
+        public $phpSocketName = null;
+        public $phpHTMLErrors = true;
+        public $phpDisabledFunctions = array();
+        public $phpMaxExecutionTime = 0;
+        public $resetClassObjects = false;
+        public $resetClassNonObjects = false;
+        public $resetFunctionObjects = false;
+        public $resetFunctionNonObjects = false;
+        public $shouldCompareObjects = false;
+        public $resetObjectsDestroyDestructor = false;
+        public $predefinedConstants = array();
+        public $deletePredefinedConstantsAfterCodeCacheLoad = false;
+        public $fixStaticMethodCalls = false;
+        public $fastCGI = array();
+        public $exceptionPageHandler = "";
+        public $directoryPageHandler = "";
+        static public $defaultvHost = null;
         
         /**
         * Loads a vHost
@@ -194,447 +194,349 @@
             }
         }
         
-        /**
-        * Checks whether a specified file requires authentication
-        * 
-        * @param string $filePath Path to the file, relative to the DocRoot of the vHost
-        * @return mixed Returns false or array with realm and type
-        */
-        public function requiresAuthentication($filePath) {
-            if(isset($this->authFiles[$filePath]))
-                return $this->authFiles[$filePath];
-            else if(isset($this->authDirectories[$filePath]))
-                return $this->authDirectories[$filePath];
-            else {
-                while($filePath != '/') {
-                    $filePath = dirname($filePath);
-                    if(isset($this->authDirectories[$filePath]))
-                        return $this->authDirectories[$filePath];
-                }
-            }
-            return false;
-        }
+//         /**
+//         * Determines whether a specific type of PHP elements should be automatically deleted
+//         * 
+//         * @param string $type
+//         * @return bool
+//         */
+//         public function shouldAutoDelete($type) {
+//             return $this->autoDelete === true ? true : (bool) $this->autoDelete[$type];
+//         }
         
-        /**
-        * Checks if user and password for a file are correct
-        * 
-        * @param string $filePath Path to the file, relative to the DocRoot of the vHost
-        * @param string $user Username
-        * @param string $password Password
-        * @return bool
-        */
-        public function isValidAuthentication($filePath, $user, $password) {
-            if(!$this->authFiles && !$this->authDirectories)
-                return false;
-            if($this->authFiles[$filePath]) {
-                foreach($this->authFiles[$filePath]['authfiles'] as $authfile) {
-                    if(authenticationFile::get($authfile)->isValid($user, $password))
-                        return true;
-                }
-            } else if($this->authDirectories[$filePath]) {
-                foreach($this->authDirectories[$filePath]['authfiles'] as $authfile) {
-                    if(authenticationFile::get($authfile)->isValid($user, $password))
-                        return true;
-                }
-            } else {
-                while($filePath != '/') {
-                    $filePath = dirname($filePath);
-                    if($this->authDirectories[$filePath])
-                        foreach($this->authDirectories[$filePath]['authfiles'] as $authfile) {
-                            if(authenticationFile::get($authfile)->isValid($user, $password))
-                                return true;
-                        }
-                }
-            }
-            return false;
-        }
+//         /**
+//         * Determines whether a specific element should be excluded from automatic deletion
+//         * 
+//         * @param string $name
+//         * @param string $type
+//         * @return bool
+//         */
+//         public function isAutoDeleteExclude($name, $type) {
+//             return (bool) $this->autoDeleteExcludes[$type][$name];
+//         }
         
-        /**
-        * Applies the vHost's rewrite rules to a URI
-        * 
-        * @param string $uri
-        * @return string
-        */
-        public function rewrite($uri) {
-            foreach($this->rewriteRules as $rule) {
-                if($rule['location'] && $rule['if']) {
-                    if(strpos(strtolower($uri), $rule['location']) !== 0 && preg_match($rule['if'], $uri))
-                        $uri = preg_replace($rule['pattern'], $rule['replacement'], $uri);
-                } else if($rule['location']) {
-                    if(strpos(strtolower($uri), $rule['location']) !== false)
-                        $uri = preg_replace($rule['pattern'], $rule['replacement'], $uri);
-                } else if($rule['if']) {
-                    if(preg_match($rule['if'], $uri))
-                        $uri = preg_replace($rule['pattern'], $rule['replacement'], $uri);
-                } else
-                    $uri = preg_replace($rule['pattern'], $rule['replacement'], $uri);
-            }
-            //var_dump($uri);
-            return $uri;
-        }
+//         /**
+//         * Returns PHP elements that should be deleted
+//         * 
+//         * @return array
+//         */
+//         public function getForcedDeletes() {
+//             return (array) $this->forceDeletes;
+//         }
         
-        /**
-        * Determines whether a specific type of PHP elements should be automatically deleted
-        * 
-        * @param string $type
-        * @return bool
-        */
-        public function shouldAutoDelete($type) {
-            return $this->autoDelete === true ? true : (bool) $this->autoDelete[$type];
-        }
+//         /**
+//         * Returns the name of the vHost
+//         * 
+//         */
+//         public function getName() {
+//             return $this->name;
+//         }
         
-        /**
-        * Determines whether a specific element should be excluded from automatic deletion
-        * 
-        * @param string $name
-        * @param string $type
-        * @return bool
-        */
-        public function isAutoDeleteExclude($name, $type) {
-            return (bool) $this->autoDeleteExcludes[$type][$name];
-        }
+//         /**
+//         * Get the document root of the vHost
+//         * 
+//         */
+//         public function getDocumentRoot() {
+//             return $this->documentRoot;
+//         }
         
-        /**
-        * Returns PHP elements that should be deleted
-        * 
-        * @return array
-        */
-        public function getForcedDeletes() {
-            return (array) $this->forceDeletes;
-        }
+//         /**
+//         * Get hosts the vHost listens on
+//         * 
+//         */
+//         public function getListen() {
+//             return $this->listen;
+//         }
         
-        /**
-        * Returns the name of the vHost
-        * 
-        */
-        public function getName() {
-            return $this->name;
-        }
+//         /**
+//         * Get files loaded in the PHP-CodeCache of this vHost
+//         * 
+//         */
+//         public function getCodeCacheFiles() {
+//             return $this->phpCodeCache;
+//         }
         
-        /**
-        * Get the document root of the vHost
-        * 
-        */
-        public function getDocumentRoot() {
-            return $this->documentRoot;
-        }
+//         /**
+//         * Get file-names allowed as directory-indexes
+//         * 
+//         */
+//         public function getIndexFiles() {
+//             return $this->indexFiles;
+//         }
         
-        /**
-        * Get hosts the vHost listens on
-        * 
-        */
-        public function getListen() {
-            return $this->listen;
-        }
+//         /**
+//         * Get maximum size for a single write-action
+//         * 
+//         */
+//         public function getWriteLimit() {
+//             return $this->writeLimit;
+//         }
         
-        /**
-        * Get files loaded in the PHP-CodeCache of this vHost
-        * 
-        */
-        public function getCodeCacheFiles() {
-            return $this->phpCodeCache;
-        }
+//         /**
+//         * Returns whether directory listings are allowed or not
+//         * 
+//         */
+//         public function allowDirectoryListings() {
+//             return $this->allowDirectoryListings;
+//         }
         
-        /**
-        * Get file-names allowed as directory-indexes
-        * 
-        */
-        public function getIndexFiles() {
-            return $this->indexFiles;
-        }
+//         /**
+//         * Returns the minimum filesize for using GZIP-compression   
+//         *                                                       
+//         */
+//         public function getGZIPMimimum() {
+//             return $this->gzipMinimum;
+//         }
         
-        /**
-        * Get maximum size for a single write-action
-        * 
-        */
-        public function getWriteLimit() {
-            return $this->writeLimit;
-        }
+//         /**
+//         * Returns the level of GZIP-compression to use
+//         * 
+//         */
+//         public function getGZIPLevel() {
+//             return $this->gzipLevel;
+//         }
         
-        /**
-        * Returns whether directory listings are allowed or not
-        * 
-        */
-        public function allowDirectoryListings() {
-            return $this->allowDirectoryListings;
-        }
+//         /**
+//         * Returns whether GZIP-compression can be used or not
+//         * 
+//         */
+//         public function allowGZIPCompression() {
+//             return $this->allowGZIP;
+//         }
         
-        /**
-        * Returns the minimum filesize for using GZIP-compression   
-        *                                                       
-        */
-        public function getGZIPMimimum() {
-            return $this->gzipMinimum;
-        }
+//         /**
+//         * Returns the amount of PHP-workers the vHost is running
+//         * 
+//         */
+//         public function getPHPWorkerAmount() {
+//             return $this->phpWorkers;
+//         }
         
-        /**
-        * Returns the level of GZIP-compression to use
-        * 
-        */
-        public function getGZIPLevel() {
-            return $this->gzipLevel;
-        }
+//         /**
+//         * Returns the unique ID of the vHost
+//         * 
+//         */
+//         public function getID() {
+//             return $this->id;
+//         }
         
-        /**
-        * Returns whether GZIP-compression can be used or not
-        * 
-        */
-        public function allowGZIPCompression() {
-            return $this->allowGZIP;
-        }
+//         /**
+//         * Returns the limit of requests a PHPWorker may process until it has to be restarted
+//         * 
+//         */
+//         public function getPHPWorkerLimit() {
+//             return $this->phpWorkerLimit;
+//         }
         
-        /**
-        * Returns the amount of PHP-workers the vHost is running
-        * 
-        */
-        public function getPHPWorkerAmount() {
-            return $this->phpWorkers;
-        }
+//         /**
+//         * Returns whether this vHost is the default vHost or not
+//         * 
+//         */
+//         public function isDefault() {
+//             return $this->isDefault;
+//         }
         
-        /**
-        * Returns the unique ID of the vHost
-        * 
-        */
-        public function getID() {
-            return $this->id;
-        }
+//         /**
+//         * Checks if the FileName (relative to DocumentRoot) should be excluded from CodeCache
+//         * 
+//         * @param string $fileName
+//         */
+//         public function isExcludedFile($fileName) {
+//             return in_array($fileName, (array) $this->phpCodeCacheExcludes);
+//         }
         
-        /**
-        * Returns the limit of requests a PHPWorker may process until it has to be restarted
-        * 
-        */
-        public function getPHPWorkerLimit() {
-            return $this->phpWorkerLimit;
-        }
+//         /**
+//         * Returns the first host to listen on
+//         * 
+//         */
+//         public function getHost() {
+//             return $this->listen[0];
+//         }
         
-        /**
-        * Returns whether this vHost is the default vHost or not
-        * 
-        */
-        public function isDefault() {
-            return $this->isDefault;
-        }
+//         /**
+//         * @return bool
+//         * 
+//         */
+//         public function exposePancakeInPHPInfo() {
+//             return $this->phpInfoConfig;
+//         }
         
-        /**
-        * Checks if the FileName (relative to DocumentRoot) should be excluded from CodeCache
-        * 
-        * @param string $fileName
-        */
-        public function isExcludedFile($fileName) {
-            return in_array($fileName, (array) $this->phpCodeCacheExcludes);
-        }
+//         /**
+//         * @return bool
+//         * 
+//         */
+//         public function exposePancakevHostsInPHPInfo() {
+//             return $this->phpInfovHosts;
+//         }
         
-        /**
-        * Returns the first host to listen on
-        * 
-        */
-        public function getHost() {
-            return $this->listen[0];
-        }
+//         /**
+//         * @return bool
+//         * 
+//         */
+//         public function send204OnEmptyPage() {
+//             return $this->onEmptyPage204;
+//         }
         
-        /**
-        * @return bool
-        * 
-        */
-        public function exposePancakeInPHPInfo() {
-            return $this->phpInfoConfig;
-        }
+//         /**
+//         * Returns the socket used by PHPWorkers to listen for requests
+//         * 
+//         * @return resource|null
+//         */
+//         public function getSocket() {
+//             return $this->phpSocket;
+//         }
         
-        /**
-        * @return bool
-        * 
-        */
-        public function exposePancakevHostsInPHPInfo() {
-            return $this->phpInfovHosts;
-        }
+//         /**
+//         * Returns the address to the socket used by PHPWorkers to listen for requests
+//         * 
+//         * @return string
+//         */
+//         public function getSocketName() {
+//             return $this->phpSocketName;
+//         }
         
-        /**
-        * @return bool
-        * 
-        */
-        public function send204OnEmptyPage() {
-            return $this->onEmptyPage204;
-        }
+//         /**
+//          * Should the SAPI error handler use HTML or plain text errors?
+//          * 
+//          * @return boolean
+//          */
+//         public function useHTMLErrors() {
+//         	return $this->phpHTMLErrors;
+//         }
         
-        /**
-        * Returns the socket used by PHPWorkers to listen for requests
-        * 
-        * @return resource|null
-        */
-        public function getSocket() {
-            return $this->phpSocket;
-        }
-        
-        /**
-        * Returns the address to the socket used by PHPWorkers to listen for requests
-        * 
-        * @return string
-        */
-        public function getSocketName() {
-            return $this->phpSocketName;
-        }
-        
-        /**
-         * Should the SAPI error handler use HTML or plain text errors?
-         * 
-         * @return boolean
-         */
-        public function useHTMLErrors() {
-        	return $this->phpHTMLErrors;
-        }
-        
-        /**
-         * Returns all functions that should be disabled inside the PHP-SAPI
-         * 
-         * @return array
-         */
-        public function getDisabledFunctions() {
-        	return $this->phpDisabledFunctions;
-        }
+//         /**
+//          * Returns all functions that should be disabled inside the PHP-SAPI
+//          * 
+//          * @return array
+//          */
+//         public function getDisabledFunctions() {
+//         	return $this->phpDisabledFunctions;
+//         }
        
-        /**
-         * Returns true if objects in static class properties should be cleaned after finishing a request
-         * 
-         * @return boolean
-         */
-        public function shouldResetStaticClassObjectValues() {
-        	return $this->resetClassObjects;
-        }
+//         /**
+//          * Returns true if objects in static class properties should be cleaned after finishing a request
+//          * 
+//          * @return boolean
+//          */
+//         public function shouldResetStaticClassObjectValues() {
+//         	return $this->resetClassObjects;
+//         }
         
-        /**
-         * Returns true if non-object-values in static class properties should be cleaned after finishing a request
-         *
-         * @return boolean
-         */
-        public function shouldResetStaticClassNonObjectValues() {
-        	return $this->resetClassNonObjects;
-        }
+//         /**
+//          * Returns true if non-object-values in static class properties should be cleaned after finishing a request
+//          *
+//          * @return boolean
+//          */
+//         public function shouldResetStaticClassNonObjectValues() {
+//         	return $this->resetClassNonObjects;
+//         }
         
-        /**
-         * Returns true if objects in static function variables should be cleaned after finishing a request
-         *
-         * @return boolean
-         */
-        public function shouldResetStaticFunctionObjectValues() {
-        	return $this->resetFunctionObjects;
-        }
+//         /**
+//          * Returns true if objects in static function variables should be cleaned after finishing a request
+//          *
+//          * @return boolean
+//          */
+//         public function shouldResetStaticFunctionObjectValues() {
+//         	return $this->resetFunctionObjects;
+//         }
         
-        /**
-         * Returns true if non-object-values in static function variables should be cleaned after finishing a request
-         *
-         * @return boolean
-         */
-        public function shouldResetStaticFunctionNonObjectValues() {
-        	return $this->resetFunctionNonObjects;
-        }
+//         /**
+//          * Returns true if non-object-values in static function variables should be cleaned after finishing a request
+//          *
+//          * @return boolean
+//          */
+//         public function shouldResetStaticFunctionNonObjectValues() {
+//         	return $this->resetFunctionNonObjects;
+//         }
         
-        /**
-         * Returns true if object destructors should not be executed when destroying an object from a static class property or a static variable inside a function
-         * 
-         * @return boolean
-         */
-        public function shouldDestroyDestructorOnObjectDestroy() {
-        	return $this->resetObjectsDestroyDestructor;	
-        }
+//         /**
+//          * Returns true if object destructors should not be executed when destroying an object from a static class property or a static variable inside a function
+//          * 
+//          * @return boolean
+//          */
+//         public function shouldDestroyDestructorOnObjectDestroy() {
+//         	return $this->resetObjectsDestroyDestructor;	
+//         }
         
-        /**
-         * Returns whether the request object should be checked for manipulation after being returned from the PHP-SAPI
-         * 
-         * @return boolean
-         */
-        public function shouldCompareObjects() {
-        	return $this->shouldCompareObjects;
-        }
+//         /**
+//          * Returns whether the request object should be checked for manipulation after being returned from the PHP-SAPI
+//          * 
+//          * @return boolean
+//          */
+//         public function shouldCompareObjects() {
+//         	return $this->shouldCompareObjects;
+//         }
         
-        /**
-         * Returns all constants that are automatically predefined by Pancake before loading this vHosts' CodeCache
-         * 
-         * @return array
-         */
-        public function getPredefinedConstants() {
-        	return $this->predefinedConstants;
-        }
+//         /**
+//          * Returns all constants that are automatically predefined by Pancake before loading this vHosts' CodeCache
+//          * 
+//          * @return array
+//          */
+//         public function getPredefinedConstants() {
+//         	return $this->predefinedConstants;
+//         }
         
-        /**
-         * Returns whether predefined constants should be deleted again after loading the CodeCache
-         * 
-         * @return boolean
-         */
-        public function predefineConstantsOnlyForCodeCache() {
-        	return $this->deletePredefinedConstantsAfterCodeCacheLoad;
-        }
+//         /**
+//          * Returns whether predefined constants should be deleted again after loading the CodeCache
+//          * 
+//          * @return boolean
+//          */
+//         public function predefineConstantsOnlyForCodeCache() {
+//         	return $this->deletePredefinedConstantsAfterCodeCacheLoad;
+//         }
         
-        /**
-         * Returns the maximum execution time for PHP scripts
-         *
-         * @return number
-         */
-        public function getMaxExecutionTime() {
-        	return $this->phpMaxExecutionTime;
-        }
+//         /**
+//          * Returns the maximum execution time for PHP scripts
+//          *
+//          * @return number
+//          */
+//         public function getMaxExecutionTime() {
+//         	return $this->phpMaxExecutionTime;
+//         }
         
-        /**
-         * Returns whether dt_fix_static_method_calls() should be enabled or not
-         * 
-         * @return boolean
-         */
-        public function shouldFixStaticMethodCalls() {
-        	return $this->fixStaticMethodCalls;
-        }
+//         /**
+//          * Returns whether dt_fix_static_method_calls() should be enabled or not
+//          * 
+//          * @return boolean
+//          */
+//         public function shouldFixStaticMethodCalls() {
+//         	return $this->fixStaticMethodCalls;
+//         }
         
-        /**
-         * Initializes the configured FastCGI upstream servers for this vHost
-         * 
-         */
-        public function initializeFastCGI() {
-        	$fCGIs = array();
-        	
-        	foreach($this->fastCGI as $fastCGI) {
-        		$fCGIs[] = FastCGI::getInstance($fastCGI);
-        	}
-        	
-        	$this->fastCGI = array();
-        	
-        	foreach($fCGIs as $fastCGI) {
-        		foreach($fastCGI->getMimeTypes() as $mime)
-        			$this->fastCGI[$mime] = $fastCGI;
-        	}
-        }
+//         /**
+//          * Returns the FastCGI instance for a given mime type, if any
+//          *
+//          */
+//         public function getFastCGI($mimeType) {
+//         	if(isset($this->fastCGI[$mimeType]))
+//         		return $this->fastCGI[$mimeType];
+//         }
         
-        /**
-         * Returns the FastCGI instance for a given mime type, if any
-         *
-         */
-        public function getFastCGI($mimeType) {
-        	if(isset($this->fastCGI[$mimeType]))
-        		return $this->fastCGI[$mimeType];
-        }
+//         /**
+//          * Returns the exception page handler for this vHost
+//          * 
+//          * @return string
+//          */
+//         public function getExceptionPageHandler() {
+//         	return $this->exceptionPageHandler;
+//         }
         
-        /**
-         * Returns the exception page handler for this vHost
-         * 
-         * @return string
-         */
-        public function getExceptionPageHandler() {
-        	return $this->exceptionPageHandler;
-        }
+//         /**
+//          * Returns the directory page handler for this vHost
+//          *
+//          * @return string
+//          */
+//         public function getDirectoryPageHandler() {
+//         	return $this->directoryPageHandler;
+//         }
         
-        /**
-         * Returns the directory page handler for this vHost
-         *
-         * @return string
-         */
-        public function getDirectoryPageHandler() {
-        	return $this->directoryPageHandler;
-        }
-        
-        /**
-        * Returns the instance of the default virtual host
-        * 
-        * @return vHost
-        */
-        public static function getDefault() {
-            return self::$defaultvHost;
-        }
+//         /**
+//         * Returns the instance of the default virtual host
+//         * 
+//         * @return vHost
+//         */
+//         public static function getDefault() {
+//             return self::$defaultvHost;
+//         }
     }
 ?>

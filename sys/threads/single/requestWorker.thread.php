@@ -21,6 +21,30 @@
     #.mapVariable '$code' '$code'
     #.mapVariable '$vHost' '$vHost'
     
+    #.if /* .eval 'return (bool) Pancake\Config::get("main.secureports");' false */ && 0
+    	#.define 'SUPPORT_TLS' true
+    #.endif
+    
+    #.if /* .eval 'return (bool) Pancake\Config::get("fastcgi");' false */
+    	#.define 'SUPPORT_FASTCGI' true
+    #.endif
+    
+    #.if /* .eval 'global $Pancake_vHosts; foreach($Pancake_vHosts as $vHost) if($vHost->phpWorkers) return true; return false;' false */
+    	#.define 'SUPPORT_PHP' true
+    #.endif
+    
+    #.if /* .eval 'global $Pancake_vHosts; foreach($Pancake_vHosts as $vHost) if($vHost->allowGZIP) return true; return false;' false */
+    	#.define 'SUPPORT_GZIP' true
+    #.endif
+    
+    #.if /* .config 'compressvariables' */
+    	#.define 'COMPRESS_VARIABLES' true
+    #.endif
+    
+    #.if /* .eval 'return count(Pancake\Config::get("vhosts"));' false */ > 1
+    	#.define 'SUPPORT_MULTIPLE_VHOSTS' true
+    #.endif
+    
     #.macro 'REQUEST_TYPE' '$requestObject->requestType'
     #.macro 'GET_PARAMS' '$requestObject->GETParameters'
     #.macro 'MIME_TYPE' '$requestObject->mimeType'
@@ -42,25 +66,24 @@
     #.macro 'LOCAL_IP' '$requestObject->localIP'
     #.macro 'LOCAL_PORT' '$requestObject->localPort'
     #.macro 'RAW_POST_DATA' '$requestObject->rawPOSTData'
-    
-    #.if /* .eval 'return (bool) Pancake\Config::get("main.secureports");' */ && 0
-    	#.define 'SUPPORT_TLS' true
-    #.endif
-    
-    #.if /* .eval 'return (bool) Pancake\Config::get("fastcgi");' */
-    	#.define 'SUPPORT_FASTCGI' true
-    #.endif
-    
-    #.if /* .config 'compressvariables' */
-    	#.define 'COMPRESS_VARIABLES' true
-    #.endif
+    #.macro 'VHOST_COMPARE_OBJECTS' '/* .VHOST */->shouldCompareObjects'
+    #.macro 'VHOST_FASTCGI' '(isset(/* .VHOST */->fastCGI[/* .MIME_TYPE */]) ? /* .VHOST */->fastCGI[/* .MIME_TYPE */] : null)'
+    #.macro 'VHOST_PHP_WORKERS' '/* .VHOST */->phpWorkers'
+    #.macro 'VHOST_SOCKET_NAME' '/* .VHOST */->phpSocketName'
+    #.macro 'VHOST_DOCUMENT_ROOT' '/* .VHOST */->documentRoot'
+    #.macro 'VHOST_DIRECTORY_PAGE_HANDLER' '/* .VHOST */->directoryPageHandler'
+    #.macro 'VHOST_ALLOW_GZIP_COMPRESSION' '/* .VHOST */->allowGZIP'
+    #.macro 'VHOST_GZIP_MINIMUM' '/* .VHOST */->gzipMinimum'
+    #.macro 'VHOST_GZIP_LEVEL' '/* .VHOST */->gzipLevel'
+    #.macro 'VHOST_WRITE_LIMIT' '/* .VHOST */->writeLimit'
+    #.macro 'VHOST_NAME' '/* .VHOST */->name'
     
     global $Pancake_sockets;
     global $Pancake_vHosts;
     
     // Precalculate post_max_size in bytes
     // It is impossible to keep this in a more readable way thanks to the nice Zend Tokenizer
-   	#.define 'POST_MAX_SIZE' /* .eval '$size = strtolower(ini_get("post_max_size")); if(strpos($size, "k")) $size = (int) $size * 1024; else if(strpos($size, "m")) $size = (int) $size * 1024 * 1024; else if(strpos($size, "g")) $size = (int) $size * 1024 * 1024 * 1024; return $size;' */
+   	#.define 'POST_MAX_SIZE' /* .eval '$size = strtolower(ini_get("post_max_size")); if(strpos($size, "k")) $size = (int) $size * 1024; else if(strpos($size, "m")) $size = (int) $size * 1024 * 1024; else if(strpos($size, "g")) $size = (int) $size * 1024 * 1024 * 1024; return $size;' false */
 
     // Do not rename properties in HTTPRequest class as the properties in the PHPWorkers will have different names
     // In order not to get problems with later used properties, always deactivate the setting
@@ -80,18 +103,26 @@
     
     #.include 'HTTPRequest.class.php'
     #.include 'invalidHTTPRequest.exception.php'
+    #.include 'vHostInterface.class.php'
     
-    #.ifdef 'SUPPORT_FASTCGI'
-    	foreach($Pancake_vHosts as $vHost)
-			$vHost->initializeFastCGI();
-    #.endif
+    foreach($Pancake_vHosts as &$vHost) {
+    	if($vHost instanceof vHostInterface)
+    		break;
+    	$vHost = new vHostInterface($vHost);
+    	#.ifdef 'SUPPORT_FASTCGI'
+    		$vHost->initializeFastCGI();
+    	#.endif
+    	unset($Pancake_vHosts[$id]);
+    	foreach($vHost->listen as $address)
+    		$Pancake_vHosts[$address] = $vHost;
+    }
     
     MIME::load();
     
     $listenSockets = $listenSocketsOrig = $Pancake_sockets;
     
     // Initialize some variables
-    #.if /* .eval 'return Pancake\Config::get("main.maxconcurrent");' */
+    #.if /* .eval 'return Pancake\Config::get("main.maxconcurrent");' false */
     $decliningNewRequests = false;
     #.endif
     #.ifdef 'SUPPORT_TLS'
@@ -109,10 +140,12 @@
     $requestFileHandle = array();
     $gzipPath = array();
     $writeBuffer = array();
+    #.ifdef 'SUPPORT_PHP'
     $phpSockets = array();
+    #.endif
     $waitSlots = array();
     $waits = array();
-
+    
     // Ready
     $Pancake_currentThread->parentSignal(/* .constant 'SIGUSR1' */);
     
@@ -121,19 +154,21 @@
     
     // Wait for incoming requests     
     while(socket_select($listenSockets, $liveWriteSockets, $x
-    #.if /* .eval 'return Pancake\Config::get("main.waitslottime");' */
-    , $waitSlots ? 0 : null, $waitSlots ? /* .eval 'return Pancake\Config::get("main.waitslottime");' */ : null
+    #.if /* .eval 'return Pancake\Config::get("main.waitslottime");' false */
+    , $waitSlots ? 0 : null, $waitSlots ? /* .eval 'return Pancake\Config::get("main.waitslottime");' false */ : null
     #.endif
     ) !== false) {
     	// If there are jobs left in the queue at the end of the job-run, we're going to jump back to this point to execute the jobs that are left
     	cycle:
     	
+    	#.ifdef 'SUPPORT_PHP'
     	// Check if there are requests waiting for a PHPWorker
     	foreach((array) $waitSlots as $socketID => $requestSocket) {
 			unset($waitSlots[$socketID]);
 			$requestObject = $requests[$socketID];
     		goto load;
     	}
+    	#.endif
     	
     	// Upload to clients that are ready to receive
         foreach((array) $liveWriteSockets as $index => $requestSocket) {
@@ -185,6 +220,7 @@
                 break;
             }
             
+            #.ifdef 'SUPPORT_PHP'
             if(isset($phpSockets[(int) $socket])) {
                 $requestSocket = $phpSockets[(int) $socket];
                 $socketID = (int) $requestSocket;
@@ -208,9 +244,10 @@
                 else
                 	$obj = unserialize(socket_read($socket, $length));
                 
-                if($obj instanceof HTTPRequest && !(/* .VHOST */->shouldCompareObjects() && (string) $requestObject != (string) $obj))
+                if($obj instanceof HTTPRequest && !(/* .VHOST_COMPARE_OBJECTS */ && (string) $requestObject != (string) $obj)) {
+                	$obj->vHost = $requests[$socketID]->vHost;
                 	$requestObject = $requests[$socketID] = $obj;
-                else
+                } else
                 	$requestObject->invalidRequest(new invalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
                 
                 unset($listenSocketsOrig[array_search($socket, $listenSocketsOrig)]);
@@ -222,10 +259,11 @@
                 
                 goto write;
             }
+            #.endif
 
             if(
-            #.if /* .eval 'return Pancake\Config::get("main.maxconcurrent");' */ != 0
-            /* .eval 'return Pancake\Config::get("main.maxconcurrent");' */ < count($listenSocketsOrig) - count($Pancake_sockets) || 
+            #.if /* .eval 'return Pancake\Config::get("main.maxconcurrent");' false */ != 0
+            /* .eval 'return Pancake\Config::get("main.maxconcurrent");' false */ < count($listenSocketsOrig) - count($Pancake_sockets) || 
             #.endif
             !($requestSocket = @socket_accept($socket)))
                 goto clean;
@@ -333,12 +371,12 @@
         } else if($key = array_search($requestSocket, $listenSocketsOrig))
             unset($listenSocketsOrig[$key]);
         
-        #.if /* .eval 'return Pancake\Config::get("main.allowtrace");' */
+        #.if /* .eval 'return Pancake\Config::get("main.allowtrace");' false */
 	        if(/* .REQUEST_TYPE */ == 'TRACE')
 	            goto write;
 	    #.endif
         
-	    #.if /* .eval 'return Pancake\Config::get("main.allowoptions");' */
+	    #.if /* .eval 'return Pancake\Config::get("main.allowoptions");' false */
 	        // Check for "OPTIONS"-requestmethod
 	        if(/* .REQUEST_TYPE */ == 'OPTIONS')
 	            $requestObject->setHeader('Allow', 
@@ -347,7 +385,7 @@
 	                $allow .= ", HEAD";
 	            if(Pancake\Config::get("main.allowtrace") === true)
 	                $allow .= ", TRACE";
-	            return $allow;'
+	            return $allow;' false
 	             */);
 	    #.endif
         
@@ -369,7 +407,7 @@
         }
         #.endif
         
-        #.if /* .eval 'return ini_get("expose_php");' */
+        #.if /* .eval 'return ini_get("expose_php");' false */
         if(array_key_exists("", /* .GET_PARAMS */)) {
             $_GET = /* .GET_PARAMS */;
             switch($_GET[""]) {
@@ -392,7 +430,7 @@
                     $logo = ob_get_contents();
                     PHPFunctions\OutputBuffering\endClean();
                 break;
-                #.if /* .eval 'return Pancake\Config::get("main.exposepancake");' */ === true
+                #.if /* .eval 'return Pancake\Config::get("main.exposepancake");' false */ === true
                 case 'PAN8DF095AE-6639-4C6F-8831-5AB8FBD64D8B':
                     $logo = file_get_contents('logo/pancake.png');
                     $requestObject->setHeader('Content-Type', 'image/png');
@@ -412,7 +450,7 @@
         
         #.ifdef 'SUPPORT_FASTCGI'
         	// FastCGI
-        	if($fastCGI = /* .VHOST */->getFastCGI(/* .MIME_TYPE */)) {
+        	if($fastCGI = /* .VHOST_FASTCGI */) {
         		if($fastCGI->makeRequest($requestObject, $requestSocket) === false)
         			goto write;
         		if(!in_array($fastCGI->socket, $listenSocketsOrig)) {
@@ -423,18 +461,19 @@
         	}
         #.endif
         
+       	#.ifdef 'SUPPORT_PHP'
         // Check for PHP
-        if(/* .MIME_TYPE */ == 'text/x-php' && /* .VHOST */->getPHPWorkerAmount()) {
+        if(/* .MIME_TYPE */ == 'text/x-php' && /* .VHOST_PHP_WORKERS */) {
             $socket = socket_create(/* .constant 'AF_UNIX' */, /* .constant 'SOCK_SEQPACKET' */, 0);
             socket_set_nonblock($socket);
             // @ - Do not spam errorlog with Resource temporarily unavailable if there is no PHPWorker available
-            @socket_connect($socket, /* .VHOST */->getSocketName());
+            @socket_connect($socket, /* .VHOST_SOCKET_NAME */);
             
             if(socket_last_error($socket) == 11) {
-            	#.if /* .eval 'return Pancake\Config::get("main.waitslotwaitlimit");' */
+            	#.if /* .eval 'return Pancake\Config::get("main.waitslotwaitlimit");' false */
 	      			$waits[$socketID]++;
 	            	
-	            	if($waits[$socketID] > /* .eval 'return Pancake\Config::get("main.waitslotwaitlimit");' */) {
+	            	if($waits[$socketID] > /* .eval 'return Pancake\Config::get("main.waitslotwaitlimit");' false */) {
 	            		$requestObject->invalidRequest(new invalidHTTPRequestException('There was no worker available to serve your request. Please try again later.', 500));
 	            		goto write;
 	            	}	
@@ -478,9 +517,10 @@
             
             goto clean;
         }
+        #.endif
         
         // Get time of last modification
-        $modified = filemtime(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */);
+        $modified = filemtime(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */);
         // Set Last-Modified-Header as RFC 2822
         $requestObject->setHeader('Last-Modified', date('r', $modified));
         
@@ -491,8 +531,8 @@
         }
         
         // Check for directory
-        if(is_dir(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */)) {
-            $directory = scandir(/* .VHOST */->getDocumentRoot(). /* .REQUEST_FILE_PATH */);
+        if(is_dir(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */)) {
+            $directory = scandir(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */);
             #.config 'compressvariables' false
             $files = array();
             #.ifdef 'COMPRESS_VARIABLES'
@@ -502,7 +542,7 @@
             foreach($directory as $file) {
             	if($file == '.')
             		continue;
-            	$isDir = is_dir(/* .VHOST */->getDocumentRoot() . /* .REQUEST_FILE_PATH*/ . $file);
+            	$isDir = is_dir(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH*/ . $file);
             	#.config 'compressvariables' false
             	$files[] =
             	#.ifdef 'COMPRESS_VARIABLES'
@@ -512,8 +552,8 @@
             			'address' => 'http://' . /* .SIMPLE_GET_REQUEST_HEADER '"Host"' */ . /* .REQUEST_FILE_PATH*/ . $file . ($isDir ? '/' : ''),
             			'directory' => $isDir,
             			'type' => MIME::typeOf($file),
-            			'modified' => filemtime(/* .VHOST */->getDocumentRoot().  /* .REQUEST_FILE_PATH*/ . $file),
-            			'size' => filesize(/* .VHOST */->getDocumentRoot() . /* .REQUEST_FILE_PATH*/ . $file));
+            			'modified' => filemtime(/* .VHOST_DOCUMENT_ROOT */ .  /* .REQUEST_FILE_PATH*/ . $file),
+            			'size' => filesize(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH*/ . $file));
             }
             
             $requestObject->setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -527,34 +567,40 @@
             
             ob_start();
             
-            if(!include(/* .VHOST */->getDirectoryPageHandler()))
+            if(!include(/* .VHOST_DIRECTORY_PAGE_HANDLER */))
             	include 'php/directoryPageHandler.php';
              
             /* .ANSWER_BODY */ = ob_get_clean();
+            
+            #.ifdef 'COMPRESS_VARIABLES'
+            	#.config 'compressvariables' false
+            	unset($requestObject);
+            	#.config 'compressvariables' true
+            #.endif
         } else {
             $requestObject->setHeader('Content-Type', /* .MIME_TYPE */); 
             $requestObject->setHeader('Accept-Ranges', 'bytes'); 
             
             // Check if GZIP-compression should be used  
-            if($requestObject->acceptsCompression('gzip') && /* .VHOST */->allowGZIPCompression() === true && filesize(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */) >= /* .VHOST */->getGZIPMimimum()) {
+            if($requestObject->acceptsCompression('gzip') && /* .VHOST_ALLOW_GZIP_COMPRESSION */ === true && filesize(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */) >= /* .VHOST_GZIP_MINIMUM */) {
                 // Set encoding-header
                 $requestObject->setHeader('Content-Encoding', 'gzip');
                 // Create temporary file
-                $gzipPath[$socketID] = tempnam(/* .eval 'return Pancake\Config::get("main.tmppath");' */, 'GZIP');
-                $gzipFileHandle = gzopen($gzipPath[$socketID], 'w' . /* .VHOST */->getGZIPLevel());
+                $gzipPath[$socketID] = tempnam(/* .eval 'return Pancake\Config::get("main.tmppath");' false */, 'GZIP');
+                $gzipFileHandle = gzopen($gzipPath[$socketID], 'w' . /* .VHOST_GZIP_LEVEL */);
                 // Load uncompressed requested file
-                $requestedFileHandle = fopen(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */, 'r');
+                $requestedFileHandle = fopen(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */, 'r');
                 // Compress file
                 while(!feof($requestedFileHandle))
-                    gzwrite($gzipFileHandle, fread($requestedFileHandle, /* .VHOST */->getWriteLimit()));
+                    gzwrite($gzipFileHandle, fread($requestedFileHandle, /* .VHOST_WRITE_LIMIT */));
                 // Close GZIP-resource and open normal file-resource
                 gzclose($gzipFileHandle);
                 $requestFileHandle[$socketID] = fopen($gzipPath[$socketID], 'r');
                 // Set Content-Length
                 $requestObject->setHeader('Content-Length', filesize($gzipPath[$socketID]) - /* .RANGE_FROM */);
             } else {
-                $requestObject->setHeader('Content-Length', filesize(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */) - /* .RANGE_FROM */);
-                $requestFileHandle[$socketID] = fopen(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */, 'r');
+                $requestObject->setHeader('Content-Length', filesize(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */) - /* .RANGE_FROM */);
+                $requestFileHandle[$socketID] = fopen(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */, 'r');
             }
             
             // Check if a specific range was requested
@@ -564,7 +610,7 @@
                 if($gzipPath[$socketID])
                     $requestObject->setHeader('Content-Range', 'bytes ' . /* .RANGE_FROM */.'-'.(filesize($gzipPath[$socketID]) - 1).'/'.filesize($gzipPath[$socketID]));
                 else
-                    $requestObject->setHeader('Content-Range', 'bytes ' . /* .RANGE_FROM */.'-'.(filesize(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */) - 1).'/'.filesize(/* .VHOST */->getDocumentRoot()./* .REQUEST_FILE_PATH */));
+                    $requestObject->setHeader('Content-Range', 'bytes ' . /* .RANGE_FROM */.'-'.(filesize(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */) - 1).'/'.filesize(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */));
             }
         }
         
@@ -573,14 +619,14 @@
         // Get Answer Headers
         $writeBuffer[$socketID] = /* .BUILD_ANSWER_HEADERS */;
 
-        #.if /* .eval 'return Pancake\Config::get("main.allowhead");' */
+        #.if /* .eval 'return Pancake\Config::get("main.allowhead");' false */
 	        // Get Answer Body if set and request method isn't HEAD
 	        if(/* .REQUEST_TYPE */ != 'HEAD')
 	    #.endif
 	    $writeBuffer[$socketID] .= /* .ANSWER_BODY */;
 	        
         // Output request information
-        out('REQ './* .ANSWER_CODE */.' './* .REMOTE_IP */.': './* .REQUEST_LINE */.' on vHost '.((/* .VHOST */) ? /* .VHOST */->getName() : null).' (via './* .SIMPLE_GET_REQUEST_HEADER '"Host"' */.' from './* .SIMPLE_GET_REQUEST_HEADER "'Referer'" */.') - './* .SIMPLE_GET_REQUEST_HEADER '"User-Agent"' */, /* .constant 'Pancake\REQUEST' */);
+        out('REQ './* .ANSWER_CODE */.' './* .REMOTE_IP */.': './* .REQUEST_LINE */.' on vHost '.((/* .VHOST */) ? /* .VHOST_NAME */ : null).' (via './* .SIMPLE_GET_REQUEST_HEADER '"Host"' */.' from './* .SIMPLE_GET_REQUEST_HEADER "'Referer'" */.') - './* .SIMPLE_GET_REQUEST_HEADER '"User-Agent"' */, /* .constant 'Pancake\REQUEST' */);
 
         // Check if user wants keep-alive connection
         if($requestObject->getAnswerHeader('Connection') == 'keep-alive')
@@ -598,7 +644,7 @@
         
         // The buffer should usually only be empty if the hard limit was reached - In this case Pancake won't allocate any buffers except when the client really IS ready to receive data
         if(!strlen($writeBuffer[$socketID]))
-        	$writeBuffer[$socketID] = fread($requestFileHandle[$socketID], /* .eval 'return Pancake\Config::get("main.writebuffermin");' */);
+        	$writeBuffer[$socketID] = fread($requestFileHandle[$socketID], /* .eval 'return Pancake\Config::get("main.writebuffermin");' false */);
         
         // Write data to socket
         if(($writtenLength = @socket_write($requestSocket, $writeBuffer[$socketID])) === false)
@@ -607,27 +653,27 @@
         $writeBuffer[$socketID] = substr($writeBuffer[$socketID], $writtenLength);
         
         // Add data to buffer if not all data was sent yet
-        if(strlen($writeBuffer[$socketID]) < /* .eval 'return Pancake\Config::get("main.writebuffermin");' */ 
+        if(strlen($writeBuffer[$socketID]) < /* .eval 'return Pancake\Config::get("main.writebuffermin");' false */ 
         && is_resource($requestFileHandle[$socketID]) 
         && !feof($requestFileHandle[$socketID]) 
-        #.if /* .eval 'return Pancake\Config::get("main.writebufferhardmaxconcurrent");' */
-        && count($writeBuffer) < /* .eval 'return Pancake\Config::get("main.writebufferhardmaxconcurrent");' */
+        #.if /* .eval 'return Pancake\Config::get("main.writebufferhardmaxconcurrent");' false */
+        && count($writeBuffer) < /* .eval 'return Pancake\Config::get("main.writebufferhardmaxconcurrent");' false */
         #.endif
         #.if /* .eval 'return Pancake\Config::get("main.allowhead");' */
         && /* .REQUEST_TYPE */ != 'HEAD' 
        	#.endif
         && $writtenLength)
         	$writeBuffer[$socketID] .= fread($requestFileHandle[$socketID], 
-        			#.if /* .eval 'return Pancake\Config::get("main.writebuffersoftmaxconcurrent");' */
-        			(count($writeBuffer) > /* .eval 'return Pancake\Config::get("main.writebuffersoftmaxconcurrent");' */ ? /* .eval 'return Pancake\Config::get("main.writebuffermin");' */ : $requests[$socketID]->getvHost()->getWriteLimit())
+        			#.if /* .eval 'return Pancake\Config::get("main.writebuffersoftmaxconcurrent");' false */
+        			(count($writeBuffer) > /* .eval 'return Pancake\Config::get("main.writebuffersoftmaxconcurrent");' false */ ? /* .eval 'return Pancake\Config::get("main.writebuffermin");' false */ : /* .VHOST_WRITE_LIMIT */)
 					#.else
-        			/* .VHOST */->getWriteLimit()
+        			#.VHOST_WRITE_LIMIT
         			#.endif
         			- strlen($writeBuffer[$socketID]));
 
         // Check if more data is available
         if(strlen($writeBuffer[$socketID]) || (is_resource($requestFileHandle[$socketID]) && !feof($requestFileHandle[$socketID])
-		#.if /* .eval 'return Pancake\Config::get("main.allowhead");' */
+		#.if /* .eval 'return Pancake\Config::get("main.allowhead");' false */
         && /* .REQUEST_TYPE */ != 'HEAD'
         #.endif
         )) {
@@ -656,8 +702,10 @@
                 @unlink($file['tmp_name']); 
         }
         
+        #.ifdef 'SUPPORT_PHP'
         unset($waitSlotsOrig[$socketID]);
         unset($waits[$socketID]);
+        #.endif
         unset($socketData[$socketID]);
         unset($postData[$socketID]);
         unset($liveReadSockets[$socketID]);
@@ -677,8 +725,8 @@
         }
         
         // Check if request-limit is reached
-        #.if /* .eval 'return Pancake\Config::get("main.requestworkerlimit");' */ > 0
-        if($processedRequests >= /* .eval 'return Pancake\Config::get("main.requestworkerlimit");' */ && !$socketData && !$postData && !$requests) {
+        #.if /* .eval 'return Pancake\Config::get("main.requestworkerlimit");' false */ > 0
+        if($processedRequests >= /* .eval 'return Pancake\Config::get("main.requestworkerlimit");' false */ && !$socketData && !$postData && !$requests) {
             IPC::send(9999, 1);
             exit;
         }
@@ -686,11 +734,11 @@
         
         clean:
         
-        #.if /* .eval 'return Pancake\Config::get("main.maxconcurrent");' */
-        if($decliningNewRequests && /* .eval 'return Pancake\Config::get("main.maxconcurrent");' */ > count($listenSocketsOrig))
+        #.if /* .eval 'return Pancake\Config::get("main.maxconcurrent");' false */
+        if($decliningNewRequests && /* .eval 'return Pancake\Config::get("main.maxconcurrent");' false */ > count($listenSocketsOrig))
             $listenSocketsOrig = array_merge($Pancake_sockets, $listenSocketsOrig);
         
-        if(/* .eval 'return Pancake\Config::get("main.maxconcurrent");' */ < count($listenSocketsOrig) - count($Pancake_sockets)) {
+        if(/* .eval 'return Pancake\Config::get("main.maxconcurrent");' false */ < count($listenSocketsOrig) - count($Pancake_sockets)) {
             foreach($Pancake_sockets as $index => $socket)
                 unset($listenSocketsOrig[$index]);
             $decliningNewRequests = true;
@@ -712,12 +760,18 @@
         unset($index);
         
         // If jobs are waiting, execute them before select()ing again
-        if($listenSockets || $liveWriteSockets || $waitSlots)
+        if($listenSockets || $liveWriteSockets
+		#.ifdef 'SUPPORT_PHP'
+        || $waitSlots
+        #.endif
+        )
         	goto cycle;
         
         $listenSockets = $listenSocketsOrig;
         $liveWriteSockets = $liveWriteSocketsOrig;
+        #.ifdef 'SUPPORT_PHP'
         $waitSlots = $waitSlotsOrig;
+        #.endif
         
         gc_collect_cycles();
         

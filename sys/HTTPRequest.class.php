@@ -33,7 +33,7 @@
         /*.p*/ $cookies = array();
         /*.p*/ $setCookies = array();
         /**
-         * @var vHost
+         * @var vHostInterface
          */
         /*.p*/ $vHost = null;
         /*.p*/ $requestLine = null;
@@ -121,7 +121,7 @@
             $this->remotePort = $remotePort;
             $this->localIP = $localIP;
             $this->localPort = $localPort;
-            $this->vHost = vHost::getDefault();
+            $this->vHost = vHostInterface::$defaultvHost;
         }
         
         /**
@@ -151,12 +151,12 @@
             else if(strtoupper($firstLine[2]) == 'HTTP/1.0')
                 $this->protocolVersion = '1.0';
             else
-                throw new invalidHTTPRequestException('Unsupported protocol: '.$firstLine[2], strpos($firstLine[2], 'HTTP') !== false ? 505 : 400, $requestHeader);
+                throw new invalidHTTPRequestException('Unsupported protocol: ' . $firstLine[2], strpos($firstLine[2], 'HTTP') !== false ? 505 : 400, $requestHeader);
             unset($requestHeaders[0]);
             
             // Check request method
             if($firstLine[0] != 'GET' && $firstLine[0] != 'POST' && $firstLine[0] != 'HEAD' && $firstLine[0] != 'OPTIONS' && $firstLine[0] != 'TRACE')
-                throw new invalidHTTPRequestException('Invalid request method: '.$firstLine[0], 501, $requestHeader);
+                throw new invalidHTTPRequestException('Invalid request method: ' . $firstLine[0], 501, $requestHeader);
             $this->requestType = $firstLine[0];
             
             // Check if request method is allowed
@@ -228,32 +228,32 @@
             
             // Do not allow requests to lower paths
             if(strpos($this->requestFilePath, '../'))
-                throw new invalidHTTPRequestException('You are not allowed to access the requested file: '.$this->requestFilePath, 403, $requestHeader);
+                throw new invalidHTTPRequestException('You are not allowed to access the requested file: '.  $this->requestFilePath, 403, $requestHeader);
             
             // Check for index-files    
-            if(is_dir($this->vHost->getDocumentRoot().$this->requestFilePath)) {
+            if(is_dir($this->vHost->documentRoot . $this->requestFilePath)) {
             	if(substr($this->requestFilePath, -1, 1) != '/' && $this->requestType == 'GET') {
             		$this->setHeader('Location', 'http://' . $this->getRequestHeader('Host') . $this->requestFilePath . '/' . $this->queryString);
             		throw new invalidHTTPRequestException('Redirecting...', 301);
             	}
             	
-                foreach($this->vHost->getIndexFiles() as $file)
-                    if(file_exists($this->vHost->getDocumentRoot().$this->requestFilePath.'/'.$file)) {
-                        $this->requestFilePath .= (substr($this->requestFilePath, -1, 1) == '/' ? null : '/') . $file;
+                foreach($this->vHost->indexFiles as $file)
+                    if(file_exists($this->vHost->documentRoot . $this->requestFilePath . $file)) {
+                        $this->requestFilePath .= $file;
                         goto checkRead;
                     }
                 // No index file found, check if vHost allows directory listings
-                if($this->vHost->allowDirectoryListings() !== true)
-                    throw new invalidHTTPRequestException('You\'re not allowed to view the listing of the requested directory: '.$this->requestFilePath, 403, $requestHeader);
+                if($this->vHost->allowDirectoryListings !== true)
+                    throw new invalidHTTPRequestException('You\'re not allowed to view the listing of the requested directory: ' . $this->requestFilePath, 403, $requestHeader);
             }
 
             checkRead:
             
             // Check if requested file exists and is accessible
-            if(!file_exists($this->vHost->getDocumentRoot() . $this->requestFilePath))
-                throw new invalidHTTPRequestException('File does not exist: '.$this->requestFilePath, 404, $requestHeader);
-            if(!is_readable($this->vHost->getDocumentRoot() . $this->requestFilePath))
-                throw new invalidHTTPRequestException('You\'re not allowed to access the requested file: '.$this->requestFilePath, 403, $requestHeader);
+            if(!file_exists($this->vHost->documentRoot . $this->requestFilePath))
+                throw new invalidHTTPRequestException('File does not exist: ' . $this->requestFilePath, 404, $requestHeader);
+            if(!is_readable($this->vHost->documentRoot . $this->requestFilePath))
+                throw new invalidHTTPRequestException('You\'re not allowed to access the requested file: ' . $this->requestFilePath, 403, $requestHeader);
             
             // Check if requested path needs authentication
             if($authData = $this->vHost->requiresAuthentication($this->requestFilePath)) {
@@ -277,7 +277,7 @@
             
             // Check for If-Unmodified-Since
             if($this->getRequestHeader('If-Unmodified-Since')) {
-                if(filemtime($this->vHost->getDocumentRoot().$this->requestFilePath) != strtotime($this->getRequestHeader('If-Unmodified-Since')))
+                if(filemtime($this->vHost->documentRoot . $this->requestFilePath) != strtotime($this->getRequestHeader('If-Unmodified-Since')))
                     throw new invalidHTTPRequestException('File was modified since requested time.', 412, $requestHeader);
             }
             
@@ -298,7 +298,7 @@
             }
             
             // Get MIME-type of the requested file
-            $this->mimeType = MIME::typeOf($this->vHost->getDocumentRoot() . $this->requestFilePath);
+            $this->mimeType = MIME::typeOf($this->vHost->documentRoot . $this->requestFilePath);
             
             // Split GET-parameters
             $get = explode('&', $path[1]);
@@ -367,7 +367,7 @@
             
             // Set default host
             if(!$this->getRequestHeader('Host'))
-                $this->requestHeaders['Host'] = $this->vHost->getHost();                  
+                $this->requestHeaders['Host'] = $this->vHost->listen[0];                  
         }
         #.endif
         
@@ -503,7 +503,7 @@
         	#.endif
         	
         	$this->answerCode = $exception->getCode();
-        	$this->setHeader('Content-Type', MIME::typeOf($this->vHost->getExceptionPageHandler()));
+        	$this->setHeader('Content-Type', MIME::typeOf($this->vHost->exceptionPageHandler));
         	
         	ob_start();
         	
@@ -514,7 +514,7 @@
         		$exception;
         	#.endif
         	
-        	if(!include($this->vHost->getExceptionPageHandler()))
+        	if(!include($this->vHost->exceptionPageHandler))
         		include 'php/exceptionPageHandler.php';
         	
         	$this->answerBody = ob_get_clean();
@@ -528,7 +528,7 @@
         public function buildAnswerHeaders() {
         	#.if /* .eval 'return Pancake\Config::get("main.allowtrace");' */
             // Check for TRACE
-            if($this->getRequestType() == 'TRACE') {
+            if($this->requestType == 'TRACE') {
                 $answer = $this->getRequestLine()."\r\n";
                 $answer .= $this->getRequestHeaders()."\r\n";
                 return $answer;
@@ -536,10 +536,10 @@
             #.endif
             
             // Set answer code if not set
-            if(!$this->getAnswerCode())
-                (!$this->getAnswerHeader('Content-Length') && !$this->getAnswerBody() && $this->vHost->send204OnEmptyPage()) ? $this->setAnswerCode(204) : $this->setAnswerCode(200);
+            if(!$this->answerCode)
+                (!$this->getAnswerHeader('Content-Length') && !$this->answerBody && $this->vHost->onEmptyPage204) ? $this->answerCode = 204 : $this->answerCode = 200;
             // Set Connection-Header
-            if($this->getAnswerCode() >= 200 && $this->getAnswerCode() < 400 && strtolower($this->getRequestHeader('Connection')) == 'keep-alive')
+            if($this->answerCode >= 200 && $this->answerCode < 400 && strtolower($this->getRequestHeader('Connection')) == 'keep-alive')
                 $this->setHeader('Connection', 'keep-alive');
             else
                 $this->setHeader('Connection', 'close');
@@ -555,7 +555,7 @@
                 $this->setHeader('Set-Cookie', $setCookie);
             // Set Content-Length
             if(!$this->getAnswerHeader('Content-Length'))
-                $this->setHeader('Content-Length', strlen($this->getAnswerBody()));
+                $this->setHeader('Content-Length', strlen($this->answerBody));
             // Set Content-Type if not set
             if(!$this->getAnswerHeader('Content-Type', false) && $this->getAnswerHeader('Content-Length'))  
                 $this->setHeader('Content-Type', 'text/html');                                              
@@ -564,7 +564,7 @@
                 $this->setHeader('Date', date('r'));
             
             // Build Answer
-            $answer = 'HTTP/'.$this->getProtocolVersion().' '.$this->getAnswerCode().' '.self::getCodeString($this->getAnswerCode())."\r\n";
+            $answer = 'HTTP/' . $this->protocolVersion . ' ' . $this->answerCode . ' ' . self::getCodeString($this->answerCode)."\r\n";
             $answer .= $this->getAnswerHeaders();
             $answer .= "\r\n";
             
@@ -640,7 +640,7 @@
         public function createSERVER() {
         	$appendSlash = "";
         	
-            if(is_dir($this->vHost->getDocumentRoot() . $this->requestFilePath) && substr($this->requestFilePath, -1, 1) != '/')
+            if(is_dir($this->vHost->documentRoot . $this->requestFilePath) && substr($this->requestFilePath, -1, 1) != '/')
                 $appendSlash = '/';
             
             $_SERVER['REQUEST_TIME'] = $this->requestTime;
@@ -651,12 +651,12 @@
             $_SERVER['SERVER_SOFTWARE'] = 'Pancake/' . VERSION;
             $_SERVER['PHP_SELF'] = $_SERVER['SCRIPT_NAME'] = $_SERVER['DOCUMENT_URI'] = $this->requestFilePath . $appendSlash;
             $_SERVER['REQUEST_URI'] = $this->requestURI;
-            $_SERVER['SCRIPT_FILENAME'] = (substr($this->vHost->getDocumentRoot(), -1, 1) == '/' ? substr($this->vHost->getDocumentRoot(), 0, strlen($this->vHost->getDocumentRoot()) - 1) : $this->vHost->getDocumentRoot()) . $this->requestFilePath . $appendSlash;
+            $_SERVER['SCRIPT_FILENAME'] = (substr($this->vHost->documentRoot, -1, 1) == '/' ? substr($this->vHost->documentRoot, 0, strlen($this->vHost->documentRoot) - 1) : $this->vHost->documentRoot) . $this->requestFilePath . $appendSlash;
             $_SERVER['REMOTE_ADDR'] = $this->remoteIP;
             $_SERVER['REMOTE_PORT'] = $this->remotePort;
             $_SERVER['QUERY_STRING'] = $this->queryString;         
-            $_SERVER['DOCUMENT_ROOT'] = $this->vHost->getDocumentRoot();
-            $_SERVER['SERVER_NAME'] = $this->getRequestHeader('Host') ? $this->getRequestHeader('Host') : $this->vHost->getHost();
+            $_SERVER['DOCUMENT_ROOT'] = $this->vHost->documentRoot;
+            $_SERVER['SERVER_NAME'] = $this->getRequestHeader('Host') ? $this->getRequestHeader('Host') : $this->vHost->listen[0];
             $_SERVER['SERVER_ADDR'] = $this->localIP;
             $_SERVER['SERVER_PORT'] = $this->localPort;
 
@@ -943,7 +943,6 @@
         	. serialize($this->remoteIP)
         	. serialize($this->remotePort)
         	. serialize($this->requestURI)
-        	. serialize($this->vHost)
         	. serialize($this->requestType)
         	. serialize($this->requestLine);
         }
