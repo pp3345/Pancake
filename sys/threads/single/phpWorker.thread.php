@@ -37,6 +37,7 @@
     	#.if /* .config 'compressproperties' */
     		#.config 'compressproperties' false
     	#.endif
+    	#.include 'workerFunctions.php'
     	#.include 'invalidHTTPRequest.exception.php'
     	#.include 'HTTPRequest.class.php'
     	#.include 'vHostInterface.class.php'

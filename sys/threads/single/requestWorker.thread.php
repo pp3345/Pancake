@@ -101,6 +101,7 @@
     	#.include 'FastCGI.class.php'
     #.endif
     
+    #.include 'workerFunctions.php'
     #.include 'HTTPRequest.class.php'
     #.include 'invalidHTTPRequest.exception.php'
     #.include 'vHostInterface.class.php'

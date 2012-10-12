@@ -29,7 +29,7 @@
     // Include files necessary to run Pancake
     require_once 'sfYamlParser.class.php';
     require_once 'configuration.class.php';
-    require_once 'functions.php';
+    require_once 'coreFunctions.php';
     require_once 'thread.class.php';
     require_once 'IPC.class.php';
     require_once 'vHost.class.php';
