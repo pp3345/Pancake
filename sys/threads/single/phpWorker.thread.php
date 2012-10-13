@@ -47,6 +47,8 @@
 	    
 	    unset($Pancake_sockets);
 	    
+	    vHost::$defaultvHost = null;
+	    
 	    // Don't allow scripts to get information about other vHosts
 	    #.ifdef 'EXPOSE_VHOSTS_IN_PHPINFO'
 	    	foreach($Pancake_vHosts as &$vHost) {

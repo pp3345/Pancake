@@ -106,6 +106,8 @@
     #.include 'invalidHTTPRequest.exception.php'
     #.include 'vHostInterface.class.php'
     
+    vHost::$defaultvHost = null;
+    
     foreach($Pancake_vHosts as &$vHost) {
     	if($vHost instanceof vHostInterface)
     		break;
