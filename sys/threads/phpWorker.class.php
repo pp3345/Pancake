@@ -46,7 +46,8 @@
             			. md5_file('php/sapi.php')
             			. md5_file('php/util.php')
             			. md5_file('mime.class.php')
-            			. md5_file('moody.cphp'));
+            			. md5_file('moody.cphp')
+            			. md5_file('workerFunctions.php'));
             	if(!(file_exists('threads/single/phpWorker.thread.' . $vHost->name . '.hash') 
             	&& file_get_contents('threads/single/phpWorker.thread.' . $vHost->name . '.hash') == $hash)) {
             		require_once 'threads/codeProcessor.class.php';

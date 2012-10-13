@@ -147,6 +147,12 @@
     $waitSlots = array();
     $waits = array();
     
+    #.if Pancake\DEBUG_MODE === true
+    	benchmarkFunction("socket_read");
+    	benchmarkFunction("socket_write");
+    	benchmarkFunction("hexdec");
+    #.endif
+    
     // Ready
     $Pancake_currentThread->parentSignal(/* .constant 'SIGUSR1' */);
     
@@ -621,7 +627,7 @@
         $writeBuffer[$socketID] = /* .BUILD_ANSWER_HEADERS */;
 
         #.if /* .eval 'return Pancake\Config::get("main.allowhead");' false */
-	        // Get Answer Body if set and request method isn't HEAD
+	        // Get answer body if set and request method isn't HEAD
 	        if(/* .REQUEST_TYPE */ != 'HEAD')
 	    #.endif
 	    $writeBuffer[$socketID] .= /* .ANSWER_BODY */;
@@ -724,6 +730,22 @@
             fclose($requestFileHandle[$socketID]);
             unset($requestFileHandle[$socketID]);
         }
+        
+        #.if Pancake\DEBUG_MODE === true
+        if($results = benchmarkFunction(null, true)) {
+        	foreach($results as $function => $functionResults) {
+        		foreach($functionResults as $result)
+        			$total += $result;
+        
+        		out('Benchmark of function ' . $function . '(): ' . count($functionResults) . ' calls' . ( $functionResults ? ' - ' . (min($functionResults) * 1000) . ' ms min - ' . ($total / count($functionResults) * 1000) . ' ms ave - ' . (max($functionResults) * 1000) . ' ms max - ' . ($total * 1000) . ' ms total' : "") , /* .constant 'Pancake\REQUEST' */);
+        		unset($total);
+        	}
+        	 
+        	unset($result);
+        	unset($functionResults);
+        	unset($results);
+        }
+        #.endif
         
         // Check if request-limit is reached
         #.if /* .eval 'return Pancake\Config::get("main.requestworkerlimit");' false */ > 0

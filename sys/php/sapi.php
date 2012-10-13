@@ -637,55 +637,6 @@ FUNCTIONBODY
 		return true;
 	}
 	
-	#.if Pancake\DEBUG_MODE === true
-		function benchmarkFunction($functionName, $returnResults = false, $returnFunctions = false) {
-			static $benchmarkedFunctions = array();
-			
-			if($returnFunctions === true) {
-				return $benchmarkedFunctions;
-			}
-			
-			if($returnResults === true) {
-				foreach($benchmarkedFunctions as $function) {
-					$results[$function] = $function("__GET_PANCAKE_BENCHMARK_RESULTS");
-					//dt_remove_function($function);
-					//dt_rename_function('__PANCAKE_BENCHMARK__' . $function, $function);
-				}
-				//$benchmarkedFunctions = array();
-				return $results;
-			}
-			
-			if(!function_exists($functionName) || isset($benchmarkedFunctions[$functionName]))
-				return false;
-			
-			$benchmarkedFunctions[] = $functionName;
-			
-			dt_rename_function($functionName, '__PANCAKE_BENCHMARK__' . $functionName);
-			
-			eval('
-			function ' . $functionName . '($getResults = null) {
-				static $results = array();
-				
-				if($getResults === "__GET_PANCAKE_BENCHMARK_RESULTS") {
-					$retval = $results;
-					$results = null;
-					return $retval;
-				}
-				
-				$before = microtime(true);
-				$retval = call_user_func_array("__PANCAKE_BENCHMARK__' . $functionName . '", func_get_args());
-				$after = microtime(true);
-				
-				$results[] = $after - $before;
-
-				return $retval;
-			}
-			');
-			
-			return true;
-		}
-	#.endif
-	
     dt_rename_method('\Exception', 'getTrace', 'Pancake_getTraceOrig');
     dt_add_method('\Exception', 'getTrace', null, <<<'FUNCTIONBODY'
 $trace = $this->Pancake_getTraceOrig();

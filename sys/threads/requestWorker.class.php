@@ -38,7 +38,8 @@
         				. md5_file('mime.class.php')
         				. md5_file('moody.cphp')
         				. md5_file('TLSConnection.class.php')
-        				. md5_file('FastCGI.class.php'));
+        				. md5_file('FastCGI.class.php')
+        				. md5_file('workerFunctions.php'));
         		if(!(file_exists('threads/single/requestWorker.thread.hash')
         		&& file_get_contents('threads/single/requestWorker.thread.hash') == $hash)) {
         			require_once 'threads/codeProcessor.class.php';
@@ -59,7 +60,7 @@
             $this->IPCid = REQUEST_WORKER_TYPE . $this->id;
             
             $this->codeFile = 'threads/single/requestWorker.thread.cphp';
-            $this->friendlyName = 'RequestWorker #' . ($this->id+1);
+            $this->friendlyName = 'RequestWorker #' . ($this->id + 1);
         }
     }
 ?>

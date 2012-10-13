@@ -60,5 +60,61 @@
         return true;
     }
     
+    #.if Pancake\DEBUG_MODE === true
+    function benchmarkFunction($functionName, $returnResults = false, $returnFunctions = false) {
+    	static $benchmarkedFunctions = array();
+    		
+    	if($returnFunctions === true) {
+    		return $benchmarkedFunctions;
+    	}
+    		
+    	if($returnResults === true) {
+    		foreach($benchmarkedFunctions as $function) {
+    			$results[$function] = $function("__GET_PANCAKE_BENCHMARK_RESULTS");
+    			//dt_remove_function($function);
+    			//dt_rename_function('__PANCAKE_BENCHMARK__' . $function, $function);
+    		}
+    		//$benchmarkedFunctions = array();
+    		return $results;
+    	}
+    		
+    	if(!function_exists($functionName) || isset($benchmarkedFunctions[$functionName]))
+    		return false;
+    		
+    	$benchmarkedFunctions[] = $origFunctionName = $functionName;	
+    	
+    	if(($pos = strrpos($functionName, "\\")) !== false) {
+    		$namespace = substr($functionName, 0, $pos);
+    		$functionName = substr($functionName, $pos + 1);
+    	}
+    	
+    	dt_rename_function($origFunctionName, '__PANCAKE_BENCHMARK__' . $functionName);
+
+    	eval(($namespace ? 'namespace ' . $namespace . ';' : '') .	
+    		'
+			function ' . $functionName . '($getResults = null) {
+				static $results = array();
+    
+				if($getResults === "__GET_PANCAKE_BENCHMARK_RESULTS") {
+					$retval = $results;
+					$results = array();
+					return $retval;
+				}
+    
+    			$args = func_get_args();
+				$before = microtime(true);
+				$retval = call_user_func_array("__PANCAKE_BENCHMARK__' . $functionName . '", $args);
+				$after = microtime(true);
+    
+				$results[] = $after - $before;
+    
+				return $retval;
+			}
+			');
+    		
+    	return true;
+    }
+    #.endif
+    
     function dummy() {return true;}
 ?>
