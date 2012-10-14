@@ -14,14 +14,14 @@
 <!doctype html>
 <html>
 	<head>
-		<title><?=$exception->getCode() . ' ' . $requestObject->getCodeString($exception->getCode())?></title>
+		<title><?=$exception->getCode() . ' ' . HTTPRequest::$answerCodes[$exception->getCode()]?></title>
 		<style>
 			body{font-family:"Arial"}
 			hr{border:1px solid #000}
 		</style>
 	</head>
 	<body>
-		<h1><?=$exception->getCode() . ' ' . $requestObject->getCodeString($exception->getCode())?></h1>
+		<h1><?=$exception->getCode() . ' ' . HTTPRequest::$answerCodes[$exception->getCode()]?></h1>
 		<hr />
 		<strong><?=($exception->getCode() >= 500 ? 'Your HTTP request could not be processed.' : 'Your HTTP request was invalid.')?></strong> Error description:
 		<br />
