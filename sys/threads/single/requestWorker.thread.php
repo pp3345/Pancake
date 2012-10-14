@@ -37,6 +37,14 @@
     	#.define 'SUPPORT_GZIP' true
     #.endif
     
+    #.if /* .eval 'global $Pancake_vHosts; foreach($Pancake_vHosts as $vHost) if($vHost->authFiles || $vHost->authDirectories) return true; return false;' false */
+    	#.define 'SUPPORT_AUTHENTICATION' true
+    #.endif
+    
+    #.if /* .eval 'global $Pancake_vHosts; foreach($Pancake_vHosts as $vHost) if($vHost->rewriteRules) return true; return false;' false */
+    	#.define 'SUPPORT_REWRITE' true
+    #.endif
+    
     #.if /* .config 'compressvariables' */
     	#.define 'COMPRESS_VARIABLES' true
     #.endif
@@ -46,7 +54,7 @@
     #.endif
     
     #.macro 'REQUEST_TYPE' '$requestObject->requestType'
-    #.macro 'GET_PARAMS' '$requestObject->GETParameters'
+    #.macro 'GET_PARAMS' '$requestObject->getGETParams()'
     #.macro 'MIME_TYPE' '$requestObject->mimeType'
     #.macro 'VHOST' '$requestObject->vHost'
     #.macro 'REQUEST_FILE_PATH' '$requestObject->requestFilePath'
@@ -78,6 +86,12 @@
     #.macro 'VHOST_WRITE_LIMIT' '/* .VHOST */->writeLimit'
     #.macro 'VHOST_NAME' '/* .VHOST */->name'
     
+    #.if Pancake\DEBUG_MODE === true
+    	#.define 'BENCHMARK' false
+    #.else
+    	#.define 'BENCHMARK' false
+    #.endif
+    
     global $Pancake_sockets;
     global $Pancake_vHosts;
     
@@ -107,6 +121,8 @@
     #.include 'vHostInterface.class.php'
     
     vHost::$defaultvHost = null;
+    MIME::load();
+    Config::workerDestroy();
     
     foreach($Pancake_vHosts as &$vHost) {
     	if($vHost instanceof vHostInterface)
@@ -119,8 +135,6 @@
     	foreach($vHost->listen as $address)
     		$Pancake_vHosts[$address] = $vHost;
     }
-    
-    MIME::load();
     
     $listenSockets = $listenSocketsOrig = $Pancake_sockets;
     
@@ -141,7 +155,9 @@
     $processedRequests = 0;
     $requests = array();
     $requestFileHandle = array();
+    #.ifdef 'SUPPORT_GZIP'
     $gzipPath = array();
+    #.endif
     $writeBuffer = array();
     #.ifdef 'SUPPORT_PHP'
     $phpSockets = array();
@@ -149,7 +165,7 @@
     $waitSlots = array();
     $waits = array();
     
-    #.if Pancake\DEBUG_MODE === true
+    #.if BENCHMARK === true
     	benchmarkFunction("socket_read");
     	benchmarkFunction("socket_write");
     	benchmarkFunction("hexdec");
@@ -355,6 +371,7 @@
             try {
                 $requestObject = $requests[$socketID] = new HTTPRequest($ip, $port, $lip, $lport);
                 $requestObject->init($socketData[$socketID]);
+                unset($socketData[$socketID]);
             } catch(invalidHTTPRequestException $e) {
                 $requestObject->invalidRequest($e);
                 goto write;
@@ -369,6 +386,7 @@
                 if($key = array_search($requestSocket, $listenSocketsOrig))
                     unset($listenSocketsOrig[$key]);
                 /* .RAW_POST_DATA */ = $postData[$socketID];
+                unset($postData[$socketID]);
             } else {
                 // Event-based reading
                 if(!in_array($requestSocket, $listenSocketsOrig)) {
@@ -590,6 +608,7 @@
             $requestObject->setHeader('Content-Type', /* .MIME_TYPE */); 
             $requestObject->setHeader('Accept-Ranges', 'bytes'); 
             
+            #.ifdef 'SUPPORT_GZIP'
             // Check if GZIP-compression should be used  
             if($requestObject->acceptsCompression('gzip') && /* .VHOST_ALLOW_GZIP_COMPRESSION */ === true && filesize(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */) >= /* .VHOST_GZIP_MINIMUM */) {
                 // Set encoding-header
@@ -608,17 +627,22 @@
                 // Set Content-Length
                 $requestObject->setHeader('Content-Length', filesize($gzipPath[$socketID]) - /* .RANGE_FROM */);
             } else {
+            #.endif
                 $requestObject->setHeader('Content-Length', filesize(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */) - /* .RANGE_FROM */);
                 $requestFileHandle[$socketID] = fopen(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */, 'r');
+            #.ifdef 'SUPPORT_GZIP'
             }
+            #.endif
             
             // Check if a specific range was requested
             if(/* .RANGE_FROM */) {
                 /* .ANSWER_CODE */ = 206;
                 fseek($requestFileHandle[$socketID], /* .RANGE_FROM */);
+                #.ifdef 'SUPPORT_GZIP'
                 if($gzipPath[$socketID])
                     $requestObject->setHeader('Content-Range', 'bytes ' . /* .RANGE_FROM */.'-'.(filesize($gzipPath[$socketID]) - 1).'/'.filesize($gzipPath[$socketID]));
                 else
+                #.endif
                     $requestObject->setHeader('Content-Range', 'bytes ' . /* .RANGE_FROM */.'-'.(filesize(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */) - 1).'/'.filesize(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */));
             }
         }
@@ -720,10 +744,12 @@
         unset($liveReadSockets[$socketID]);
         unset($requests[$socketID]);
         unset($writeBuffer[$socketID]);
+        #.ifdef 'SUPPORT_GZIP'
         if(isset($gzipPath[$socketID])) {
             unlink($gzipPath[$socketID]);
             unset($gzipPath[$socketID]);
         }
+        #.endif
         
         if(($key = array_search($requestSocket, $liveWriteSocketsOrig)) !== false)
             unset($liveWriteSocketsOrig[$key]);

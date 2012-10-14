@@ -69,25 +69,12 @@
     		return;
     	
     	// Execute registered shutdown callbacks
-    	foreach((array) vars::$Pancake_shutdownCalls as $shutdownCall) {
-    		unset($args);
-    		$call = 'call_user_func($shutdownCall["callback"]';
-    		
-    		$i = 0;
-    		
-    		foreach((array) @$shutdownCall['args'] as $arg) {
-    			if(isset($args))
-    				$call .= ',';
-    			$args[$i++] = $arg;
-    			$call .= '$args['.$i.']';
-    		}
-    		$call .= ');';
-    		eval($call);
-    	}
+    	foreach((array) vars::$Pancake_shutdownCalls as $shutdownCall)
+    		call_user_func_array($shutdownCall["callback"], $shutdownCall["args"]);
     	
     	while(PHPFunctions\OutputBuffering\getLevel() > 1)
     		PHPFunctions\OutputBuffering\endFlush();
-    	vars::$Pancake_request->setAnswerBody(ob_get_contents());
+    	vars::$Pancake_request->answerBody = ob_get_contents();
     	
     	if(session_id() || vars::$sessionID) {
     		vars::$Pancake_request->setCookie(session_name(), session_id() ? session_id() : vars::$sessionID, time() + ini_get('session.cookie_lifetime'), ini_get('session.cookie_path'), ini_get('session.cookie_domain'), ini_get('session.cookie_secure'), ini_get('session.cookie_httponly'));
@@ -189,7 +176,7 @@
         
         $newBacktrace = array();
         
-        foreach($backtrace as $index => $tracePart) {
+        foreach($backtrace as $tracePart) {
 			if(vars::$executingErrorHandler && ((isset($tracePart['file']) && strpos($tracePart['file'], '/sys/threads/single/phpWorker.thread')) || (isset($tracePart['function']) && $tracePart['function'] == 'Pancake\PHPErrorHandler')))
 				continue;
         	$newBacktrace[] = $tracePart;

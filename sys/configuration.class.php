@@ -145,5 +145,12 @@
                 $data = $data[$part];
             return $data !== null ? $data : $defaultValue;
         }
+        
+        /**
+         * Destroys the configuration
+         */
+        static public function workerDestroy() {
+        	unset(self::$configuration['mime'], self::$configuration['include'], self::$configuration['vhosts'], self::$configuration['moody']);
+        }
     }
 ?>

@@ -13,46 +13,42 @@
     if(PANCAKE !== true)
         exit;     
     #.endif                                                  
-
-    #.ifdef 'PHPWORKER'
-    	#.macro 'p' 'private'
-    #.else
-    	#.macro 'p' 'public'
-    #.endif
     
     class HTTPRequest {
-        /*.p*/ $requestHeaders = array();
-        /*.p*/ $answerHeaders = array();
-        /*.p*/ $protocolVersion = '1.0';
-        /*.p*/ $requestType = null;
-        /*.p*/ $answerCode = 0;
-        /*.p*/ $answerBody = null;
-        /*.p*/ $requestFilePath = null;
-        /*.p*/ $GETParameters = array();
-        /*.p*/ $POSTParameters = array();
-        /*.p*/ $cookies = array();
-        /*.p*/ $setCookies = array();
+        public $requestHeaders = array();
+        public $answerHeaders = array();
+        public $protocolVersion = '1.0';
+        public $requestType = null;
+        public $answerCode = 0;
+        public $answerBody = null;
+        public $requestFilePath = null;
+        public $GETParameters = array();
+    	#.ifdef 'PHPWORKER'
+        public $POSTParameters = array();
+        public $cookies = array();
+    	#.endif
+        public $setCookies = array();
         /**
          * @var vHostInterface
          */
-        /*.p*/ $vHost = null;
-        /*.p*/ $requestLine = null;
-        /*.p*/ $rangeFrom = 0;
-        /*.p*/ $rangeTo = 0;
-        /*.p*/ $acceptedCompressions = array();
-        /*.p*/ $requestURI = null;
-        /*.p*/ $remoteIP = null;
-       	/*.p*/ $remotePort = 0;
-        /*.p*/ $localIP = null;
-        /*.p*/ $localPort = 0;
-        /*.p*/ $mimeType = null;
-        /*.p*/ $uploadedFiles = array();
-        /*.p*/ $uploadedFileTempNames = array();
-        /*.p*/ $queryString = null;
-        /*.p*/ $requestTime = 0;
-        /*.p*/ $requestMicrotime = 0;
-    	/*.p*/ $rawPOSTData = "";
-        /*.p*/ static $answerCodes = array(
+        public $vHost = null;
+        public $requestLine = null;
+        public $rangeFrom = 0;
+        public $rangeTo = 0;
+        public $acceptedCompressions = array();
+        public $requestURI = null;
+        public $remoteIP = null;
+       	public $remotePort = 0;
+        public $localIP = null;
+        public $localPort = 0;
+        public $mimeType = null;
+        public $uploadedFiles = array();
+        public $uploadedFileTempNames = array();
+        public $queryString = null;
+        public $requestTime = 0;
+        public $requestMicrotime = 0;
+    	public $rawPOSTData = "";
+        public static $answerCodes = array(
                                             100 => 'Continue',
                                             101 => 'Switching Protocols',
                                             102 => 'Processing',
@@ -215,7 +211,11 @@
             if(isset($Pancake_vHosts[$this->getRequestHeader('Host')]))
                 $this->vHost = $Pancake_vHosts[$this->getRequestHeader('Host')];
             
-            $this->requestURI = $firstLine[1] = $this->vHost->rewrite($firstLine[1]);
+            $this->requestURI = $firstLine[1]
+			#.ifdef 'SUPPORT_REWRITE'
+            = $this->vHost->rewrite($firstLine[1])
+            #.endif
+            ;
              
             // Split address from query string
             $path = explode('?', $firstLine[1], 2);
@@ -256,24 +256,26 @@
                 throw new invalidHTTPRequestException('You\'re not allowed to access the requested file: ' . $this->requestFilePath, 403, $requestHeader);
             
             // Check if requested path needs authentication
+            #.ifdef 'SUPPORT_AUTHENTICATION'
             if($authData = $this->vHost->requiresAuthentication($this->requestFilePath)) {
                 if($this->getRequestHeader('Authorization')) {
-                    if($authData['type'] == 'basic') {
+                    //if($authData['type'] == 'basic') {
                         $auth = explode(" ", $this->getRequestHeader('Authorization'));
                         $userPassword = explode(":", base64_decode($auth[1]));
                         if($this->vHost->isValidAuthentication($this->requestFilePath, $userPassword[0], $userPassword[1]))
                             goto valid;
-                    } //else {
+                    //} else {
                          
                     //}
                 }
-                if($authData['type'] == 'basic') {
+                //if($authData['type'] == 'basic') {
                     $this->setHeader('WWW-Authenticate', 'Basic realm="'.$authData['realm'].'"');
                     throw new invalidHTTPRequestException('You need to authorize in order to access this file.', 401, $requestHeader);
-                }
+                //}
             }
             
             valid:
+            #.endif
             
             // Check for If-Unmodified-Since
             if($this->getRequestHeader('If-Unmodified-Since')) {
@@ -300,68 +302,6 @@
             // Get MIME-type of the requested file
             $this->mimeType = MIME::typeOf($this->vHost->documentRoot . $this->requestFilePath);
             
-            // Split GET-parameters
-            $get = explode('&', $path[1]);
-            
-            // Read GET-parameters
-            foreach($get as $param) {
-                if($param == null)
-                    break;
-                $param = explode('=', $param, 2);
-                $param[0] = urldecode($param[0]);
-                $param[1] = urldecode($param[1]);
-                
-                if(strpos($param[0], '[') < strpos($param[0], ']')) {
-                    // Split array dimensions
-                    preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $param[0], $parts);
-                    
-                    // Build and evaluate parameter definition
-                    $paramDefinition = '$this->GETParameters[$parts[1][0]]';
-                    foreach((array) $parts[2] as $index => $arrayKey) {
-                        if($arrayKey == null)
-                            $paramDefinition .= '[]';
-                        else
-                            $paramDefinition .= '[$parts[2]['.$index.']]';
-                    }
-                    
-                    $paramDefinition .= ' = $param[1];';
-                    eval($paramDefinition);
-                } else
-                    $this->GETParameters[$param[0]] = $param[1];
-            }
-             
-            // Check for cookies
-            if($this->getRequestHeader('Cookie')) {
-                // Split cookies
-                $cookies = explode(';', $this->getRequestHeader('Cookie'));
-                
-                // Read cookies
-                foreach($cookies as $cookie) {
-                    if($cookie == null)
-                        break;
-                        
-                    $param = explode('=', trim($cookie), 2);
-                    $param[0] = urldecode($param[0]);
-                    $param[1] = urldecode($param[1]);
-                    
-                    if(strpos($param[0], '[') < strpos($param[0], ']')) {
-                        preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $param[0], $parts);
-                        
-                        $paramDefinition = '$this->cookies[$parts[1][0]]';
-                        foreach((array) $parts[2] as $index => $arrayKey) {
-                            if($arrayKey == null)
-                                $paramDefinition .= '[]';
-                            else
-                                $paramDefinition .= '[$parts[2]['.$index.']]';
-                        }
-                        
-                        $paramDefinition .= ' = $param[1];';
-                        eval($paramDefinition);
-                    } else
-                        $this->cookies[$param[0]] = $param[1];
-                }
-            }  
-            
             $this->requestTime = time();
             $this->requestMicrotime = microtime(true);
             
@@ -371,6 +311,7 @@
         }
         #.endif
         
+        #.ifdef 'PHPWORKER'
         /**
         * Processes the POST request body
         * 
@@ -489,6 +430,7 @@
             }
             return true;
         }
+        #.endif
         
         /**
         * Set answer on invalid request
@@ -529,8 +471,8 @@
         	#.if /* .eval 'return Pancake\Config::get("main.allowtrace");' */
             // Check for TRACE
             if($this->requestType == 'TRACE') {
-                $answer = $this->getRequestLine()."\r\n";
-                $answer .= $this->getRequestHeaders()."\r\n";
+                $answer = $this->requestLine . "\r\n";
+                $answer .= $this->requestHeaders . "\r\n";
                 return $answer;
             }
             #.endif
@@ -549,7 +491,7 @@
             #.endif
             // Set cookies
             foreach($this->setCookies as $cookie)
-                $setCookie .= ($setCookie) ? "\r\nSet-Cookie: ".$cookie : $cookie;
+                $setCookie .= ($setCookie) ? "\r\nSet-Cookie: " . $cookie : $cookie;
             
             if(isset($setCookie))
                 $this->setHeader('Set-Cookie', $setCookie);
@@ -564,13 +506,14 @@
                 $this->setHeader('Date', date('r'));
             
             // Build Answer
-            $answer = 'HTTP/' . $this->protocolVersion . ' ' . $this->answerCode . ' ' . self::getCodeString($this->answerCode)."\r\n";
+            $answer = 'HTTP/' . $this->protocolVersion . ' ' . $this->answerCode . ' ' . self::$answerCodes[$this->answerCode] . "\r\n";
             $answer .= $this->getAnswerHeaders();
             $answer .= "\r\n";
             
             return $answer;
         }
         #.endif
+        
         /**
         * Set answer header
         * 
@@ -593,25 +536,7 @@
             return true;
         }
         
-        /**
-        * Remove answer header
-        * 
-        * @param string $headerName
-        */
-        public function removeHeader($headerName) {
-        	if(isset($this->answerHeaders[$headerName]))
-            	unset($this->answerHeaders[$headerName]);
-        }
-        
         #.ifdef 'PHPWORKER'
-        /**
-        * Removes all headers that are ready to be sent
-        * 
-        */
-        public function removeAllHeaders() {
-            $this->answerHeaders = array();
-        }
-        
         /**
         * Sets a cookie. Parameters similar to PHPs function setcookie()
         * 
@@ -666,6 +591,7 @@
             return $_SERVER;
         }
         #.endif
+        
         /**
         * Get the value of a single Request-Header
         * 
@@ -685,6 +611,7 @@
             }
         }
         
+        #.ifndef 'PHPWORKER'
         /**
         * Get formatted RequestHeaders
         * 
@@ -695,40 +622,7 @@
             }
             return $headers;
         }
-        
-        /**
-         * Returns an array with all headers of the request
-         * 
-         * @return array
-         */
-        public function getRequestHeadersArray() {
-        	return $this->requestHeaders;
-        }
-        
-        /**
-        * Get the HTTP-Version used for this Request
-        * 
-        * @return 1.0 or 1.1
-        */
-        public function getProtocolVersion() {
-            return $this->protocolVersion;
-        }
-        
-        /**
-        * Get the HTTP-type of this request
-        * 
-        */
-        public function getRequestType() {
-            return $this->requestType;
-        }
-        
-        /**
-        * Get the path of the requested file
-        * 
-        */
-        public function getRequestFilePath() {
-            return $this->requestFilePath;
-        }
+        #.endif
         
         /**
         * Get formatted AnswerHeaders
@@ -740,9 +634,9 @@
             foreach($this->answerHeaders as $headerName => $headerValue) {
                 if(is_array($headerValue)) {
                     foreach($headerValue as $value)
-                        $headers .= $headerName.': '.$value."\r\n";
+                        $headers .= $headerName . ': ' . $value . "\r\n";
                 } else
-                    $headers .= $headerName.': '.$headerValue."\r\n";
+                    $headers .= $headerName . ': ' . $headerValue . "\r\n";
             }
             return $headers;
         }
@@ -757,9 +651,9 @@
             foreach($this->answerHeaders as $headerName => $headerValue) {
                 if(is_array($headerValue)) {
                     foreach($headerValue as $value)
-                        $headers[] = $headerName.': '.$value;
+                        $headers[] = $headerName . ': ' . $value;
                 } else
-                    $headers[] = $headerName.': '.$headerValue;
+                    $headers[] = $headerName . ': ' . $headerValue;
             }
             return $headers;
         }
@@ -782,59 +676,49 @@
             }
         }
         
-        /**
-        * Set answer code
-        * 
-        * @param int $value A valid HTTP answer code, for example 200 or 404
-        */
-        public function setAnswerCode($value) {
-            if(!array_key_exists($value, self::$answerCodes))
-                return false;
-            return $this->answerCode = (int) $value;
-        }
-        
-        /**
-        * Get answer code
-        * 
-        */
-        public function getAnswerCode() {
-            return $this->answerCode;
-        }
-        
-        /**
-        * Get answer body
-        * 
-        */
-        public function getAnswerBody() {
-            return $this->answerBody;
-        }
-        
-        /**
-        * Set answer body
-        * 
-        * @param string $value
-        */
-        public function setAnswerBody($value) {
-            return $this->answerBody = $value;
-        }
-        
-        /**
-        * Get the vHost for this request
-        * 
-        * @return vHost
-        */
-        public function getvHost() {
-            return $this->vHost;
-        }
-        
+        #.if /* .eval 'return (bool) ini_get("expose_php");' false */ || /* .isDefined 'PHPWORKER' */ || Pancake\DEBUG_MODE === true
         /**
         * Returns all GET-parameters of this request
         * 
         */
         public function getGETParams() {
+        	if(!$this->GETParameters && $this->queryString) {
+        		// Split GET-parameters
+        		$get = explode('&', $this->queryString);
+        		
+        		// Read GET-parameters
+        		foreach($get as $param) {
+        			if($param == null)
+        				break;
+        			$param = explode('=', $param, 2);
+        			$param[0] = urldecode($param[0]);
+        			$param[1] = urldecode($param[1]);
+        		
+        			if(strpos($param[0], '[') < strpos($param[0], ']')) {
+        				// Split array dimensions
+        				preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $param[0], $parts);
+        		
+        				// Build and evaluate parameter definition
+        				$paramDefinition = '$this->GETParameters[$parts[1][0]]';
+        				foreach((array) $parts[2] as $index => $arrayKey) {
+        					if($arrayKey == null)
+        						$paramDefinition .= '[]';
+        					else
+        						$paramDefinition .= '[$parts[2]['.$index.']]';
+        				}
+        		
+        				$paramDefinition .= ' = $param[1];';
+        				eval($paramDefinition);
+        			} else
+        				$this->GETParameters[$param[0]] = $param[1];
+        		}
+        	}
+        	
             return $this->GETParameters;
         }
+        #.endif
         
+        #.ifdef 'PHPWORKER'
         /**
         * Returns all POST-parameters of this request
         * 
@@ -852,81 +736,41 @@
         * 
         */
         public function getCookies() {
+        	// Check for cookies
+        	if($this->getRequestHeader('Cookie') && !$this->cookies) {
+        		// Split cookies
+        		$cookies = explode(';', $this->getRequestHeader('Cookie'));
+        	
+        		// Read cookies
+        		foreach($cookies as $cookie) {
+        			if($cookie == null)
+        				break;
+        	
+        			$param = explode('=', trim($cookie), 2);
+        			$param[0] = urldecode($param[0]);
+        			$param[1] = urldecode($param[1]);
+        	
+        			if(strpos($param[0], '[') < strpos($param[0], ']')) {
+        				preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $param[0], $parts);
+        	
+        				$paramDefinition = '$this->cookies[$parts[1][0]]';
+        				foreach((array) $parts[2] as $index => $arrayKey) {
+        					if($arrayKey == null)
+        						$paramDefinition .= '[]';
+        					else
+        						$paramDefinition .= '[$parts[2]['.$index.']]';
+        				}
+        	
+        				$paramDefinition .= ' = $param[1];';
+        				eval($paramDefinition);
+        			} else
+        				$this->cookies[$param[0]] = $param[1];
+        		}
+        	}
+        	
             return $this->cookies;
         }
-        
-        /**
-        * Returns the first line of the request
-        * 
-        */
-        public function getRequestLine() {
-            return $this->requestLine;
-        }
-        
-        /**
-        * Returns the start of the requested range
-        * 
-        */
-        public function getRangeFrom() {
-            return $this->rangeFrom;
-        }
-        
-        /**
-        * Returns the end of the requested range
-        * 
-        */
-        public function getRangeTo() {
-            return $this->rangeTo;
-        }
-        
-        /**
-        * Returns the IP of the client
-        * 
-        */
-        public function getRemoteIP() {
-            return $this->remoteIP;
-        }
-        
-        /**
-        * Returns the port the client listens on
-        * 
-        */
-        public function getRemotePort() {
-            return $this->remotePort;
-        }
-        
-        /**
-        * Returns the MIME-type of the requested file
-        * 
-        */
-        public function getMIMEType() {
-            return $this->mimeType;
-        }
-        
-        /**
-        * Returns an array with the uploaded files (similar to $_FILES)
-        * 
-        */
-        public function getUploadedFiles() {
-            return $this->uploadedFiles;
-        } 
-        
-        /**
-        * Returns an array with the temporary names of all uploaded files
-        * 
-        */
-        public function getUploadedFileNames() {
-            return $this->uploadedFileTempNames;
-        }
-        
-        /**
-        * Check if client accepts a specific compression format
-        * 
-        * @param string $compression Name of the compression, e. g. gzip, deflate, etc.
-        */
-        public function acceptsCompression($compression) {
-            return $this->acceptedCompressions[strtolower($compression)] === true;
-        }
+        #.endif
         
         #.ifndef 'PHPWORKER'
         /**
@@ -947,15 +791,5 @@
         	. serialize($this->requestLine);
         }
         #.endif
-        
-        /**
-        * Get message corresponding to an answer code
-        * 
-        * @param int $code Valid answer code, for example 200 or 404
-        * @return string The corresponding string, for example "OK" or "Not found"
-        */
-        public static function getCodeString($code) {
-            return self::$answerCodes[$code];
-        }
     }                             
 ?>

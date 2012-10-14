@@ -14,35 +14,35 @@
 		exit;
 	#.endif
 	
-	#.ifdef 'PHPWORKER'
-		#.macro 'p' 'public'
-	#.else
-		#.macro 'p' 'public'
-	#.endif
-	
 	class vHostInterface {
-        /*.p*/ $id = 0;
-        /*.p*/ $name = "";
-        /*.p*/ $documentRoot = "";
+        public $id = 0;
+        public $name = "";
+        public $documentRoot = "";
 		#.if !/* .isDefined 'PHPWORKER' */ || /* .isDefined 'EXPOSE_VHOSTS_IN_PHPINFO' */
-	        /*.p*/ $listen = array();
-	        /*.p*/ $phpWorkers = 0;
-	        /*.p*/ $indexFiles = array();
-			/*.p*/ $allowDirectoryListings = false;
-			/*.p*/ $gzipMinimum = 0;
-			/*.p*/ $gzipLevel = -1;
-			/*.p*/ $allowGZIP = false;
-			/*.p*/ $writeLimit = 0;
-			/*.p*/ $isDefault = false;
+	        public $listen = array();
+	        public $phpWorkers = 0;
+	        public $indexFiles = array();
+			public $allowDirectoryListings = false;
+			public $gzipMinimum = 0;
+			public $gzipLevel = -1;
+			public $allowGZIP = false;
+			public $writeLimit = 0;
+			public $isDefault = false;
         #.endif
         #.ifndef 'PHPWORKER'
+        	#.ifdef 'SUPPORT_AUTHENTICATION'
 	        public $authDirectories = array();
 	        public $authFiles = array();
+	        #.endif
 	        public $onEmptyPage204 = true;
+	        #.ifdef 'SUPPORT_REWRITE'
 	        public $rewriteRules = array();
+	        #.endif
 	        public $phpSocketName = "";
 	        public $shouldCompareObjects = false;
+	        #.ifdef 'SUPPORT_FASTCGI'
 	        public $fastCGI = array();
+	        #.endif
 	        public $directoryPageHandler = "";
 	        public static $defaultvHost = "";
 	    #.endif
@@ -68,7 +68,7 @@
 	        public $deletePredefinedConstantsAfterCodeCacheLoad = false;
 	        public $fixStaticMethodCalls = false;
 	    #.endif
-        /*.p*/ $exceptionPageHandler = "";
+        public $exceptionPageHandler = "";
 	        
 	   	public function __construct(vHost $vHost) {
 	   		foreach($vHost as $name => $value) {
@@ -83,6 +83,7 @@
 	   	}
 	   	
 	   	#.ifndef 'PHPWORKER'
+	   	#.ifdef 'SUPPORT_AUTHENTICATION'
 	   	/**
 	   	 * Checks whether a specified file requires authentication
 	   	 *
@@ -137,7 +138,9 @@
 	   		}
 	   		return false;
 	   	}
+	   	#.endif
 	   	
+	   	#.ifdef 'SUPPORT_REWRITE'
 	   	/**
 	   	 * Applies the vHost's rewrite rules to a URI
 	   	 *
@@ -161,6 +164,7 @@
 
 	   		return $uri;
 	   	}
+	   	#.endif
 	   	
 	   	#.ifdef 'SUPPORT_FASTCGI'
 	   	/**

@@ -36,23 +36,23 @@
         if(strtoupper(substr($string, 0, 5)) == 'HTTP/') {
             $data = explode(' ', $string);
             if(isset($data[1]))
-            	Pancake\vars::$Pancake_request->setAnswerCode($data[1]);
+            	Pancake\vars::$Pancake_request->answerCode = $data[1];
         } else {
             $header = explode(':', $string, 2);
             Pancake\vars::$Pancake_request->setHeader($header[0], isset($header[1]) ? trim($header[1]) : null, $replace);
-            if($header[0] == 'Location' && Pancake\vars::$Pancake_request->getAnswerCode() != 201 && substr(Pancake\vars::$Pancake_request->getAnswerCode(), 0, 1) != 3)
-                Pancake\vars::$Pancake_request->setAnswerCode(302);
+            if($header[0] == 'Location' && Pancake\vars::$Pancake_request->answerCode != 201 && substr(Pancake\vars::$Pancake_request->answerCode, 0, 1) != 3)
+                Pancake\vars::$Pancake_request->answerCode = 302;
         }
         
         if($http_response_code)
-            Pancake\vars::$Pancake_request->setAnswerCode($http_response_code);
+            Pancake\vars::$Pancake_request->answerCode = $http_response_code;
     }
     
     function header_remove($name = null) {
         if($name)
-            Pancake\vars::$Pancake_request->removeHeader($name);
+            unset(Pancake\vars::$Pancake_request->answerHeaders[$name]);
         else
-            Pancake\vars::$Pancake_request->removeAllHeaders();
+            Pancake\vars::$Pancake_request->answerHeaders = array();
     }
     
     function headers_sent() {
@@ -67,8 +67,8 @@
         function http_response_code($response_code = 0) {  
             
             if($response_code)
-                Pancake\vars::$Pancake_request->setAnswerCode($response_code);
-            return Pancake\vars::$Pancake_request->getAnswerCode();
+                Pancake\vars::$Pancake_request->answerCode = $response_code;
+            return Pancake\vars::$Pancake_request->answerCode;
         }
         
         function header_register_callback($callback) {
@@ -210,7 +210,7 @@
     }
     
     function is_uploaded_file($filename) {
-        return in_array($filename, Pancake\vars::$Pancake_request->getUploadedFileNames());
+        return in_array($filename, Pancake\vars::$Pancake_request->uploadedFileTempNames);
     }
     
     function move_uploaded_file($filename, $destination) {
@@ -227,13 +227,10 @@
     	if(!is_callable($callback))
     		return false;
     	
-        $shutdownCall = array('callback' => $callback, 'args' => array());
+        $shutdownCall = array('callback' => $callback);
         
-        $args = func_get_args();
-        unset($args[0]);
-        
-        foreach($args as $arg)
-            $shutdownCall['args'][] = $arg;
+        $shutdownCall['args'] = func_get_args();
+        unset($shutdownCall['args'][0]);
         
         Pancake\vars::$Pancake_shutdownCalls[] = $shutdownCall;
         
@@ -456,10 +453,10 @@
         
         foreach(explode("\n", $backtrace) as $index => $tracePart) {
             if(!$index
-            || (strpos($tracePart, '/sys/php/util.php') && Pancake\vars::$executingErrorHandler)
+            || (strpos($tracePart, '/sys/threads/single/phpWorker.thread') && Pancake\vars::$executingErrorHandler)
             || (strpos($tracePart, 'Pancake\PHPErrorHandler') && Pancake\vars::$executingErrorHandler))
                 continue;
-            if(strpos($tracePart, '/sys/threads/single/phpWorker.thread.php'))
+            if(strpos($tracePart, '/sys/threads/single/phpWorker.thread'))
                 break;
             if($index-1)
                 $trace .= "\n";
@@ -494,15 +491,15 @@
     }
     
     function apache_request_headers() {
-    	return Pancake\vars::$Pancake_request->getRequestHeadersArray();
+    	return Pancake\vars::$Pancake_request->requestHeaders;
     }
     
     function apache_response_headers() {
-    	return Pancake\vars::$Pancake_request->getAnswerHeadersArray();
+    	return Pancake\vars::$Pancake_request->answerHeaders;
     }
     
     function getallheaders() {
-    	return Pancake\vars::$Pancake_request->getRequestHeadersArray();
+    	return Pancake\vars::$Pancake_request->requestHeaders;
     }
     
     function set_error_handler($error_handler, $error_types = null) {
@@ -653,7 +650,7 @@ $trace = "";
 $i = 0;    	
 
 foreach($backtrace as $traceElement) {
-	if(strpos($traceElement, 'phpWorker.thread.php'))
+	if(strpos($traceElement, '/sys/threads/single/phpWorker.thread'))
     	break;
     $trace .= $traceElement . "\n";
     $i++;
@@ -665,7 +662,7 @@ FUNCTIONBODY
 	);
     
     dt_add_method('\ReflectionFunction', 'isDisabled', null, <<<'FUNCTIONBODY'
-return $this->Pancake_isDisabledOrig() || in_array($this->name, Pancake\vars::$Pancake_currentThread->vHost->getDisabledFunctions());
+return $this->Pancake_isDisabledOrig() || in_array($this->name, Pancake\vars::$Pancake_currentThread->vHost->phpDisabledFunctions);
 FUNCTIONBODY
     );
 ?>

@@ -26,6 +26,16 @@
 	#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpInfovHosts;' false */
 		#.define 'EXPOSE_VHOSTS_IN_PHPINFO' true
 	#.endif
+	
+	#.if /* .eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->phpCodeCache;' false */
+		#.define 'SUPPORT_CODECACHE' true
+	#.endif
+	
+	#.if Pancake\DEBUG_MODE === true
+		#.define 'BENCHMARK' false
+	#.else
+		#.define 'BENCHMARK' false
+	#.endif
     
     namespace {
     	#.include 'php/sapi.php'
@@ -41,6 +51,10 @@
     	#.include 'invalidHTTPRequest.exception.php'
     	#.include 'HTTPRequest.class.php'
     	#.include 'vHostInterface.class.php'
+    	
+    	// Clear thread cache
+    	Thread::clearCache();
+
     	$Pancake_currentThread->vHost = new vHostInterface($Pancake_currentThread->vHost);
 	    vars::$Pancake_currentThread = $Pancake_currentThread;
 	    unset($Pancake_currentThread);
@@ -49,10 +63,18 @@
 	    
 	    vHost::$defaultvHost = null;
 	    
+	    #.ifdef 'SUPPORT_CODECACHE'
+		    // MIME types are only needed for CodeCache
+		    #.include 'mime.class.php'
+		    MIME::load();
+		#.endif
+	    
+		Config::workerDestroy();
+		    
 	    // Don't allow scripts to get information about other vHosts
 	    #.ifdef 'EXPOSE_VHOSTS_IN_PHPINFO'
 	    	foreach($Pancake_vHosts as &$vHost) {
-	    		if($vHost->id == vars::$Pancake_currentThread->vHost->id) {
+	    		if($vHost->id == /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->id;' false */) {
 	    			$vHost = vars::$Pancake_currentThread->vHost;
 	    			continue;
 	    		}
@@ -60,12 +82,9 @@
 	    		$vHost = new vHostInterface($vHost);
 	    	}
 	    	vars::$Pancake_vHosts = $Pancake_vHosts;
+	    	unset($vHost);
 	    #.endif
-	    unset($vHost);
 	    unset($Pancake_vHosts);
-	    
-	    // Clear thread cache
-	    Thread::clearCache();
 	    
 	    // Clean
 	    cleanGlobals();
@@ -101,7 +120,7 @@
 	    	unset($functions);
 	    #.endif
 	    
-	    chdir(vars::$Pancake_currentThread->vHost->documentRoot);
+	    chdir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */);
 	    
 	    #.ifdef 'STDOUT'
 	   		dt_remove_constant('STDOUT');
@@ -120,13 +139,11 @@
 	    #.if /* .eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->predefinedConstants;' false */
 		    foreach(vars::$Pancake_currentThread->vHost->predefinedConstants as $name => $value)
 		    	define($name, $value, true);
+		   	unset($name);
+		   	unset($value);
 		#.endif
 	   	
-	    #.if /* .eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->phpCodeCache;' false */
-	    	// MIME types are only needed for CodeCache
-	    	#.include 'mime.class.php'
-	    	MIME::load();
-		    
+	    #.ifdef 'SUPPORT_CODECACHE'
 		    // Get a list of files to cache
 		    foreach(vars::$Pancake_currentThread->vHost->phpCodeCache as $cacheFile)
 		        cacheFile($cacheFile);
@@ -169,7 +186,7 @@
 	    // Ready
 	    vars::$Pancake_currentThread->parentSignal(/* .constant 'SIGUSR1' */);
 	    
-	    #.if Pancake\DEBUG_MODE === true
+	    #.if BENCHMARK === true
 	    	benchmarkFunction('gc_collect_cycles');
 	    	benchmarkFunction('socket_read');
 	    	benchmarkFunction('socket_write');
@@ -205,7 +222,7 @@
 	    	unset($packages);
 	    	
 	        // Change directory to document root of the vHost / requested file path
-	        chdir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */ . dirname(vars::$Pancake_request->getRequestFilePath()));
+	        chdir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */ . dirname(vars::$Pancake_request->requestFilePath));
 	        
 	        // Set environment vars
 	        $_GET = vars::$Pancake_request->getGETParams();
@@ -213,7 +230,7 @@
 	        $_COOKIE = vars::$Pancake_request->getCookies();
 	        $_REQUEST = $_COOKIE + $_POST + $_GET;
 	        $_SERVER = vars::$Pancake_request->createSERVER();
-	        $_FILES = vars::$Pancake_request->getUploadedFiles();
+	        $_FILES = vars::$Pancake_request->uploadedFiles;
 	        
 	        #.if /* .eval 'return ini_get("expose_php");' false */
 	        	vars::$Pancake_request->setHeader('X-Powered-By', /* .eval 'return "PHP/" . PHP_VERSION;' false */);
@@ -233,7 +250,7 @@
 	        	#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpMaxExecutionTime;' false */
 	        		set_time_limit(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpMaxExecutionTime;' false */);
 	        	#.endif
-	            include /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */ . vars::$Pancake_request->getRequestFilePath();
+	            include /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */ . vars::$Pancake_request->requestFilePath;
 	            
 	            runShutdown:
 	            
@@ -244,22 +261,8 @@
 	                call_user_func($callback);
 	                        
 	            // Run Registered Shutdown Functions
-	            foreach((array) vars::$Pancake_shutdownCalls as $shutdownCall) {
-	            	unset($args);
-	                $call = 'call_user_func($shutdownCall["callback"]';
-	                
-	                $i = 0;
-	                
-	                foreach((array) @$shutdownCall['args'] as $arg) {
-	                    if(isset($args))
-	                        $call .= ',';
-	                    $args[$i++] = $arg;
-	                    $call .= '$args['.$i.']';
-	                }
-	                $call .= ');';
-	                
-	                eval($call);
-	            }
+	            foreach((array) vars::$Pancake_shutdownCalls as $shutdownCall)
+	            	call_user_func_array($shutdownCall["callback"], $shutdownCall["args"]);
 	            
 	            goto postShutdown;
 	        } catch(\DeepTraceExitException $e) {
@@ -365,7 +368,7 @@
 		            $body .= "\r\n";
 		            $body .= 'New constants:' . "\r\n";
 		            $consts = get_defined_constants(true);
-		            foreach((array) $consts['user'] as $const => $constValue)
+		            foreach($consts['user'] as $const => $constValue)
 		                if(!array_key_exists($const, vars::$Pancake_constsPre['user']))
 		                    $body .= $const . " = " . $constValue . "\r\n";
 		            $body .= "\r\n";
@@ -396,13 +399,13 @@
 		            $body .= $contents;
 		            $contents = $body;
 		            vars::$Pancake_request->setHeader('Content-Type', 'text/plain');
-		            vars::$Pancake_request->setAnswerCode(200);
+		            vars::$Pancake_request->answerCode = 200;
 		        }
 	        #.endif
 
 	        // Update request object and send it to RequestWorker
 	        if(!vars::$invalidRequest)
-	            vars::$Pancake_request->setAnswerBody($contents);
+	            vars::$Pancake_request->answerBody = $contents;
 	        
 	        $data = serialize(vars::$Pancake_request);
 	        
