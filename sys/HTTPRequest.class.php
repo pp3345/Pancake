@@ -438,23 +438,12 @@
         * @param invalidHTTPRequestException $exception
         */
         public function invalidRequest(invalidHTTPRequestException $exception) {
-        	#.config 'compressvariables' false
         	$requestObject = $this;
-        	#.ifdef 'COMPRESS_VARIABLES'
-        		#.config 'compressvariables' true
-        	#.endif
         	
         	$this->answerCode = $exception->getCode();
         	$this->setHeader('Content-Type', MIME::typeOf($this->vHost->exceptionPageHandler));
         	
         	ob_start();
-        	
-        	#.ifdef 'COMPRESS_VARIABLES'
-        		#.config 'compressvariables' false
-        		$exception =
-        		#.config 'compressvariables' true
-        		$exception;
-        	#.endif
         	
         	if(!include($this->vHost->exceptionPageHandler))
         		include 'php/exceptionPageHandler.php';

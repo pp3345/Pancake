@@ -16,7 +16,11 @@
 	#.define 'PHPWORKER' true
 	
 	#.if /* .config 'compressvariables' */
-		#.define 'COMPRESS_VARIABLES' true
+		#.config 'compressvariables' false
+	#.endif
+	
+	#.if /* .config 'compressproperties' */
+		#.config 'compressproperties' false
 	#.endif
 	
 	#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpInfoConfig;' false */
@@ -44,9 +48,6 @@
     namespace Pancake {
     	#.include 'php/util.php'
 
-    	#.if /* .config 'compressproperties' */
-    		#.config 'compressproperties' false
-    	#.endif
     	#.include 'workerFunctions.php'
     	#.include 'invalidHTTPRequest.exception.php'
     	#.include 'HTTPRequest.class.php'

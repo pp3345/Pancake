@@ -45,8 +45,12 @@
     	#.define 'SUPPORT_REWRITE' true
     #.endif
     
-    #.if /* .config 'compressvariables' */
-    	#.define 'COMPRESS_VARIABLES' true
+    #.if #.config 'compressvariables'
+    	#.config 'compressvariables' false
+    #.endif
+    
+    #.if #.config 'compressproperties'
+    	#.config 'compressproperties' false
     #.endif
     
     #.if /* .eval 'return count(Pancake\Config::get("vhosts"));' false */ > 1
@@ -99,12 +103,6 @@
     // It is impossible to keep this in a more readable way thanks to the nice Zend Tokenizer
    	#.define 'POST_MAX_SIZE' /* .eval '$size = strtolower(ini_get("post_max_size")); if(strpos($size, "k")) $size = (int) $size * 1024; else if(strpos($size, "m")) $size = (int) $size * 1024 * 1024; else if(strpos($size, "g")) $size = (int) $size * 1024 * 1024 * 1024; return $size;' false */
 
-    // Do not rename properties in HTTPRequest class as the properties in the PHPWorkers will have different names
-    // In order not to get problems with later used properties, always deactivate the setting
-    #.if /* .config 'compressproperties' */
-    	#.config 'compressproperties' false
-    #.endif
-    
     #.include 'mime.class.php'
     
     #.ifdef 'SUPPORT_TLS'
@@ -560,21 +558,13 @@
         // Check for directory
         if(is_dir(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */)) {
             $directory = scandir(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */);
-            #.config 'compressvariables' false
             $files = array();
-            #.ifdef 'COMPRESS_VARIABLES'
-            	#.config 'compressvariables' true
-            #.endif
             
             foreach($directory as $file) {
             	if($file == '.')
             		continue;
             	$isDir = is_dir(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH*/ . $file);
-            	#.config 'compressvariables' false
             	$files[] =
-            	#.ifdef 'COMPRESS_VARIABLES'
-            		#.config 'compressvariables' true
-            	#.endif
             	array('name' => $file,
             			'address' => 'http://' . /* .SIMPLE_GET_REQUEST_HEADER '"Host"' */ . /* .REQUEST_FILE_PATH*/ . $file . ($isDir ? '/' : ''),
             			'directory' => $isDir,
@@ -585,25 +575,12 @@
             
             $requestObject->setHeader('Content-Type', 'text/html; charset=utf-8');
             
-     		#.ifdef 'COMPRESS_VARIABLES'
-     			#.config 'compressvariables' false
-     			$requestObject = 
-     			#.config 'compressvariables' true
-     			$requestObject;
-            #.endif
-            
             ob_start();
             
             if(!include(/* .VHOST_DIRECTORY_PAGE_HANDLER */))
             	include 'php/directoryPageHandler.php';
              
             /* .ANSWER_BODY */ = ob_get_clean();
-            
-            #.ifdef 'COMPRESS_VARIABLES'
-            	#.config 'compressvariables' false
-            	unset($requestObject);
-            	#.config 'compressvariables' true
-            #.endif
         } else {
             $requestObject->setHeader('Content-Type', /* .MIME_TYPE */); 
             $requestObject->setHeader('Accept-Ranges', 'bytes'); 
