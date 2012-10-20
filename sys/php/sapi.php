@@ -454,7 +454,7 @@
         ob_start();
         #.if PHP_MINOR_VERSION >= 4
         Pancake\PHPFunctions\debugPrintBacktrace($options, $limit);
-        #.elsif PHP_RELEASE_VERSION >= 6
+        #.elseif PHP_RELEASE_VERSION >= 6
         Pancake\PHPFunctions\debugPrintBacktrace($options);
         #.else
         Pancake\PHPFunctions\debugPrintBacktrace();
