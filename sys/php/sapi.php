@@ -117,11 +117,11 @@
 	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">Group</td><td class=\"v\">'.Pancake\Config::get('main.group').'</td></tr>';" */;
 	            
 	            $pancakeAdd .= '<tr><td class="e">Included Configuration files</td><td class="v">';
-	            foreach(Pancake\Config::get('include') as $include) {
-	                if(isset($first)) $pancakeAdd .= ', ';
+	            $pancakeAdd .= /* .eval 'foreach(Pancake\Config::get("include") as $include) {
+	                if(isset($first)) $pancakeAdd .= ", ";
 	                $pancakeAdd .= $include;
 	                $first = true;
-	            }
+	            } return $pancakeAdd;' false */;
 	            $pancakeAdd .= '</td></tr>';
 	            
 	            $pancakeAdd .= /* .eval "return '<tr><td class=\"e\">Running RequestWorkers</td><td class=\"v\">'.Pancake\Config::get('main.requestworkers').'</td></tr>';" */;
@@ -204,7 +204,7 @@
             
             $phpInfo = preg_replace('~<h2>Environment</h2>\s*<table border="0" cellpadding="3" width="600">[\s\S]*</table>~U', $env, $phpInfo);
         }
-                
+        
         echo $phpInfo;
         return true;
     }
