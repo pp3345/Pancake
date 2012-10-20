@@ -439,12 +439,27 @@
         }
    	#.endif
     
+    #.if PHP_MINOR_VERSION >= 4
     function debug_print_backtrace($options = 0, $limit = 0) {
-    	if($limit)
+    #.elseif PHP_RELEASE_VERSION >= 6
+    function debug_print_backtrace($options = 0) {
+	#.else
+	function debug_print_backtrace() {
+	#.endif
+    	#.if PHP_MINOR_VERSION >= 4
+		if($limit)
     		$limit += 3;
+		#.endif
     	
         ob_start();
+        #.if PHP_MINOR_VERSION >= 4
         Pancake\PHPFunctions\debugPrintBacktrace($options, $limit);
+        #.elsif PHP_RELEASE_VERSION >= 6
+        Pancake\PHPFunctions\debugPrintBacktrace($options);
+        #.else
+        Pancake\PHPFunctions\debugPrintBacktrace();
+        #.endif
+        
         $backtrace = ob_get_contents();
         Pancake\PHPFunctions\OutputBuffering\endClean();
         
