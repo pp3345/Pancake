@@ -120,7 +120,6 @@
     
     vHost::$defaultvHost = null;
     MIME::load();
-    Config::workerDestroy();
     
     foreach($Pancake_vHosts as &$vHost) {
     	if($vHost instanceof vHostInterface)
@@ -133,6 +132,8 @@
     	foreach($vHost->listen as $address)
     		$Pancake_vHosts[$address] = $vHost;
     }
+    
+    Config::workerDestroy();
     
     $listenSockets = $listenSocketsOrig = $Pancake_sockets;
     

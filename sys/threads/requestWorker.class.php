@@ -31,6 +31,7 @@
         		$hash = md5(serialize(Config::get('main')) 
         				. serialize((array) Config::get('moody'))
         				. serialize(Config::get('vhosts')) 
+        				. serialize(Config::get('fastcgi'))
         				. md5_file('vHostInterface.class.php')
         				. md5_file('threads/single/requestWorker.thread.php') 
         				. md5_file('HTTPRequest.class.php')

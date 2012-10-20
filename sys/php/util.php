@@ -25,7 +25,7 @@
     	&& vars::$errorHandler['for'] & $errtype 
     	&& !($errtype & /* .eval 'return \E_ERROR | \E_PARSE | \E_CORE_ERROR | \E_CORE_WARNING | \E_COMPILE_ERROR | \E_COMPILE_WARNING;' */) 
     	&& is_callable(vars::$errorHandler['call']) 
-    	&& vars::$executingErrorHandler = true 
+    	&& (vars::$executingErrorHandler = true)
     	&& call_user_func(vars::$errorHandler['call'], $errtype, $errstr, $errfile, $errline, $errcontext) !== false) {
     		vars::$executingErrorHandler = false;
     		vars::$lastError = array('type' => $errtype, 'message' => $errstr, 'file' => $errfile, 'line' => $errline);
