@@ -40,7 +40,9 @@
         				. md5_file('moody.cphp')
         				. md5_file('TLSConnection.class.php')
         				. md5_file('FastCGI.class.php')
-        				. md5_file('workerFunctions.php'));
+        				. md5_file('workerFunctions.php')
+        				. \PHP_MINOR_VERSION
+        				. \PHP_RELEASE_VERSION);
         		if(!(file_exists('threads/single/requestWorker.thread.hash')
         		&& file_get_contents('threads/single/requestWorker.thread.hash') == $hash)) {
         			require_once 'threads/codeProcessor.class.php';
