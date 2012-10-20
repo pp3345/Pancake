@@ -334,7 +334,9 @@
     function filter_input_array($type, $definition = null) {
     	$endArray = $data = $filterOptions = array();
     	
-        foreach($definition as $key => $options) {
+        foreach((array) $definition as $key => $options) {
+        	if(is_int($options))
+        		$options = array('filter' => $options, 'flags' => 0);
         	if(!isset($options['flags']))
         		$options['flags'] = 0;
         	
@@ -342,7 +344,7 @@
                 case /* .constant 'INPUT_GET' */:
                     $GET = Pancake\vars::$Pancake_request->getGETParams();   
                     if(!array_key_exists($key, $GET)) {
-                        $endArray[$key] = $options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
+                        $endArray[$key] = ($options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null);
                         continue 2;
                     }
                     $var = $GET[$key];
@@ -350,7 +352,7 @@
                 case /* .constant 'INPUT_POST' */:
                     $POST = Pancake\vars::$Pancake_request->getPOSTParams();   
                     if(!array_key_exists($key, $POST)) {
-                        $endArray[$key] = $options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
+                        $endArray[$key] = ($options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null);
                         continue 2;
                     }
                     $var = $POST[$key];
@@ -358,7 +360,7 @@
                 case /* .constant 'INPUT_COOKIE' */:
                     $COOKIE = Pancake\vars::$Pancake_request->getCookies();   
                     if(!array_key_exists($key, $COOKIE)) {
-                        $endArray[$key] = $options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
+                        $endArray[$key] = ($options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null);
                         continue 2;
                     }
                     $var = $COOKIE[$key];
@@ -366,14 +368,14 @@
                 case /* .constant 'INPUT_SERVER' */:
                     $SERVER = Pancake\vars::$Pancake_request->createSERVER();   
                     if(!array_key_exists($key, $SERVER)) {
-                        $endArray[$key] = $options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
+                        $endArray[$key] = ($options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null);
                         continue 2;
                     }
                     $var = $SERVER[$key];
                     break;
                 case /* .constant 'INPUT_ENV' */:
                     if(!array_key_exists($key, $_ENV)) {
-                        $endArray[$key] = $options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
+                        $endArray[$key] = ($options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null);
                         continue 2;
                     }
                     $var = $_ENV[$key];
@@ -383,7 +385,7 @@
             $data[$key] = $var;
             $filterOptions[$key] = $options;
         }
-
+        
         return array_merge(filter_var_array($data, $filterOptions), $endArray);
     }
     
