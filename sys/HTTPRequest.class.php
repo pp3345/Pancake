@@ -457,7 +457,7 @@
         *  
         */
         public function buildAnswerHeaders() {
-        	#.if /* .eval 'return Pancake\Config::get("main.allowtrace");' */
+        	#.if /* .eval 'return Pancake\Config::get("main.allowtrace");' false */
             // Check for TRACE
             if($this->requestType == 'TRACE') {
                 $answer = $this->requestLine . "\r\n";
@@ -475,8 +475,8 @@
             else
                 $this->setHeader('Connection', 'close');
             // Add Server-Header
-            #.if /* .eval 'return Pancake\Config::get("main.exposepancake");' */ === true
-                $this->setHeader('Server', /* .eval "return 'Pancake/' . Pancake\VERSION;" */);
+            #.if /* .eval 'return Pancake\Config::get("main.exposepancake");' false */ === true
+                $this->setHeader('Server', /* .eval "return 'Pancake/' . Pancake\VERSION;" false */);
             #.endif
             // Set cookies
             foreach($this->setCookies as $cookie)
