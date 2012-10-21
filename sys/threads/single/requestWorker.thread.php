@@ -13,13 +13,6 @@
     if(PANCAKE !== true)
         exit;
    	#.endif
-
-    #.mapVariable '$Pancake_sockets' '$Pancake_sockets'
-    #.mapVariable '$Pancake_vHosts' '$Pancake_vHosts'
-    #.mapVariable '$Pancake_currentThread' '$Pancake_currentThread'
-    #.mapVariable '$message' '$message'
-    #.mapVariable '$code' '$code'
-    #.mapVariable '$vHost' '$vHost'
     
     #.if /* .eval 'return (bool) Pancake\Config::get("main.secureports");' false */ && 0
     	#.define 'SUPPORT_TLS' true
@@ -43,6 +36,12 @@
     
     #.if /* .eval 'global $Pancake_vHosts; foreach($Pancake_vHosts as $vHost) if($vHost->rewriteRules) return true; return false;' false */
     	#.define 'SUPPORT_REWRITE' true
+    #.endif
+    
+    #.if #.eval 'return Pancake\Config::get("main.waitslotwaitlimit");' false
+    	#.ifdef 'SUPPORT_PHP'
+    		#.define 'SUPPORT_WAITSLOTS' true
+    	#.endif
     #.endif
     
     #.if #.config 'compressvariables'
@@ -113,6 +112,10 @@
     	#.include 'FastCGI.class.php'
     #.endif
     
+    #.ifdef 'SUPPORT_AUTHENTICATION'
+    	#.include 'authenticationFile.class.php'
+    #.endif
+    
     #.include 'workerFunctions.php'
     #.include 'HTTPRequest.class.php'
     #.include 'invalidHTTPRequest.exception.php'
@@ -178,14 +181,14 @@
     
     // Wait for incoming requests     
     while(socket_select($listenSockets, $liveWriteSockets, $x
-    #.if /* .eval 'return Pancake\Config::get("main.waitslottime");' false */
+    #.ifdef 'SUPPORT_WAITSLOTS'
     , $waitSlots ? 0 : null, $waitSlots ? /* .eval 'return Pancake\Config::get("main.waitslottime");' false */ : null
     #.endif
     ) !== false) {
     	// If there are jobs left in the queue at the end of the job-run, we're going to jump back to this point to execute the jobs that are left
     	cycle:
     	
-    	#.ifdef 'SUPPORT_PHP'
+    	#.ifdef 'SUPPORT_WAITSLOTS'
     	// Check if there are requests waiting for a PHPWorker
     	foreach((array) $waitSlots as $socketID => $requestSocket) {
 			unset($waitSlots[$socketID]);
@@ -496,7 +499,7 @@
             @socket_connect($socket, /* .VHOST_SOCKET_NAME */);
             
             if(socket_last_error($socket) == 11) {
-            	#.if /* .eval 'return Pancake\Config::get("main.waitslotwaitlimit");' false */
+            	#.ifdef 'SUPPORT_WAITSLOTS'
 	      			$waits[$socketID]++;
 	            	
 	            	if($waits[$socketID] > /* .eval 'return Pancake\Config::get("main.waitslotwaitlimit");' false */) {
@@ -713,7 +716,7 @@
                 @unlink($file['tmp_name']); 
         }
         
-        #.ifdef 'SUPPORT_PHP'
+        #.ifdef 'SUPPORT_WAITSLOTS'
         unset($waitSlotsOrig[$socketID]);
         unset($waits[$socketID]);
         #.endif
@@ -790,7 +793,7 @@
         
         // If jobs are waiting, execute them before select()ing again
         if($listenSockets || $liveWriteSockets
-		#.ifdef 'SUPPORT_PHP'
+		#.ifdef 'SUPPORT_WAITSLOTS'
         || $waitSlots
         #.endif
         )
@@ -798,7 +801,7 @@
         
         $listenSockets = $listenSocketsOrig;
         $liveWriteSockets = $liveWriteSocketsOrig;
-        #.ifdef 'SUPPORT_PHP'
+        #.ifdef 'SUPPORT_WAITSLOTS'
         $waitSlots = $waitSlotsOrig;
         #.endif
         

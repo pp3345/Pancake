@@ -7,12 +7,6 @@
     /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
 	 
-	#.mapVariable '$Pancake_currentThread' '$Pancake_currentThread'
-	#.mapVariable '$Pancake_sockets' '$Pancake_sockets'
-	#.mapVariable '$Pancake_vHosts' '$Pancake_vHosts'
-	#.mapVariable '$shutdownCall' '$shutdownCall'
-	#.mapVariable '$vHost' '$vHost'
-	
 	#.define 'PHPWORKER' true
 	
 	#.if /* .config 'compressvariables' */
