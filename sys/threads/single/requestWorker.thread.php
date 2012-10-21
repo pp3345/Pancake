@@ -183,6 +183,8 @@
     while(socket_select($listenSockets, $liveWriteSockets, $x
     #.ifdef 'SUPPORT_WAITSLOTS'
     , $waitSlots ? 0 : null, $waitSlots ? /* .eval 'return Pancake\Config::get("main.waitslottime");' false */ : null
+    #.else
+    , null
     #.endif
     ) !== false) {
     	// If there are jobs left in the queue at the end of the job-run, we're going to jump back to this point to execute the jobs that are left
