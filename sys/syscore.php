@@ -87,6 +87,12 @@
         abort();
     }
     
+    // Check for Zend Tokenizer
+    if(!extension_loaded('tokenizer')) {
+    	out('You need to compile PHP with tokenizer support.', SYSTEM, false);
+    	abort();
+    }
+    
     // Check for DeepTrace
     if(!extension_loaded('DeepTrace')) {
         out('You need to run Pancake with the bundled DeepTrace-extension. Just run pancake.sh.', SYSTEM, false);
