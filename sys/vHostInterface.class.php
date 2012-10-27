@@ -18,7 +18,7 @@
         public $id = 0;
         public $name = "";
         public $documentRoot = "";
-		#.if !/* .isDefined 'PHPWORKER' */ || /* .isDefined 'EXPOSE_VHOSTS_IN_PHPINFO' */
+		#.if !/* .isDefined 'PHPWORKER' */ || #.isDefined 'EXPOSE_VHOSTS_IN_PHPINFO'
 	        public $listen = array();
 	        public $phpWorkers = 0;
 	        public $indexFiles = array();

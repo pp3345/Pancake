@@ -21,7 +21,7 @@
     * @return string Formatted size
     */
     function formatFilesize($size) {
-    	#.if /* .eval 'return Pancake\Config::get("main.sizeprefix");' */ == 'si'
+    	#.if 'si' == #.call 'Pancake\Config::get' 'main.sizeprefix'
             if($size >= 1000000000) // 1 Gigabyte
                 return round($size / 1000000000, 2) . ' GB';
             else if($size >= 1000000) // 1 Megabyte
@@ -47,8 +47,8 @@
     * 
     */
     function setUser() {
-        $user = posix_getpwnam(/* .eval "return Pancake\Config::get('main.user');" */);
-        $group = posix_getgrnam(/* .eval "return Pancake\Config::get('main.group');" */);
+        $user = posix_getpwnam(/* .call 'Pancake\Config::get' 'main.user' */);
+        $group = posix_getgrnam(/* .call 'Pancake\Config::get' 'main.group' */);
         if(!posix_setgid($group['gid'])) {
             trigger_error('Failed to change group', /* .constant 'E_USER_ERROR' */);
             abort();

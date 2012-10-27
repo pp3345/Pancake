@@ -7,10 +7,12 @@
     /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
     
+	#.if 0
     namespace Pancake;
     
     if(PANCAKE !== true)
         exit;
+    #.endif
         
     /**
     * Represents a file with authentication infos
@@ -30,7 +32,7 @@
             $this->filePath = $filePath;
             
             if(!is_readable($this->filePath)) {
-                trigger_error('Cannot access authentication file "'.$this->filePath.'"', E_USER_WARNING);
+                trigger_error('Cannot access authentication file "'.$this->filePath.'"', /* .constant 'E_USER_WARNING' */);
                 return;
             }
             

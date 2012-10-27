@@ -135,7 +135,7 @@
             
             $this->requestLine = $requestHeaders[0];
             
-            #.if /* .eval 'return Pancake\Config::get("main.exposepancake") === true;' */
+            #.if true === #.call 'Pancake\Config::get' 'main.exposepancake'
             // HyperText CoffeePot Control Protocol :-)
             if($firstLine[0] == 'BREW' || $firstLine[0] == 'WHEN' || $firstLine[2] == 'HTCPCP/1.0')
                 throw new invalidHTTPRequestException('No coffee here. I\'m a Pancake. Try again at 1.3.3.7', 418, $requestHeader);
@@ -156,12 +156,12 @@
             $this->requestType = $firstLine[0];
             
             // Check if request method is allowed
-            #.if /* .eval 'return Pancake\Config::get("main.allowhead") !== true || Pancake\Config::get("main.allowtrace") !== true || Pancake\Config::get("main.allowoptions") !== true;' */
-            	#.if /* .eval 'return Pancake\Config::get("main.allowhead") !== true;' */
+            #.if /* .call 'Pancake\Config::get' 'main.allowhead' */ !== true || /* .call 'Pancake\Config::get' 'main.allowtrace' */ !== true || true !== #.call 'Pancake\Config::get' 'main.allowoptions'
+            	#.if true !== #.call 'Pancake\Config::get' 'main.allowhead'
             		if($this->requestType == 'HEAD'
             		#.def 'RTYPE_FORBIDDEN' true
             	#.endif
-            	#.if /* .eval 'return Pancake\Config::get("main.allowtrace") !== true;' */
+            	#.if true !== #.call 'Pancake\Config::get' 'main.allowtrace'
             		#.ifdef 'RTYPE_FORBIDDEN'
             			|| $this->requestType == 'TRACE'
             		#.else
@@ -169,7 +169,7 @@
             			#.def 'RTYPE_FORBIDDEN' true
             		#.endif
             	#.endif
-            	#.if /* .eval 'return Pancake\Config::get("main.allowoptions") !== true;' */
+            	#.if true !== #.call 'Pancake\Config::get' 'main.allowoptions'
             		#.ifdef 'RTYPE_FORBIDDEN'
             			|| $this->requestType == 'OPTIONS'
             		#.else
@@ -196,7 +196,7 @@
                     throw new invalidHTTPRequestException('Your request can\'t be processed without a given Content-Length', 411, $requestHeader);
             }
             
-            #.if /* .eval 'return Pancake\Config::get("main.allowtrace");' */
+            #.if #.call 'Pancake\Config::get' 'main.allowtrace'
 	            // Enough information for TRACE gathered
 	            if($this->requestType == 'TRACE')
 	                return;
@@ -369,7 +369,7 @@
                     preg_match('~Content-Disposition: form-data;[ ]?name="(.*?)";?[ ]?(?:filename="(.*?)")?(?:\r\n)?(?:Content-Type: (.*))?~', $dispParts[0], $data);
                     // [ 0 => string, 1 => name, 2 => filename, 3 => Content-Type ]
                     if(isset($data[2]) && isset($data[3])) {
-                        $tmpFileName = tempnam(/* .eval 'return Pancake\Config::get("main.tmppath");' */, 'UPL');
+                        $tmpFileName = tempnam(/* .call 'Pancake\Config::get' 'main.tmppath' */, 'UPL');
                         file_put_contents($tmpFileName, $dispParts[1]);
                         
                         $dataArray = array(
@@ -457,7 +457,7 @@
         *  
         */
         public function buildAnswerHeaders() {
-        	#.if /* .eval 'return Pancake\Config::get("main.allowtrace");' false */
+        	#.if #.call 'Pancake\Config::get' 'main.allowtrace'
             // Check for TRACE
             if($this->requestType == 'TRACE') {
                 $answer = $this->requestLine . "\r\n";
@@ -475,7 +475,7 @@
             else
                 $this->setHeader('Connection', 'close');
             // Add Server-Header
-            #.if /* .eval 'return Pancake\Config::get("main.exposepancake");' false */ === true
+            #.if true === #.call 'Pancake\Config::get' 'main.exposepancake'
                 $this->setHeader('Server', /* .eval "return 'Pancake/' . Pancake\VERSION;" false */);
             #.endif
             // Set cookies
@@ -665,7 +665,7 @@
             }
         }
         
-        #.if /* .eval 'return (bool) ini_get("expose_php");' false */ || /* .isDefined 'PHPWORKER' */ || Pancake\DEBUG_MODE === true
+        #.if /* .call 'ini_get' 'expose_php' */ || /* .isDefined 'PHPWORKER' */ || Pancake\DEBUG_MODE === true
         /**
         * Returns all GET-parameters of this request
         * 

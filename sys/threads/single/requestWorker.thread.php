@@ -14,31 +14,31 @@
         exit;
    	#.endif
     
-    #.if /* .eval 'return (bool) Pancake\Config::get("main.secureports");' false */ && 0
+    #.if 0 && #.bool #.call 'Pancake\Config::get' 'main.secureports'
     	#.define 'SUPPORT_TLS' true
     #.endif
     
-    #.if /* .eval 'return (bool) Pancake\Config::get("fastcgi");' false */
+    #.if #.bool #.call 'Pancake\Config::get' 'fastcgi'
     	#.define 'SUPPORT_FASTCGI' true
     #.endif
     
-    #.if /* .eval 'global $Pancake_vHosts; foreach($Pancake_vHosts as $vHost) if($vHost->phpWorkers) return true; return false;' false */
+    #.if #.eval 'global $Pancake_vHosts; foreach($Pancake_vHosts as $vHost) if($vHost->phpWorkers) return true; return false;' false
     	#.define 'SUPPORT_PHP' true
     #.endif
     
-    #.if /* .eval 'global $Pancake_vHosts; foreach($Pancake_vHosts as $vHost) if($vHost->allowGZIP) return true; return false;' false */
+    #.if #.eval 'global $Pancake_vHosts; foreach($Pancake_vHosts as $vHost) if($vHost->allowGZIP) return true; return false;' false
     	#.define 'SUPPORT_GZIP' true
     #.endif
     
-    #.if /* .eval 'global $Pancake_vHosts; foreach($Pancake_vHosts as $vHost) if($vHost->authFiles || $vHost->authDirectories) return true; return false;' false */
+    #.if #.eval 'global $Pancake_vHosts; foreach($Pancake_vHosts as $vHost) if($vHost->authFiles || $vHost->authDirectories) return true; return false;' false
     	#.define 'SUPPORT_AUTHENTICATION' true
     #.endif
     
-    #.if /* .eval 'global $Pancake_vHosts; foreach($Pancake_vHosts as $vHost) if($vHost->rewriteRules) return true; return false;' false */
+    #.if #.eval 'global $Pancake_vHosts; foreach($Pancake_vHosts as $vHost) if($vHost->rewriteRules) return true; return false;' false
     	#.define 'SUPPORT_REWRITE' true
     #.endif
     
-    #.if #.eval 'return Pancake\Config::get("main.waitslotwaitlimit");' false
+    #.if #.call 'Pancake\Config::get' 'main.waitslotwaitlimit'
     	#.ifdef 'SUPPORT_PHP'
     		#.define 'SUPPORT_WAITSLOTS' true
     	#.endif
@@ -52,7 +52,7 @@
     	#.config 'compressproperties' false
     #.endif
     
-    #.if /* .eval 'return count(Pancake\Config::get("vhosts"));' false */ > 1
+    #.if 1 < #.call 'count' #.call 'Pancake\Config::get' 'vhosts'
     	#.define 'SUPPORT_MULTIPLE_VHOSTS' true
     #.endif
     
@@ -100,7 +100,7 @@
     
     // Precalculate post_max_size in bytes
     // It is impossible to keep this in a more readable way thanks to the nice Zend Tokenizer
-   	#.define 'POST_MAX_SIZE' /* .eval '$size = strtolower(ini_get("post_max_size")); if(strpos($size, "k")) $size = (int) $size * 1024; else if(strpos($size, "m")) $size = (int) $size * 1024 * 1024; else if(strpos($size, "g")) $size = (int) $size * 1024 * 1024 * 1024; return $size;' false */
+   	#.define 'POST_MAX_SIZE' #.eval '$size = strtolower(ini_get("post_max_size")); if(strpos($size, "k")) $size = (int) $size * 1024; else if(strpos($size, "m")) $size = (int) $size * 1024 * 1024; else if(strpos($size, "g")) $size = (int) $size * 1024 * 1024 * 1024; return $size;' false
 
     #.include 'mime.class.php'
     
@@ -141,7 +141,7 @@
     $listenSockets = $listenSocketsOrig = $Pancake_sockets;
     
     // Initialize some variables
-    #.if /* .eval 'return Pancake\Config::get("main.maxconcurrent");' false */
+    #.if #.call 'Pancake\Config::get' 'main.maxconcurrent'
     $decliningNewRequests = false;
     #.endif
     #.ifdef 'SUPPORT_TLS'
@@ -182,7 +182,7 @@
     // Wait for incoming requests     
     while(socket_select($listenSockets, $liveWriteSockets, $x
     #.ifdef 'SUPPORT_WAITSLOTS'
-    , $waitSlots ? 0 : null, $waitSlots ? /* .eval 'return Pancake\Config::get("main.waitslottime");' false */ : null
+    , $waitSlots ? 0 : null, $waitSlots ? /* .call 'Pancake\Config::get' 'main.waitslottime' */ : null
     #.else
     , null
     #.endif
@@ -291,8 +291,8 @@
             #.endif
 
             if(
-            #.if /* .eval 'return Pancake\Config::get("main.maxconcurrent");' false */ != 0
-            /* .eval 'return Pancake\Config::get("main.maxconcurrent");' false */ < count($listenSocketsOrig) - count($Pancake_sockets) || 
+            #.if 0 != #.call 'Pancake\Config::get' 'main.maxconcurrent'
+            /* .call 'Pancake\Config::get' 'main.maxconcurrent' */ < count($listenSocketsOrig) - count($Pancake_sockets) || 
             #.endif
             !($requestSocket = @socket_accept($socket)))
                 goto clean;
@@ -402,12 +402,12 @@
         } else if($key = array_search($requestSocket, $listenSocketsOrig))
             unset($listenSocketsOrig[$key]);
         
-        #.if /* .eval 'return Pancake\Config::get("main.allowtrace");' false */
+        #.if #.call 'Pancake\Config::get' 'main.allowtrace'
 	        if(/* .REQUEST_TYPE */ == 'TRACE')
 	            goto write;
 	    #.endif
         
-	    #.if /* .eval 'return Pancake\Config::get("main.allowoptions");' false */
+	    #.if #.call 'Pancake\Config::get' 'main.allowoptions'
 	        // Check for "OPTIONS"-requestmethod
 	        if(/* .REQUEST_TYPE */ == 'OPTIONS')
 	            $requestObject->setHeader('Allow', 
@@ -438,7 +438,7 @@
         }
         #.endif
         
-        #.if /* .eval 'return ini_get("expose_php");' false */
+        #.if #.call 'ini_get' 'expose_php'
         if(array_key_exists("", /* .GET_PARAMS */)) {
             $_GET = /* .GET_PARAMS */;
             switch($_GET[""]) {
@@ -461,7 +461,7 @@
                     $logo = ob_get_contents();
                     PHPFunctions\OutputBuffering\endClean();
                 break;
-                #.if /* .eval 'return Pancake\Config::get("main.exposepancake");' false */ === true
+                #.if true === #.call 'Pancake\Config::get' 'main.exposepancake'
                 case 'PAN8DF095AE-6639-4C6F-8831-5AB8FBD64D8B':
                     $logo = file_get_contents('logo/pancake.png');
                     $requestObject->setHeader('Content-Type', 'image/png');
@@ -504,7 +504,7 @@
             	#.ifdef 'SUPPORT_WAITSLOTS'
 	      			$waits[$socketID]++;
 	            	
-	            	if($waits[$socketID] > /* .eval 'return Pancake\Config::get("main.waitslotwaitlimit");' false */) {
+	            	if($waits[$socketID] > /* .call 'Pancake\Config::get' 'main.waitslotwaitlimit' */) {
 	            		$requestObject->invalidRequest(new invalidHTTPRequestException('There was no worker available to serve your request. Please try again later.', 500));
 	            		goto write;
 	            	}	
@@ -597,7 +597,7 @@
                 // Set encoding-header
                 $requestObject->setHeader('Content-Encoding', 'gzip');
                 // Create temporary file
-                $gzipPath[$socketID] = tempnam(/* .eval 'return Pancake\Config::get("main.tmppath");' false */, 'GZIP');
+                $gzipPath[$socketID] = tempnam(/* .call 'Pancake\Config::get' 'main.tmppath' */, 'GZIP');
                 $gzipFileHandle = gzopen($gzipPath[$socketID], 'w' . /* .VHOST_GZIP_LEVEL */);
                 // Load uncompressed requested file
                 $requestedFileHandle = fopen(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */, 'r');
@@ -635,7 +635,7 @@
         // Get Answer Headers
         $writeBuffer[$socketID] = /* .BUILD_ANSWER_HEADERS */;
 
-        #.if /* .eval 'return Pancake\Config::get("main.allowhead");' false */
+        #.if #.call 'Pancake\Config::get' 'main.allowhead'
 	        // Get answer body if set and request method isn't HEAD
 	        if(/* .REQUEST_TYPE */ != 'HEAD')
 	    #.endif
@@ -660,7 +660,7 @@
         
         // The buffer should usually only be empty if the hard limit was reached - In this case Pancake won't allocate any buffers except when the client really IS ready to receive data
         if(!strlen($writeBuffer[$socketID]))
-        	$writeBuffer[$socketID] = fread($requestFileHandle[$socketID], /* .eval 'return Pancake\Config::get("main.writebuffermin");' false */);
+        	$writeBuffer[$socketID] = fread($requestFileHandle[$socketID], /* .call 'Pancake\Config::get' 'main.writebuffermin' */);
         
         // Write data to socket
         if(($writtenLength = @socket_write($requestSocket, $writeBuffer[$socketID])) === false)
@@ -669,19 +669,19 @@
         $writeBuffer[$socketID] = substr($writeBuffer[$socketID], $writtenLength);
         
         // Add data to buffer if not all data was sent yet
-        if(strlen($writeBuffer[$socketID]) < /* .eval 'return Pancake\Config::get("main.writebuffermin");' false */ 
+        if(strlen($writeBuffer[$socketID]) < #.call 'Pancake\Config::get' 'main.writebuffermin'
         && is_resource($requestFileHandle[$socketID]) 
         && !feof($requestFileHandle[$socketID]) 
-        #.if /* .eval 'return Pancake\Config::get("main.writebufferhardmaxconcurrent");' false */
-        && count($writeBuffer) < /* .eval 'return Pancake\Config::get("main.writebufferhardmaxconcurrent");' false */
+        #.if #.call 'Pancake\Config::get' 'main.writebufferhardmaxconcurrent'
+        && count($writeBuffer) < #.call 'Pancake\Config::get' 'main.writebufferhardmaxconcurrent'
         #.endif
-        #.if /* .eval 'return Pancake\Config::get("main.allowhead");' */
+        #.if #.call 'Pancake\Config::get' 'main.allowhead'
         && /* .REQUEST_TYPE */ != 'HEAD' 
        	#.endif
         && $writtenLength)
         	$writeBuffer[$socketID] .= fread($requestFileHandle[$socketID], 
-        			#.if /* .eval 'return Pancake\Config::get("main.writebuffersoftmaxconcurrent");' false */
-        			(count($writeBuffer) > /* .eval 'return Pancake\Config::get("main.writebuffersoftmaxconcurrent");' false */ ? /* .eval 'return Pancake\Config::get("main.writebuffermin");' false */ : /* .VHOST_WRITE_LIMIT */)
+        			#.if #.call 'Pancake\Config::get' 'main.writebuffersoftmaxconcurrent'
+        			(count($writeBuffer) > /* .call 'Pancake\Config::get' 'main.writebuffersoftmaxconcurrent' */ ? /* .call 'Pancake\Config::get' 'main.writebuffermin' */ : /* .VHOST_WRITE_LIMIT */)
 					#.else
         			#.VHOST_WRITE_LIMIT
         			#.endif
@@ -689,7 +689,7 @@
 
         // Check if more data is available
         if(strlen($writeBuffer[$socketID]) || (is_resource($requestFileHandle[$socketID]) && !feof($requestFileHandle[$socketID])
-		#.if /* .eval 'return Pancake\Config::get("main.allowhead");' false */
+		#.if #.call 'Pancake\Config::get' 'main.allowhead'
         && /* .REQUEST_TYPE */ != 'HEAD'
         #.endif
         )) {
@@ -759,8 +759,8 @@
         #.endif
         
         // Check if request-limit is reached
-        #.if /* .eval 'return Pancake\Config::get("main.requestworkerlimit");' false */ > 0
-        if($processedRequests >= /* .eval 'return Pancake\Config::get("main.requestworkerlimit");' false */ && !$socketData && !$postData && !$requests) {
+        #.if 0 < #.call 'Pancake\Config::get' 'main.requestworkerlimit'
+        if($processedRequests >= /* .call 'Pancake\Config::get' 'main.requestworkerlimit' */ && !$socketData && !$postData && !$requests) {
             IPC::send(9999, 1);
             exit;
         }
@@ -768,11 +768,11 @@
         
         clean:
         
-        #.if /* .eval 'return Pancake\Config::get("main.maxconcurrent");' false */
-        if($decliningNewRequests && /* .eval 'return Pancake\Config::get("main.maxconcurrent");' false */ > count($listenSocketsOrig))
+        #.if #.call 'Pancake\Config::get' 'main.maxconcurrent'
+        if($decliningNewRequests && /* .call 'Pancake\Config::get' 'main.maxconcurrent' */ > count($listenSocketsOrig))
             $listenSocketsOrig = array_merge($Pancake_sockets, $listenSocketsOrig);
         
-        if(/* .eval 'return Pancake\Config::get("main.maxconcurrent");' false */ < count($listenSocketsOrig) - count($Pancake_sockets)) {
+        if(/* .call 'Pancake\Config::get' 'main.maxconcurrent' */ < count($listenSocketsOrig) - count($Pancake_sockets)) {
             foreach($Pancake_sockets as $index => $socket)
                 unset($listenSocketsOrig[$index]);
             $decliningNewRequests = true;

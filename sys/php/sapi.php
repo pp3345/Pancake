@@ -105,7 +105,7 @@
 	            $pancakeAdd .= '<tr class="h"><td>';
 	            $pancakeAdd .= '<a href="http://www.pancakehttp.net">';
 	            // expose_php can not be changed at run time
-	            #.if /* .eval 'return ini_get("expose_php") && Pancake\Config::get("main.exposepancake") === true;' */
+	            #.if /* .call 'ini_get' 'expose_php' */ && #.call 'Pancake\Config::get' 'main.exposepancake' === true
 	                $pancakeAdd .= '<img border="0" src="?=PAN8DF095AE-6639-4C6F-8831-5AB8FBD64D8B" alt="Pancake Logo">';
 	            #.endif
 	            $pancakeAdd .= /* .eval "return '<h1 class=\"p\">Pancake Version ' . Pancake\VERSION .'</h1>';" */;

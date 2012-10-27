@@ -145,7 +145,7 @@
     */
     function cacheFile($fileName) {
         global $Pancake_cacheFiles;
-        #.if /* .eval 'global $Pancake_vHost; return (bool) $Pancake_vHosts->phpCodeCacheExcludes;' */
+        #.if #.eval 'global $Pancake_vHost; return (bool) $Pancake_vHosts->phpCodeCacheExcludes;'
         if(isset(vars::$Pancake_currentThread->vHost->phpCodeCacheExcludes[$fileName]))
             return;
         #.endif
@@ -195,7 +195,7 @@
     		$reflect = new \ReflectionObject($data);
     		$objects[] = $data;
     		
-    		#.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetObjectsDestroyDestructor;' */
+    		#.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetObjectsDestroyDestructor;'
     			if($reflect->hasMethod('__destruct')) {
 	    			global $destroyedDestructors;
 	
