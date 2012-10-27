@@ -148,12 +148,12 @@
             // Load files and directories that need authentication
             if($config['auth']) {
                 foreach($config['auth'] as $authFile => $authFileConfig) {
-                    if(!is_array($authFileConfig['authfiles']) || ($authFileConfig['type'] != 'basic' && $authFileConfig['type'] != 'digest')) {
+                    if(!is_array($authFileConfig['authfiles']) || ($authFileConfig['type'] != 'basic'/* && $authFileConfig['type'] != 'digest'*/)) {
                         trigger_error('Invalid authentication configuration for "'.$authFile.'"', \E_USER_WARNING);
                         continue;
                     }
-                    if(is_dir($this->documentRoot.$authFile)) {
-                    	if(substr($authFile, -1, 1) == '/')
+                    if(is_dir($this->documentRoot . $authFile)) {
+                    	if(substr($authFile, -1, 1) == '/' && strlen($authFile) > 1)
                     		$authFile = substr($authFile, 0, strlen($authFile) - 1);
                     	
                         $this->authDirectories[$authFile] = array(
