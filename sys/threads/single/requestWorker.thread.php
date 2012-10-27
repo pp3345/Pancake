@@ -77,6 +77,7 @@
     #.macro 'LOCAL_IP' '$requestObject->localIP'
     #.macro 'LOCAL_PORT' '$requestObject->localPort'
     #.macro 'RAW_POST_DATA' '$requestObject->rawPOSTData'
+    #.macro 'ACCEPTS_COMPRESSION' 'isset($requestObject->acceptedCompressions[$compression])' '$compression'
     #.macro 'VHOST_COMPARE_OBJECTS' '/* .VHOST */->shouldCompareObjects'
     #.macro 'VHOST_FASTCGI' '(isset(/* .VHOST */->fastCGI[/* .MIME_TYPE */]) ? /* .VHOST */->fastCGI[/* .MIME_TYPE */] : null)'
     #.macro 'VHOST_PHP_WORKERS' '/* .VHOST */->phpWorkers'
@@ -593,7 +594,7 @@
             
             #.ifdef 'SUPPORT_GZIP'
             // Check if GZIP-compression should be used  
-            if($requestObject->acceptsCompression('gzip') && /* .VHOST_ALLOW_GZIP_COMPRESSION */ === true && filesize(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */) >= /* .VHOST_GZIP_MINIMUM */) {
+            if(/* .ACCEPTS_COMPRESSION "'gzip'" */ && /* .VHOST_ALLOW_GZIP_COMPRESSION */ === true && filesize(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */) >= /* .VHOST_GZIP_MINIMUM */) {
                 // Set encoding-header
                 $requestObject->setHeader('Content-Encoding', 'gzip');
                 // Create temporary file
