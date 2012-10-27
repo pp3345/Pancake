@@ -154,17 +154,17 @@
 	                    
 	                    $pancakeAdd .= '<tr><td class="e">Running PHPWorkers</td><td class="v">' . $vHost->phpWorkers . '</td></tr>';
 	                    $pancakeAdd .= '<tr><td class="e">PHPWorker processing limit</td><td class="v">' . ($vHost->phpWorkerLimit ? $vHost->phpWorkerLimit . ' requests' : '<i>no limit</i>') . '</td></tr>';
-	                    $pancakeAdd .= '<tr><td class="e">Is Default</td><td class="v">' . ($vHost->isDefault ? 'yes' : 'no') . '</td></tr>';
-	                    $pancakeAdd .= '<tr><td class="e">Document Root</td><td class="v">' . $vHost->documentRoot . '</td></tr>';
-	                    $pancakeAdd .= '<tr><td class="e">GZIP-compression</td><td class="v">' . ($vHost->allowGZIP ? 'enabled' : 'disabled') . '</td></tr>';
+	                    $pancakeAdd .= '<tr><td class="e">Is default</td><td class="v">' . ($vHost->isDefault ? 'yes' : 'no') . '</td></tr>';
+	                    $pancakeAdd .= '<tr><td class="e">Document root</td><td class="v">' . $vHost->documentRoot . '</td></tr>';
+	                    $pancakeAdd .= '<tr><td class="e">GZIP compression</td><td class="v">' . ($vHost->allowGZIP ? 'enabled' : 'disabled') . '</td></tr>';
 	                    if($vHost->allowGZIP) {
-	                        $pancakeAdd .= '<tr><td class="e">Minimum filesize for GZIP-compression</td><td class="v">' . Pancake\formatFilesize($vHost->gzipMinimum) . '</td></tr>';
-	                        $pancakeAdd .= '<tr><td class="e">GZIP-level</td><td class="v">' . $vHost->gzipLevel . '</td></tr>';
+	                        $pancakeAdd .= '<tr><td class="e">Minimum filesize for GZIP compression</td><td class="v">' . Pancake\formatFilesize($vHost->gzipMinimum) . '</td></tr>';
+	                        $pancakeAdd .= '<tr><td class="e">GZIP level</td><td class="v">' . $vHost->gzipLevel . '</td></tr>';
 	                    }
 	                    
 	                    $pancakeAdd .= '<tr><td class="e">Per-Write Limit</td><td class="v">' . Pancake\formatFilesize($vHost->writeLimit) . '</td></tr>';
-	                    $pancakeAdd .= '<tr><td class="e">Directory Listings</td><td class="v">' . ($vHost->allowDirectoryListings ? 'enabled' : 'disabled') . '</td></tr>';
-	                    $pancakeAdd .= '<tr><td class="e">Index Files</td><td class="v">';
+	                    $pancakeAdd .= '<tr><td class="e">Directory listings</td><td class="v">' . ($vHost->allowDirectoryListings ? 'enabled' : 'disabled') . '</td></tr>';
+	                    $pancakeAdd .= '<tr><td class="e">Index files</td><td class="v">';
 	                    
 	                    unset($first);
 	                    foreach($vHost->indexFiles as $indexFile) {
