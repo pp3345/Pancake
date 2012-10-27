@@ -35,7 +35,9 @@
         public $requestLine = null;
         public $rangeFrom = 0;
         public $rangeTo = 0;
+        #.ifdef 'SUPPORT_GZIP'
         public $acceptedCompressions = array();
+        #.endif
         public $requestURI = null;
         public $remoteIP = null;
        	public $remotePort = 0;
@@ -283,6 +285,7 @@
                     throw new invalidHTTPRequestException('File was modified since requested time.', 412, $requestHeader);
             }
             
+            #.ifdef 'SUPPORT_GZIP'
             // Check for accepted compressions
             if($this->getRequestHeader('Accept-Encoding')) {
                 $accepted = explode(',', $this->getRequestHeader('Accept-Encoding'));
@@ -291,6 +294,7 @@
                     $this->acceptedCompressions[$format] = true;
                 }
             }
+            #.endif
             
             // Check for Range-header
             if($this->getRequestHeader('Range')) {
