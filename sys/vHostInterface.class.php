@@ -91,8 +91,9 @@
 	   	 * @return mixed Returns false or array with realm and type
 	   	 */
 	   	public function requiresAuthentication($filePath) {
-	   		if(substr($filePath, -1, 1) == '/')
+	   		if(substr($filePath, -1, 1) == '/' && strlen($filePath) > 1)
 	   			$filePath = substr($filePath, 0, strlen($filePath) - 1);
+	   		
 	   		if(isset($this->authFiles[$filePath]))
 	   			return $this->authFiles[$filePath];
 	   		else if(isset($this->authDirectories[$filePath]))
@@ -118,7 +119,7 @@
 	   	public function isValidAuthentication($filePath, $user, $password) {
 	   		if(!$this->authFiles && !$this->authDirectories)
 	   			return false;
-	   		if(substr($filePath, -1, 1) == '/')
+	   		if(substr($filePath, -1, 1) == '/' && strlen($filePath) > 1)
 	   			$filePath = substr($filePath, 0, strlen($filePath) - 1);
 	   		if($this->authFiles[$filePath]) {
 	   			foreach($this->authFiles[$filePath]['authfiles'] as $authfile) {
