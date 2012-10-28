@@ -242,29 +242,29 @@
     }
     
     function ob_end_clean() {
-        if(ob_get_level() > 0)
+        if(Pancake\PHPFunctions\OutputBuffering\getLevel() > 1)
             return Pancake\PHPFunctions\OutputBuffering\endClean();
         Pancake\PHPErrorHandler(/* .constant 'E_NOTICE' */, 'ob_end_clean(): failed to delete buffer. No buffer to delete');
         return false;
     }
     
     function ob_end_flush() {
-        if(ob_get_level() > 0)
+        if(Pancake\PHPFunctions\OutputBuffering\getLevel() > 1)
             return Pancake\PHPFunctions\OutputBuffering\endFlush();
         Pancake\PHPErrorHandler(/* .constant 'E_NOTICE' */, 'ob_end_flush(): failed to delete and flush buffer. No buffer to delete or flush');
         return false;
     }
     
     function ob_get_flush() {
-        if(ob_get_level() > 0)
+        if(Pancake\PHPFunctions\OutputBuffering\getLevel() > 1)
             return Pancake\PHPFunctions\OutputBuffering\getFlush();
         Pancake\PHPErrorHandler(/* .constant 'E_NOTICE' */, 'ob_get_flush(): failed to delete and flush buffer. No buffer to delete or flush');
         return false;
     }
     
     function ob_flush() {
-        if(ob_get_level() > 0)
-            return Pancake\PHPFunctions\OutputBuffering\flush();      
+        if(Pancake\PHPFunctions\OutputBuffering\getLevel() > 1)
+            return Pancake\PHPFunctions\OutputBuffering\flush();
     }
     
     function session_start() {
