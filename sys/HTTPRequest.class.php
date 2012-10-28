@@ -224,6 +224,10 @@
             $this->requestFilePath = $path[0];
             $this->queryString = $path[1];
             
+            // Check if path begins with http://
+            if(strtolower(substr($this->requestFilePath, 0, 7)) == 'http://')
+            	$this->requestFilePath = substr($this->requestFilePath, strpos($this->requestFilePath, '/', 7));
+            
             // Check if path begins with /
             if(substr($this->requestFilePath, 0, 1) != '/')
                 $this->requestFilePath = '/' . $this->requestFilePath;
