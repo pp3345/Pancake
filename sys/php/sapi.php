@@ -268,14 +268,13 @@
     }
     
     function session_start() {
-        if(session_id());
-        else if(array_key_exists(session_name(), Pancake\vars::$Pancake_request->getGETParams())) {
-        	$get = Pancake\vars::$Pancake_request->getGETParams();
-            session_id($get[session_name()]);
-        } else if(array_key_exists(session_name(), Pancake\vars::$Pancake_request->getCookies())) {
-        	$cookie = Pancake\vars::$Pancake_request->getCookies();
-            session_id($cookie[session_name()]);
-        }
+		if(session_id());
+		else if(array_key_exists(session_name(), $_COOKIE))
+			session_id($_COOKIE[session_name()]);
+		else if(array_key_exists(session_name(), $_GET))
+			session_id($_GET[session_name()]);
+		else if(array_key_exists(session_name(), $_POST))
+			session_id($_POST[session_name()]);
         
         if(Pancake\PHPFunctions\sessionStart()) {
         	Pancake\vars::$sessionID = session_id();
