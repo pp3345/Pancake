@@ -187,7 +187,6 @@
 	    	benchmarkFunction('socket_write');
 	    	benchmarkFunction('Pancake\cleanGlobals');
 	    	benchmarkFunction('Pancake\recursiveClearObjects');
-	    	//benchmarkFunction('in_array'); !!! dt memory corruption.
 	    #.endif
 	    
 	    // Set user and group
