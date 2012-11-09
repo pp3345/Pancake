@@ -42,6 +42,7 @@
         				. md5_file('FastCGI.class.php')
         				. md5_file('workerFunctions.php')
         				. md5_file('authenticationFile.class.php')
+        				. md5_file('IOCache.class.php')
         				. \PHP_MINOR_VERSION
         				. \PHP_RELEASE_VERSION);
         		if(!(file_exists('threads/single/requestWorker.thread.hash')

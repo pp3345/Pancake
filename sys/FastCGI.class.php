@@ -159,7 +159,13 @@
 			socket_write($this->socket, "\1\4" . $requestID . "\0\0\0\0");
 			
 			if(/* .RAW_POST_DATA */) {
-				$rawPostData = str_split(/* .RAW_POST_DATA */, 65535);
+				#.ifdef 'USE_IOCACHE'
+					global $ioCache;
+					$rawPostData = str_split($ioCache->getBytes(/* .RAW_POST_DATA */, -1), 65535);
+					$ioCache->deallocateBuffer(/* .RAW_POST_DATA */);
+				#.else
+					$rawPostData = str_split(/* .RAW_POST_DATA */, 65535);
+				#.endif
 				
 				foreach($rawPostData as $recordData) {
 					/* FCGI_STDIN */
