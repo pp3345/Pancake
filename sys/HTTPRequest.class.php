@@ -213,12 +213,32 @@
             if(isset($Pancake_vHosts[$this->getRequestHeader('Host')]))
                 $this->vHost = $Pancake_vHosts[$this->getRequestHeader('Host')];
             
-            $this->requestURI = $firstLine[1]
-			#.ifdef 'SUPPORT_REWRITE'
-            = $this->vHost->rewrite($firstLine[1])
+            #.ifdef 'SUPPORT_REWRITE'
+            foreach($this->vHost->rewriteRules as $rule) {
+            	if((isset($rule['location']) && strpos($firstLine[1], $rule['location']) !== 0)
+            	|| (isset($rule['if']) && !preg_match($rule['if'], $firstLine[1]))
+            	|| (isset($rule['precondition']) && $rule['precondition'] == 404 && file_exists($this->vHost->documentRoot . $firstLine[1]))
+            	|| (isset($rule['precondition']) && $rule['precondition'] == 403 && (!file_exists($this->vHost->documentRoot . $firstLine[1]) || is_readable($this->vHost->documentRoot . $firstLine[1])))
+            	)
+            		continue;
+
+            	if(isset($rule['headers'])) {
+            		foreach($rule['headers'] as $headerName => $headerValue)
+            			$this->setHeader($headerName, $headerValue);
+            	}
+            	
+            	if(isset($rule['pattern']) && isset($rule['replacement']))
+            		$firstLine[1] = preg_replace($rule['pattern'], $rule['replacement'], $firstLine[1]);
+            	else if(isset($rule['destination'])) {
+            		$this->setHeader('Location', $rule['destination']);
+            		throw new invalidHTTPRequestException('Redirecting...', 301/*, $requestHeader*/);
+            	} else if(isset($rule['exception']) && is_numeric($rule['exception']))
+            		throw new invalidHTTPRequestException(isset($rule['exceptionmessage']) ? $rule['exceptionmessage'] : 'The server was unable to process your request', $rule['exception'], $requestHeader);
+            }
             #.endif
-            ;
-             
+            
+            $this->requestURI = $firstLine[1];
+           	
             // Split address from query string
             $path = explode('?', $firstLine[1], 2);
             $this->requestFilePath = $path[0];

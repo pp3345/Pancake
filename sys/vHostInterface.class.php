@@ -145,32 +145,6 @@
 	   	}
 	   	#.endif
 	   	
-	   	#.ifdef 'SUPPORT_REWRITE'
-	   	/**
-	   	 * Applies the vHost's rewrite rules to a URI
-	   	 *
-	   	 * @param string $uri
-	   	 * @return string
-	   	 */
-	   	public function rewrite($uri) {
-	   		foreach($this->rewriteRules as $rule) {
-	   			if($rule['location'] && $rule['if']) {
-	   				if(strpos(strtolower($uri), $rule['location']) !== 0 && preg_match($rule['if'], $uri))
-	   					$uri = preg_replace($rule['pattern'], $rule['replacement'], $uri);
-	   			} else if($rule['location']) {
-	   				if(strpos(strtolower($uri), $rule['location']) !== false)
-	   					$uri = preg_replace($rule['pattern'], $rule['replacement'], $uri);
-	   			} else if($rule['if']) {
-	   				if(preg_match($rule['if'], $uri))
-	   					$uri = preg_replace($rule['pattern'], $rule['replacement'], $uri);
-	   			} else
-	   				$uri = preg_replace($rule['pattern'], $rule['replacement'], $uri);
-	   		}
-
-	   		return $uri;
-	   	}
-	   	#.endif
-	   	
 	   	#.ifdef 'SUPPORT_FASTCGI'
 	   	/**
 	   	 * Initializes the configured FastCGI upstream servers for this vHost

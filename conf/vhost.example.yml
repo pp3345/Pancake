@@ -58,6 +58,13 @@ vhosts:
 #      - location: /users/
 #        pattern: ~^/users/(.*)$~
 #        replace: /user.php?id=$1
+#      - precondition: 404
+#        destination: http://google.com/
+#      - precondition: 403
+#        exception: 500
+#        exceptionMessage: "This should not happen"
+#        headers:
+#          X-Reason: 403
     index:                                                      # List of files allowed as directory-indexes
       - index.php
       - index.html

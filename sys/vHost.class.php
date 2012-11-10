@@ -138,11 +138,8 @@
             foreach((array) $config['rewrite'] as $rewriteRule) {
                 if(substr($rewriteRule['location'], 0, 1) != '/' && $rewriteRule['location'])
                     $rewriteRule['location'] = '/' . $rewriteRule['location'];
-                $rewriteRule['location'] = strtolower($rewriteRule['location']);
-                $this->rewriteRules[] = array(  'location' => $rewriteRule['location'],
-                                                'if' => $rewriteRule['if'],
-                                                'pattern' => $rewriteRule['pattern'],
-                                                'replacement' => $rewriteRule['replace']);
+                //$rewriteRule['location'] = strtolower($rewriteRule['location']);
+                $this->rewriteRules[] = $rewriteRule;
             }
             
             // Load files and directories that need authentication
