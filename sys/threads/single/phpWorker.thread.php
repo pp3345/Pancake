@@ -35,6 +35,18 @@
 		#.define 'BENCHMARK' false
 	#.endif
     
+	#.longDefine 'MACRO_CODE'
+	#.if PHP_MINOR_VERSION == 3 && PHP_RELEASE_VERSION < 6
+	$backtrace = debug_backtrace();
+	#.else
+	$backtrace = debug_backtrace(/* .DEBUG_BACKTRACE_PROVIDE_OBJECT */, 2);
+	#.endif
+	 
+	\Pancake\PHPErrorHandler($errorType, $errorMessage, $backtrace[1]["file"], $backtrace[1]["line"]);
+	#.endLongDefine
+	
+	#.macro 'PHP_ERROR_WITH_BACKTRACE' MACRO_CODE '$errorType' '$errorMessage'
+
     namespace {
     	#.include 'php/sapi.php'
     }
@@ -304,6 +316,9 @@
 	        
 	        set_time_limit(0);
 	
+	        foreach(vars::$tickFunctions as $tickFunction)
+	        	unregister_tick_function($tickFunction);
+	        
 	        // After $invalidRequest is set to true it might still happen that the registered shutdown functions do some output
 	        if(vars::$invalidRequest) {
 	        	if(!ob_get_contents())
@@ -443,6 +458,7 @@
 	        vars::$invalidRequest = false;
 	        vars::$Pancake_processedRequests++;
 	        vars::$sessionID = null;
+	        vars::$tickFunctions = array();
 	        if(vars::$resetSessionSaveHandler) {
 	        	session_set_save_handler('Pancake\dummy', 'Pancake\dummy', 'Pancake\dummy', 'Pancake\dummy', 'Pancake\dummy', 'Pancake\dummy');
 	        	vars::$resetSessionSaveHandler = false;

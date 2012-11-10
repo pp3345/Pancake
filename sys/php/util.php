@@ -266,6 +266,7 @@
         public static $executingErrorHandler = false;
         public static $sessionID = null;
         public static $resetSessionSaveHandler = false;
+        public static $tickFunctions = array();
     }
     
 ?>
