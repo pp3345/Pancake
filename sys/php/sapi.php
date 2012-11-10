@@ -652,7 +652,7 @@ FUNCTIONBODY
 	
 	function register_tick_function($function) {
 		if(!is_callable($function)) {
-			#.PHP_ERROR_WITH_BACKTRACE /* .E_WARNING */ '"Invalid tick callback \'$function\' passed"'
+			#.PHP_ERROR_WITH_BACKTRACE E_WARNING '"Invalid tick callback \'$function\' passed"'
 			return false;
 		}
 		Pancake\vars::$tickFunctions[] = $function;

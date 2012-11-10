@@ -42,7 +42,7 @@
 	$backtrace = debug_backtrace(/* .DEBUG_BACKTRACE_PROVIDE_OBJECT */, 2);
 	#.endif
 	 
-	\Pancake\PHPErrorHandler($errorType, $errorMessage, $backtrace[1]["file"], $backtrace[1]["line"]);
+	\Pancake\PHPErrorHandler($errorType, $errorMessage, $backtrace[0]["file"], $backtrace[0]["line"]);
 	#.endLongDefine
 	
 	#.macro 'PHP_ERROR_WITH_BACKTRACE' MACRO_CODE '$errorType' '$errorMessage'
@@ -203,7 +203,7 @@
 	    
 	    // Set user and group
 	    setUser();
-	
+
 	    // Wait for requests
 	    while(vars::$requestSocket = socket_accept(vars::$Pancake_currentThread->vHost->phpSocket)) {
 	    	socket_set_block(vars::$requestSocket);
@@ -229,7 +229,7 @@
 	    	
 	        // Change directory to document root of the vHost / requested file path
 	        chdir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */ . dirname(vars::$Pancake_request->requestFilePath));
-	        
+
 	        // Set environment vars
 	        $_GET = vars::$Pancake_request->getGETParams();
 	        $_POST = vars::$Pancake_request->getPOSTParams();
@@ -243,7 +243,7 @@
 	        #.endif
 	        
 	        define('PANCAKE_PHP', true);
-	        
+
 	        // Start output buffer
 	        ob_start();
 	        
@@ -257,7 +257,7 @@
 	        		set_time_limit(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpMaxExecutionTime;' false */);
 	        	#.endif
 	            include /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */ . vars::$Pancake_request->requestFilePath;
-	            
+
 	            runShutdown:
 	            
 	            vars::$executedShutdown = true;
