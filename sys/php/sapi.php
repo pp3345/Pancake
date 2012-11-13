@@ -659,6 +659,11 @@ FUNCTIONBODY
 		return call_user_func_array('Pancake\PHPFunctions\registerTickFunction', func_get_args());
 	}
 	
+	function session_destroy() {
+		Pancake\vars::$sessionID = "";
+		Pancake\PHPFunctions\sessionDestroy();
+	}
+	
     dt_rename_method('\Exception', 'getTrace', 'Pancake_getTraceOrig');
     dt_add_method('\Exception', 'getTrace', null, <<<'FUNCTIONBODY'
 $trace = $this->Pancake_getTraceOrig();

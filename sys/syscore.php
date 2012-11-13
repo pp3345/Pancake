@@ -152,6 +152,7 @@
     dt_rename_function('session_set_save_handler', 'Pancake\PHPFunctions\setSessionSaveHandler');
     dt_rename_function('spl_autoload_register', 'Pancake\PHPFunctions\registerAutoload');
     dt_rename_function('register_tick_function', 'Pancake\PHPFunctions\registerTickFunction');
+    dt_rename_function('session_destroy', 'Pancake\PHPFunctions\sessionDestroy');
     dt_rename_method('ReflectionFunction', 'isDisabled', 'Pancake_isDisabledOrig');
     dt_remove_constant('PHP_SAPI');
     
