@@ -126,17 +126,19 @@
     	IPC::send(9999, 1);
     }
     
+    #.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->phpDisabledFunctions;' false
     function PHPDisabledFunction($functionName) {
     	#.if PHP_MINOR_VERSION == 3 && PHP_RELEASE_VERSION < 6
     		$backtrace = debug_backtrace();
     	#.else
-    		$backtrace = debug_backtrace(/* .constant 'DEBUG_BACKTRACE_PROVIDE_OBJECT' */, 2);
+    		$backtrace = debug_backtrace(/* .DEBUG_BACKTRACE_PROVIDE_OBJECT */, 2);
     	#.endif
     	
-    	PHPErrorHandler(/* .constant 'E_WARNING' */, $functionName . '() has been disabled for security reasons', $backtrace[1]["file"], $backtrace[1]["line"]);
+    	PHPErrorHandler(/* .E_WARNING */, $functionName . '() has been disabled for security reasons', $backtrace[1]["file"], $backtrace[1]["line"]);
     	
     	return null;
     }
+    #.endif
     
     /**
     * Recursive CodeCache-build
