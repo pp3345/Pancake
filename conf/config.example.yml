@@ -42,3 +42,9 @@ FastCGI:                                                        # FastCGI upstre
 #    address: /var/run/php5-fpm.socket
 #    mimeTypes:
 #      - text/x-php
+AJP13:                                                          # AJP13 upstream server configurations
+#  jenkins:                                                     # This example configuration could be used to run Jenkins behind Pancake
+#    type: ipv4
+#    address: 127.0.0.1
+#    port: 1030
+#    maxconcurrent: 100

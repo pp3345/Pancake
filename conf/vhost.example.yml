@@ -71,5 +71,6 @@ vhosts:
       - index.htm
     FastCGI:                                                    # List of FastCGI configurations enabled for this vHost
 #      - php
+#   AJP13:                                                      # AJP13 configuration to use for this vHost
 #    directoryPageHandler: /var/vhosts/default/directory.php
 #    exceptionPageHandler: /var/vhosts/default/exception.php

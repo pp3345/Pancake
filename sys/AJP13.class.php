@@ -31,7 +31,8 @@
 	
 	class AJP13 {
 		private static $instances = array();
-		public $freeSockets = array();
+		private $sockets = array();
+		private $freeSockets = array();
 		private $address = "";
 		private $port = 0;
 		private $type = "";
@@ -59,7 +60,7 @@
 		}
 		
 		private function connect() {
-			if(isset($this->maxConcurrent) && count($this->sockets) >= $this->maxConcurrent)
+			if($this->maxConcurrent && count($this->sockets) >= $this->maxConcurrent)
 				return false;
 			
 			switch($this->type) {
@@ -86,7 +87,7 @@
 			}
 		
 			socket_set_option($socket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_KEEPALIVE' */, 1);
-			$this->sockets[] = $socket;
+			$this->sockets[(int) $socket] = $socket;
 			return $socket;
 		}
 		
@@ -170,7 +171,8 @@
 						$headers .= "\xa0\x0e";
 						break;
 					default:
-						continue 2;
+						$strlenHeaderName = strlen($headerName);
+						$headers .= chr($strlenHeaderName >> 8) . chr($strlenHeaderName) . $headerName . "\x0";
 				}
 				$headerCount++;
 				$strlenValue = strlen($headerValue);
@@ -192,6 +194,13 @@
 
 			socket_write($socket, "\x12\x34" . chr($strlenBody >> 8) . chr($strlenBody) . "\x02" . $body . "\xff");
 			
+			if($requestObject->rawPOSTData) {
+				$string = substr($requestObject->rawPOSTData, 0, 8186);
+				$strlen = strlen($string);
+				socket_write($socket, "\x12\x34" . chr(($strlen + 2) >> 8) . chr($strlen + 2) . chr($strlen >> 8) . chr($strlen) . $string);
+				$requestObject->rawPOSTData = substr($requestObject->rawPOSTData, $strlen);
+			}
+			
 			$this->requests[(int) $socket] = $requestObject;
 			$this->requestSockets[(int) $socket] = $requestSocket;
 			
@@ -210,6 +219,7 @@
 					
 					$retval = array($this->requestSockets[$socketID], $requestObject);
 					unset($this->requestSockets[$socketID], $this->requests[$socketID]);
+					unset($this->sockets[$socketID], $this->freeSockets[$socketID]);
 					return $retval;
 				}
 			
@@ -226,15 +236,30 @@
 				return /* .AJP13_APPEND_DATA */ | ($contentLength + 4 - strlen($data));
 			
 			switch($data[4]) {
+				case /* .AJP13_GET_BODY_CHUNK */:
+					$length = (ord($data[5]) << 8) + ord($data[6]);
+					#.ifdef 'USE_IOCACHE'
+
+					#.else
+						if($requestObject->rawPOSTData) {
+							$string = substr($requestObject->rawPOSTData, 0, $length);
+							$strlen = strlen($string);
+							socket_write($socket, "\x12\x34" . chr(($strlen + 2) >> 8) . chr($strlen + 2) . chr($strlen >> 8) . chr($strlen) . $string);
+							$requestObject->rawPOSTData = substr($requestObject->rawPOSTData, $strlen);
+						} else
+							socket_write($socket, "\x12\x34\x0\x0");
+					#.endif
+					break;
 				case /* .AJP13_SEND_BODY_CHUNK */:
 					$requestObject->answerBody .= substr($data, 7, (ord($data[5]) << 8) + ord($data[6]));
 					return 5;
 				case /* .AJP13_END_RESPONSE */:
 					if($data[5] == "\x01") {
-						$this->freeSockets[] = $socket;
+						$this->freeSockets[$socketID] = $socket;
 					} else {
 						@socket_shutdown($socket);
 						socket_close($socket);
+						unset($this->sockets[$socketID]);
 					}
 					$retval = array($this->requestSockets[$socketID], $requestObject);
 					unset($this->requestSockets[$socketID], $this->requests[$socketID]);
