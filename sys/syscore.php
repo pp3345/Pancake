@@ -277,6 +277,8 @@
     foreach(Config::get('vhosts') as $name => $config) {
         try {
             $vHosts[$name] = new vHost($name);
+            if($vHosts[$name]->isDefault)
+            	$haveDefault = true;
         } catch(\Exception $exception) {
             unset($vHosts[$name]);
             trigger_error('Configuration of vHost "'.$name.'" is invalid: '.$exception->getMessage(), \E_USER_WARNING);
@@ -290,7 +292,7 @@
     }
     
     // Check if the default vHost is set
-    if(!(vHost::$defaultvHost instanceof vHost)) {
+    if(!isset($haveDefault)) {
         out('You need to specify a default vHost. (Set isdefault: true)', SYSTEM, false);
         abort();
     }

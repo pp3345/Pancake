@@ -256,7 +256,7 @@
             if(strpos($this->requestFilePath, '../'))
                 throw new invalidHTTPRequestException('You are not allowed to access the requested file: '.  $this->requestFilePath, 403, $requestHeader);
             
-            // Check for index-files    
+            // Check for index-files
             if(is_dir($this->vHost->documentRoot . $this->requestFilePath)) {
             	if(substr($this->requestFilePath, -1, 1) != '/' && $this->requestType == 'GET') {
             		$this->setHeader('Location', 'http://' . $this->getRequestHeader('Host') . $this->requestFilePath . '/' . $this->queryString);

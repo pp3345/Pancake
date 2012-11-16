@@ -59,7 +59,6 @@
         public $AJP13 = null;
         public $exceptionPageHandler = "";
         public $directoryPageHandler = "";
-        static public $defaultvHost = null;
         
         /**
         * Loads a vHost
@@ -133,8 +132,6 @@
                 foreach((array) $deletes as $delete)
                     $this->forceDeletes[] = array('type' => $type, 'name' => $delete);
             }
-            if($this->isDefault === true)
-                self::$defaultvHost = $this;
                 
             // Load rewrite rules
             foreach((array) $config['rewrite'] as $rewriteRule) {

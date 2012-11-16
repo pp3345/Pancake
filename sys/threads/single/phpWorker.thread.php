@@ -29,6 +29,38 @@
 		#.define 'SUPPORT_CODECACHE' true
 	#.endif
 	
+	#.if #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["functions"]) ? $Pancake_currentThread->vHost->autoDelete["functions"] : true);' false
+		#.AUTODELETE_FUNCTIONS = true
+	#.endif
+	
+	#.if #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["classes"]) ? $Pancake_currentThread->vHost->autoDelete["classes"] : true);' false
+		#.AUTODELETE_CLASSES = true
+	#.endif
+	
+	#.if PHP_MINOR_VERSION >= 4 && #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["traits"]) ? $Pancake_currentThread->vHost->autoDelete["traits"] : true);' false
+		#.AUTODELETE_TRAITS = true
+	#.endif
+	
+	#.if #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["interfaces"]) ? $Pancake_currentThread->vHost->autoDelete["interfaces"] : true);' false
+		#.AUTODELETE_INTERFACES = true
+	#.endif
+	
+	#.if #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["constants"]) ? $Pancake_currentThread->vHost->autoDelete["constants"] : true);' false
+		#.AUTODELETE_CONSTANTS = true
+	#.endif
+	
+	#.if #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["includes"]) ? $Pancake_currentThread->vHost->autoDelete["includes"] : true);' false
+		#.AUTODELETE_INCLUDES = true
+	#.endif
+	
+	#.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->forceDeletes;' false
+		#.HAVE_FORCED_DELETES = true
+	#.endif
+	
+	#.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpWorkerLimit;' false
+		#.HAVE_LIMIT = true
+	#.endif
+
 	#.if Pancake\DEBUG_MODE === true
 		#.define 'BENCHMARK' false
 	#.else
@@ -67,8 +99,6 @@
 	    unset($Pancake_currentThread);
 	    
 	    unset($Pancake_sockets);
-	    
-	    vHost::$defaultvHost = null;
 	    
 	    #.ifdef 'SUPPORT_CODECACHE'
 		    // MIME types are only needed for CodeCache
@@ -166,29 +196,41 @@
 		    
 		    unset($cacheFile);
 		    unset($Pancake_cacheFiles);
-		#.endif
 	    
-	    // Delete predefined constants, if wanted
-	    #.if #.eval 'global $Pancake_currentThread; return ((bool) $Pancake_currentThread->vHost->predefinedConstants) && $Pancake_currentThread->vHost->deletePredefinedConstantsAfterCodeCacheLoad;' false
-	    	foreach((array) vars::$Pancake_currentThread->vHost->predefinedConstants as $name => $value)
-	    		dt_remove_constant($name);
-	    	
-	    	unset($name);
-	    	unset($value);
+		    // Delete predefined constants, if wanted
+		    #.if #.eval 'global $Pancake_currentThread; return ((bool) $Pancake_currentThread->vHost->predefinedConstants) && $Pancake_currentThread->vHost->deletePredefinedConstantsAfterCodeCacheLoad;' false
+		    	foreach((array) vars::$Pancake_currentThread->vHost->predefinedConstants as $name => $value)
+		    		dt_remove_constant($name);
+		    	
+		    	unset($name);
+		    	unset($value);
+		   	#.endif
+		   	
+		    // Get variables to exclude from deletion (probably set by cached files)
+		    vars::$Pancake_exclude = cleanGlobals(array(), true);
 	   	#.endif
 	    
-	    // Get variables to exclude from deletion (probably set by cached files)
-	    vars::$Pancake_exclude = cleanGlobals(array(), true);
-	    
 	    // Get currently defined funcs, consts, classes, interfaces, traits and includes
+	    #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_FUNCTIONS'
 	    vars::$Pancake_funcsPre = get_defined_functions();
-	    vars::$Pancake_constsPre = get_defined_constants(true);
-	    vars::$Pancake_includesPre = get_included_files();
-	    vars::$Pancake_classesPre = get_declared_classes();
-	    vars::$Pancake_interfacesPre = get_declared_interfaces();
-	    #.if PHP_MINOR_VERSION >= 4
-	    	vars::$Pancake_traitsPre = get_declared_traits();
 	    #.endif
+	    #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_CONSTANTS'
+	    vars::$Pancake_constsPre = get_defined_constants(true);
+	    #.endif
+	    #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_INCLUDES'
+	    vars::$Pancake_includesPre = get_included_files();
+	    #.endif
+	    #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_CLASSES'
+	    vars::$Pancake_classesPre = get_declared_classes();
+	    #.endif
+	    #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_INTERFACES'
+	    vars::$Pancake_interfacesPre = get_declared_interfaces();
+	    #.endif
+	    #.if PHP_MINOR_VERSION >= 4
+		    #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_TRAITS'
+		    	vars::$Pancake_traitsPre = get_declared_traits();
+		    #.endif
+		#.endif
 	    
 	    // Ready
 	    vars::$Pancake_currentThread->parentSignal(/* .constant 'SIGUSR1' */);
@@ -456,7 +498,9 @@
 	        vars::$Pancake_headerCallbacks = array();
 	        vars::$executedShutdown = false;
 	        vars::$invalidRequest = false;
+	        #.ifdef 'HAVE_LIMIT'
 	        vars::$Pancake_processedRequests++;
+	        #.endif
 	        vars::$sessionID = null;
 	        vars::$tickFunctions = array();
 	        if(vars::$resetSessionSaveHandler) {
@@ -465,7 +509,7 @@
 	        }
 	        
 	        if(
-	        #.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpWorkerLimit;' false
+	        #.ifdef 'HAVE_LIMIT'
 	        (vars::$Pancake_processedRequests >= /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpWorkerLimit;' false */) || 
 	        #.endif
 	        vars::$workerExit) {
@@ -474,7 +518,11 @@
 	        }
 	        
 	        // We're cleaning the globals here because PHP 5.4 is likely to crash when having an instance of a non-existant class
+	        #.ifdef 'SUPPORT_CODECACHE'
 	        cleanGlobals(vars::$Pancake_exclude, false, true);
+	        #.else
+	        cleanGlobals(array(), false, true);
+	        #.endif
 	
 	        spl_autoload_register(null, null, null, true);
 	
@@ -610,7 +658,7 @@
 	        
 	        gc_collect_cycles();
 	
-	        #.if #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["functions"]) ? $Pancake_currentThread->vHost->autoDelete["functions"] : true);' false
+	        #.ifdef 'AUTODELETE_FUNCTIONS'
 	            foreach($funcsPost['user'] as $func) {
 	                if(!in_array($func, vars::$Pancake_funcsPre['user'])
 						#.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->autoDeleteExcludes["functions"];' false
@@ -628,7 +676,7 @@
 	            }
 	        #.endif
 	            
-	        #.if #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["classes"]) ? $Pancake_currentThread->vHost->autoDelete["classes"] : true);' false
+	        #.ifdef 'AUTODELETE_CLASSES'
 	            foreach(get_declared_classes() as $class) {
 	                if(!in_array($class, vars::$Pancake_classesPre)
 	                	#.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->autoDeleteExcludes["classes"];' false
@@ -642,7 +690,7 @@
 	            }
 	        #.endif
 	            
-	        #.if #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["interfaces"]) ? $Pancake_currentThread->vHost->autoDelete["interfaces"] : true);' false
+	        #.ifdef 'AUTODELETE_INTERFACES'
 	            foreach(get_declared_interfaces() as $interface) {
 	            	if(!in_array($interface, vars::$Pancake_interfacesPre)
 	            		#.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->autoDeleteExcludes["interfaces"];' false
@@ -656,7 +704,7 @@
 	            }
 	        #.endif
 	
-	        #.if #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["constants"]) ? $Pancake_currentThread->vHost->autoDelete["constants"] : true);' false
+	        #.ifdef 'AUTODELETE_CONSTANTS'
 	            foreach($constsPost['user'] as $const => $constValue) {
 	                if(!array_key_exists($const, vars::$Pancake_constsPre['user'])
 	                	#.if /* .eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->autoDeleteExcludes["constants"];' false */
@@ -669,7 +717,7 @@
 	            }
 	        #.endif
 	            
-	        #.if #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["includes"]) ? $Pancake_currentThread->vHost->autoDelete["includes"] : true);' false
+	        #.ifdef 'AUTODELETE_INCLUDES'
 	            foreach(get_included_files() as $include) {
 	                if(!in_array($include, vars::$Pancake_includesPre)
 	                	#.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->autoDeleteExcludes["includes"];' false
@@ -682,7 +730,7 @@
 	            }
 	        #.endif
 	        
-	        #.if PHP_MINOR_VERSION >= 4 && #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["traits"]) ? $Pancake_currentThread->vHost->autoDelete["traits"] : true);' false
+	        #.ifdef 'AUTODELETE_TRAITS'
 	            foreach(get_declared_traits() as $trait) {
 	                if(!in_array($trait, vars::$Pancake_traitsPre)
 	                	#.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->autoDeleteExcludes["traits"];' false
@@ -696,7 +744,7 @@
 	            }
 	        #.endif
 	        
-	        #.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->forceDeletes;' false
+	        #.ifdef 'HAVE_FORCED_DELETES'
 		        foreach(vars::$Pancake_currentThread->vHost->forceDeletes as $delete) {
 		            switch($delete['type']) {
 		                case 'classes':
@@ -741,7 +789,11 @@
 		        	dt_fix_static_method_calls(true);
 		    #.endif
 	        
+		    #.ifdef 'SUPPORT_CODECACHE'
 	        cleanGlobals(vars::$Pancake_exclude, false, true);
+	        #.else
+	       	cleanGlobals(array(), false, true);
+	       	#.endif
 	        
 	        clearstatcache();
 	        
@@ -749,13 +801,25 @@
 	        srand();
 	        
 	        // Get currently defined funcs, consts, classes, interfaces, traits and includes
+	        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_FUNCTIONS'
 	        vars::$Pancake_funcsPre = get_defined_functions();
+	        #.endif
+	        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_CONSTANTS'
 	        vars::$Pancake_constsPre = get_defined_constants(true);
+	        #.endif
+	        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_INCLUDES'
 	        vars::$Pancake_includesPre = get_included_files();
+	        #.endif
+	        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_CLASSES'
 	        vars::$Pancake_classesPre = get_declared_classes();
+	        #.endif
+	        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_INTERFACES'
 	        vars::$Pancake_interfacesPre = get_declared_interfaces();
+	        #.endif
 	        #.if PHP_MINOR_VERSION >= 4
+	   			#.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_TRAITS'
 	        	vars::$Pancake_traitsPre = get_declared_traits();
+	        	#.endif
 	        	dt_clear_cache();
 	       	#.endif
 	        

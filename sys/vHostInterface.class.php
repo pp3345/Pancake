@@ -51,24 +51,21 @@
 	    #.endif
 	    #.ifdef 'PHPWORKER'
 	        public $phpWorkerLimit = 0;
+	        #.ifdef 'SUPPORT_CODECACHE'
 	        public $phpCodeCache = array();
 	        public $phpCodeCacheExcludes = array();
-	        public $autoDelete = array();
+	        #.endif
 	        public $autoDeleteExcludes = array();
+	        #.ifdef 'HAVE_FORCED_DELETES'
 	        public $forceDeletes = array();
-	        public $phpInfoConfig = true;
-	        public $phpInfovHosts = true;
+	        #.endif
 	        public $phpSocket = 0;
-	        public $phpHTMLErrors = true;
 	        public $phpDisabledFunctions = array();
 	        public $phpMaxExecutionTime = 0;
-	        public $resetClassObjects = false;
-	        public $resetClassNonObjects = false;
-	        public $resetFunctionObjects = false;
-	        public $resetFunctionNonObjects = false;
-	        public $resetObjectsDestroyDestructor = false;
 	        public $predefinedConstants = array();
+	        #.ifdef 'SUPPORT_CODECACHE'
 	        public $deletePredefinedConstantsAfterCodeCacheLoad = false;
+	        #.endif
 	        public $fixStaticMethodCalls = false;
 	    #.endif
         public $exceptionPageHandler = "";

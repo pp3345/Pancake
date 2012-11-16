@@ -122,7 +122,7 @@
     * @param int $errline The line in which the error occured
     */
     function errorHandler($errtype, $errstr, $errfile = null, $errline = null) {
-        static $fileStream = null;                                                                                                                                    
+        static $fileStream = null;
         if(!$fileStream)
             $fileStream = @fopen(Config::get('main.logging.error'), 'a+');
         // Check for @
@@ -148,10 +148,8 @@
     
         // We can't reset $GLOBALS like this because it would destroy its function of automatically adding all global vars
         foreach($GLOBALS as $globalName => $globalVar) {
-            if($globalName != 'Pancake_currentThread'
-            && $globalName != 'Pancake_vHosts'
+            if($globalName != 'Pancake_vHosts'
             && $globalName != 'Pancake_sockets'
-            && $globalName != 'Pancake_processedRequests'
             && $globalName != 'GLOBALS'
             && $globalName != '_GET'
             && $globalName != '_POST'

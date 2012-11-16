@@ -42,6 +42,19 @@
     	#.define 'SUPPORT_REWRITE' true
     #.endif
     
+    #.longDefine 'EVAL_CODE'
+    global $Pancake_vHosts;
+    
+    foreach($Pancake_vHosts as $vHost)
+    	if($vHost->allowDirectoryListings)
+    		return true;
+    return false;
+    #.endLongDefine
+    
+    #.if #.eval EVAL_CODE false
+    	#.SUPPORT_DIRECTORY_LISTINGS = true
+    #.endif
+    
     #.if #.call 'Pancake\Config::get' 'main.waitslotwaitlimit'
     	#.ifdef 'SUPPORT_PHP'
     		#.define 'SUPPORT_WAITSLOTS' true
@@ -148,10 +161,11 @@
     var_dump($buffer3 = $ioCache->allocateBuffer(11, "aaaaa"));
     var_dump($ioCache->getBytes($buffer, 36), $ioCache->getBytes($buffer2, 4), $ioCache->getBytes($buffer3, 5));*/
     
-    vHost::$defaultvHost = null;
+    unset($loadCodeFile);
+
     MIME::load();
     
-    foreach($Pancake_vHosts as &$vHost) {
+    foreach($Pancake_vHosts as $id => &$vHost) {
     	if($vHost instanceof vHostInterface)
     		break;
     	$vHost = new vHostInterface($vHost);
@@ -165,6 +179,8 @@
     	foreach($vHost->listen as $address)
     		$Pancake_vHosts[$address] = $vHost;
     }
+    
+    unset($id, $vHost, $address);
     
     Config::workerDestroy();
     
@@ -187,7 +203,9 @@
     $liveReadSockets = array();
     $socketData = array();
     $postData = array();
+    #.if 0 < #.call 'Pancake\Config::get' 'main.requestworkerlimit'
     $processedRequests = 0;
+    #.endif
     $requests = array();
     $requestFileHandle = array();
     #.ifdef 'SUPPORT_GZIP'
@@ -197,8 +215,10 @@
     #.ifdef 'SUPPORT_PHP'
     $phpSockets = array();
     #.endif
+    #.ifdef 'SUPPORT_WAITSLOTS'
     $waitSlots = array();
     $waits = array();
+    #.endif
     
     #.if BENCHMARK === true
     	benchmarkFunction("socket_read");
@@ -276,10 +296,14 @@
         			unset($ajp13Sockets[(int) $socket]);
         			unset($listenSocketsOrig[array_search($socket, $listenSocketsOrig)]);
         			unset($result);
+        			unset($newData);
+        			unset($data);
         			goto write;
         		}
         		
         		unset($result);
+        		unset($newData);
+        		unset($data);
         		goto clean;
         	}
         	#.endif
@@ -307,10 +331,14 @@
         			$socketID = (int) $requestSocket;
         	
         			unset($result);
+        			unset($data);
+        			unset($newData);
         			goto write;
         		}
         		 
         		unset($result);
+        		unset($data);
+        		unset($newData);
         		goto clean;
         	}
         	#.endif
@@ -486,13 +514,16 @@
                 #.else
                 	$requestObject->init($socketData[$socketID]);
                 #.endif
+                if(isset($requestObject->getGETParams()['DUMP_VARS'])) {
+                	$DUMPVARS = true;
+                }
                 unset($socketData[$socketID]);
             } catch(invalidHTTPRequestException $e) {
                 $requestObject->invalidRequest($e);
                 #.ifdef 'USE_IOCACHE'
                 	$ioCache->deallocateBuffer($socketData[$socketID]);
                 #.endif
-                unset($socketData[$socketID]);
+                unset($socketData[$socketID], $e);
                 goto write;
             }
         }
@@ -554,6 +585,8 @@
             $body .= 'Dump of RequestObject:' . "\r\n";
             $body .= print_r($requestObject, true);
             /* .ANSWER_BODY */ = $body;
+            
+            unset($body);
             
             goto write;
         }
@@ -650,8 +683,10 @@
 	           	#.endif
             }
             
+            #.ifdef 'SUPPORT_WAITSLOTS'
             unset($waitSlotsOrig[$socketID]);
             unset($waits[$socketID]);
+            #.endif
             
             #.ifdef 'USE_IOCACHE'
             	// Load cache data into object
@@ -703,12 +738,12 @@
             goto write;
         }
         
+        #.ifdef 'SUPPORT_DIRECTORY_LISTINGS'
         // Check for directory
         if(is_dir(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */)) {
-            $directory = scandir(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */);
             $files = array();
             
-            foreach($directory as $file) {
+            foreach(scandir(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */) as $file) {
             	if($file == '.')
             		continue;
             	$isDir = is_dir(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH*/ . $file);
@@ -730,6 +765,7 @@
              
             /* .ANSWER_BODY */ = ob_get_clean();
         } else {
+		#.endif
             $requestObject->setHeader('Content-Type', /* .MIME_TYPE */); 
             $requestObject->setHeader('Accept-Ranges', 'bytes'); 
             
@@ -770,7 +806,9 @@
                 #.endif
                     $requestObject->setHeader('Content-Range', 'bytes ' . /* .RANGE_FROM */.'-'.(filesize(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */) - 1).'/'.filesize(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */));
             }
+        #.ifdef 'SUPPORT_DIRECTORY_LISTINGS'
         }
+        #.endif
         
         write:
 
@@ -790,8 +828,10 @@
         if($requestObject->getAnswerHeader('Connection') == 'keep-alive')
             socket_set_option($requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_KEEPALIVE' */, 1);
 
-        // Increment amount of processed requests
-        $processedRequests++;
+        #.if 0 < #.call 'Pancake\Config::get' 'main.requestworkerlimit'
+	        // Increment amount of processed requests
+	        $processedRequests++;
+        #.endif
         
         // Clean some data now to improve RAM usage
         unset($socketData[$socketID]);
@@ -939,16 +979,9 @@
         // Clean old request-data
         unset($data);
         unset($bytes);
-        unset($sentTotal);
-        unset($answer);
-        unset($body);
-        unset($directory);
         unset($requestSocket);
         unset($requestObject);
         unset($socket);
-        unset($add);
-        unset($continue);
-        unset($index);
         
         // If jobs are waiting, execute them before select()ing again
         if($listenSockets || $liveWriteSockets

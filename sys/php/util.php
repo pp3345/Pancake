@@ -140,6 +140,7 @@
     }
     #.endif
     
+    #.ifdef 'SUPPORT_CODECACHE'
     /**
     * Recursive CodeCache-build
     * 
@@ -164,6 +165,7 @@
             $Pancake_cacheFiles[] = /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' */ . $fileName;
         }
     }
+    #.endif
     
     /**
     * A function that does the work on debug_backtrace()
@@ -243,17 +245,35 @@
          * @var PHPWorker
          */
         public static $Pancake_currentThread = null;
+        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_CONSTANTS'
         public static $Pancake_constsPre = array();
-        public static $Pancake_funcsPre = array();
-        public static $Pancake_includesPre = array();
-        public static $Pancake_classesPre = array();
-        public static $Pancake_interfacesPre = array();
-        #.if PHP_MINOR_VERSION >= 4
-        public static $Pancake_traitsPre = array();
         #.endif
+        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODLETE_FUNCTIONS'
+        public static $Pancake_funcsPre = array();
+        #.endif
+        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_INCLUDES'
+        public static $Pancake_includesPre = array();
+        #.endif
+        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_CLASSES'
+        public static $Pancake_classesPre = array();
+        #.endif
+        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_INTERFACES'
+        public static $Pancake_interfacesPre = array();
+        #.endif
+        #.if PHP_MINOR_VERSION >= 4
+        	#.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_TRAITS'
+        	public static $Pancake_traitsPre = array();
+        	#.endif
+        #.endif
+        #.ifdef 'SUPPORT_CODECACHE'
         public static $Pancake_exclude = array();
+        #.endif
+        #.ifdef 'EXPOSE_VHOSTS_IN_PHPINFO'
         public static $Pancake_vHosts = array();
+        #.endif
+        #.ifdef 'HAVE_LIMIT'
         public static $Pancake_processedRequests = 0;
+        #.endif
         public static $Pancake_headerCallbacks = array();
         public static $Pancake_shutdownCalls = array();
         public static $errorHandler = null;
@@ -263,8 +283,12 @@
         public static $lastError = null;
         public static $invalidRequest = false;
         public static $executedShutdown = false;
+        #.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetClassNonObjects || $Pancake_currentThread->vHost->resetClassObjects || $Pancake_currentThread->vHost->resetFunctionObjects || $Pancake_currentThread->vHost->resetFunctionNonObjects;' false
         public static $classes = array();
+        #.endif
+        #.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetFunctionObjects || $Pancake_currentThread->vHost->resetFunctionNonObjects;' false
         public static $functions = array();
+        #.endif
         public static $executingErrorHandler = false;
         public static $sessionID = null;
         public static $resetSessionSaveHandler = false;
