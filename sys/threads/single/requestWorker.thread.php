@@ -22,6 +22,10 @@
     	#.define 'SUPPORT_FASTCGI' true
     #.endif
     
+    #.if #.bool #.Pancake\Config::get("ajp13")
+    	#.SUPPORT_AJP13 = true
+    #.endif
+    
     #.if #.eval 'global $Pancake_vHosts; foreach($Pancake_vHosts as $vHost) if($vHost->phpWorkers) return true; return false;' false
     	#.define 'SUPPORT_PHP' true
     #.endif
@@ -84,6 +88,7 @@
     #.macro 'ACCEPTS_COMPRESSION' 'isset($requestObject->acceptedCompressions[$compression])' '$compression'
     #.macro 'VHOST_COMPARE_OBJECTS' '/* .VHOST */->shouldCompareObjects'
     #.macro 'VHOST_FASTCGI' '(isset(/* .VHOST */->fastCGI[/* .MIME_TYPE */]) ? /* .VHOST */->fastCGI[/* .MIME_TYPE */] : null)'
+    #.macro 'VHOST_AJP13' '/* .VHOST */->AJP13'
     #.macro 'VHOST_PHP_WORKERS' '/* .VHOST */->phpWorkers'
     #.macro 'VHOST_SOCKET_NAME' '/* .VHOST */->phpSocketName'
     #.macro 'VHOST_DOCUMENT_ROOT' '/* .VHOST */->documentRoot'
@@ -115,6 +120,10 @@
     
     #.ifdef 'SUPPORT_FASTCGI'
     	#.include 'FastCGI.class.php'
+    #.endif
+    
+    #.ifdef 'SUPPORT_AJP13'
+    	#.include 'AJP13.class.php'
     #.endif
     
     #.ifdef 'SUPPORT_AUTHENTICATION'
@@ -149,6 +158,9 @@
     	#.ifdef 'SUPPORT_FASTCGI'
     		$vHost->initializeFastCGI();
     	#.endif
+    	#.ifdef 'SUPPORT_AJP13'
+    		$vHost->initializeAJP13();
+    	#.endif
     	unset($Pancake_vHosts[$id]);
     	foreach($vHost->listen as $address)
     		$Pancake_vHosts[$address] = $vHost;
@@ -167,6 +179,9 @@
     #.endif
     #.ifdef 'SUPPORT_FASTCGI'
     $fastCGISockets = array();
+    #.endif
+    #.ifdef 'SUPPORT_AJP13'
+    $ajp13Sockets = array();
     #.endif
     $liveWriteSocketsOrig = array();
     $liveReadSockets = array();
@@ -235,6 +250,40 @@
         foreach($listenSockets as $index => $socket) {
         	unset($listenSockets[$index]);
         	
+        	#.ifdef 'SUPPORT_AJP13'
+        	if(isset($ajp13Sockets[(int) $socket])) {
+        		$ajp13 = $ajp13Sockets[(int) $socket];
+        		
+        		do {
+        			$newData = socket_read($socket, (isset($result) ? ($result & /* .AJP13_APPEND_DATA */ ? $result ^ /* .AJP13_APPEND_DATA */ : $result) : 5));
+        			if(isset($result) && $result & /* .AJP13_APPEND_DATA */)
+        				$data .= $newData;
+        			else
+        				$data = $newData;
+        			$result = $ajp13->upstreamRecord($data, $socket);
+        			if($result === 0) {
+        				unset($ajp13Sockets[(int) $socket]);
+        				unset($listenSocketsOrig[array_search($socket, $listenSocketsOrig)]);
+        				unset($result);
+        				goto clean;
+        			}
+        		} while($result & /* .AJP13_APPEND_DATA */);
+        		
+        		if(is_array($result)) {
+        			list($requestSocket, $requestObject) = $result;
+        			$socketID = (int) $requestSocket;
+        			
+        			unset($ajp13Sockets[(int) $socket]);
+        			unset($listenSocketsOrig[array_search($socket, $listenSocketsOrig)]);
+        			unset($result);
+        			goto write;
+        		}
+        		
+        		unset($result);
+        		goto clean;
+        	}
+        	#.endif
+        	
         	#.ifdef 'SUPPORT_FASTCGI'
         	if(isset($fastCGISockets[(int) $socket])) {
         		$fastCGI = $fastCGISockets[(int) $socket];
@@ -248,6 +297,7 @@
         			if($result === 0) {
         				unset($fastCGISockets[(int) $socket]);
         				unset($listenSocketsOrig[array_search($socket, $listenSocketsOrig)]);
+        				unset($result);
         				goto clean;
         			}
         		} while($result & /* .constant 'FCGI_APPEND_DATA' */);
@@ -550,6 +600,17 @@
         
         load:
         
+        #.ifdef 'SUPPORT_AJP13'
+        if($ajp13 = /* .VHOST_AJP13 */) {
+        	$socket = $ajp13->makeRequest($requestObject, $requestSocket);
+        	if($socket === false)
+        		goto write;
+        	$listenSocketsOrig[] = $socket;
+        	$ajp13Sockets[(int) $socket] = $ajp13;
+        	goto clean;
+        }
+        #.endif
+        
         #.ifdef 'SUPPORT_FASTCGI'
         	// FastCGI
         	if($fastCGI = /* .VHOST_FASTCGI */) {
@@ -721,7 +782,7 @@
 	        if(/* .REQUEST_TYPE */ != 'HEAD')
 	    #.endif
 	    $writeBuffer[$socketID] .= /* .ANSWER_BODY */;
-	        
+
         // Output request information
         out('REQ './* .ANSWER_CODE */.' './* .REMOTE_IP */.': './* .REQUEST_LINE */.' on vHost '.((/* .VHOST */) ? /* .VHOST_NAME */ : null).' (via './* .SIMPLE_GET_REQUEST_HEADER '"Host"' */.' from './* .SIMPLE_GET_REQUEST_HEADER "'Referer'" */.') - './* .SIMPLE_GET_REQUEST_HEADER '"User-Agent"' */, /* .constant 'Pancake\REQUEST' */);
 

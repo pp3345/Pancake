@@ -43,6 +43,9 @@
 	        #.ifdef 'SUPPORT_FASTCGI'
 	        public $fastCGI = array();
 	        #.endif
+	        #.ifdef 'SUPPORT_AJP13'
+	        public $AJP13 = "";
+	        #.endif
 	        public $directoryPageHandler = "";
 	        public static $defaultvHost = "";
 	    #.endif
@@ -163,6 +166,13 @@
 	   			foreach($fastCGI->getMimeTypes() as $mime)
 	   				$this->fastCGI[$mime] = $fastCGI;
 	   		}
+	   	}
+	   	#.endif
+	   	
+	   	#.ifdef 'SUPPORT_AJP13'
+	   	public function initializeAJP13() {
+	   		if($this->AJP13)
+	   			$this->AJP13 = AJP13::getInstance($this->AJP13);
 	   	}
 	   	#.endif
 	   	#.endif

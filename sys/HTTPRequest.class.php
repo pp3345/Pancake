@@ -275,11 +275,17 @@
 
             checkRead:
             
-            // Check if requested file exists and is accessible
-            if(!file_exists($this->vHost->documentRoot . $this->requestFilePath))
-                throw new invalidHTTPRequestException('File does not exist: ' . $this->requestFilePath, 404, $requestHeader);
-            if(!is_readable($this->vHost->documentRoot . $this->requestFilePath))
-                throw new invalidHTTPRequestException('You\'re not allowed to access the requested file: ' . $this->requestFilePath, 403, $requestHeader);
+            #.ifdef 'SUPPORT_AJP13'
+            if(!$this->vHost->AJP13) {
+            #.endif
+	            // Check if requested file exists and is accessible
+	            if(!file_exists($this->vHost->documentRoot . $this->requestFilePath))
+	                throw new invalidHTTPRequestException('File does not exist: ' . $this->requestFilePath, 404, $requestHeader);
+	            if(!is_readable($this->vHost->documentRoot . $this->requestFilePath))
+	                throw new invalidHTTPRequestException('You\'re not allowed to access the requested file: ' . $this->requestFilePath, 403, $requestHeader);
+            #.ifdef 'SUPPORT_AJP13'
+            }
+            #.endif
             
             // Check if requested path needs authentication
             #.ifdef 'SUPPORT_AUTHENTICATION'

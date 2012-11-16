@@ -56,6 +56,7 @@
         public $deletePredefinedConstantsAfterCodeCacheLoad = false;
         public $fixStaticMethodCalls = false;
         public $fastCGI = array();
+        public $AJP13 = null;
         public $exceptionPageHandler = "";
         public $directoryPageHandler = "";
         static public $defaultvHost = null;
@@ -114,6 +115,7 @@
             $this->phpMaxExecutionTime = (int) $config['phpmaxexecutiontime'];
             $this->fixStaticMethodCalls = (!$this->phpCodeCache) || ($this->phpCodeCache && $config['phpfixstaticmethodcalls'] === false) ? false : true;
             $this->fastCGI = (array) $config['fastcgi'];
+            $this->AJP13 = (string) $config['ajp13'];
             $this->exceptionPageHandler = $config['exceptionpagehandler'] && is_readable($config['exceptionpagehandler']) ? $config['exceptionpagehandler'] : getcwd() . '/php/exceptionPageHandler.php';
             $this->directoryPageHandler = $config['directorypagehandler'] && is_readable($config['directorypagehandler']) ? $config['directorypagehandler'] : getcwd() . '/php/directoryPageHandler.php';
             
