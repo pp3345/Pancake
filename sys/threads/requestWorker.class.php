@@ -32,6 +32,7 @@
         				. serialize((array) Config::get('moody'))
         				. serialize(Config::get('vhosts')) 
         				. serialize(Config::get('fastcgi'))
+        				. serialize(Config::get('ajp13'))
         				. md5_file('vHostInterface.class.php')
         				. md5_file('threads/single/requestWorker.thread.php') 
         				. md5_file('HTTPRequest.class.php')
