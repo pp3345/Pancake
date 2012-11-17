@@ -256,6 +256,17 @@
             if(strpos($this->requestFilePath, '../'))
                 throw new invalidHTTPRequestException('You are not allowed to access the requested file: '.  $this->requestFilePath, 403, $requestHeader);
             
+            #.if /* .isDefined 'SUPPORT_GZIP_STATIC' */ || #.isDefined 'SUPPORT_GZIP'
+            // Check for accepted compressions
+            if($this->getRequestHeader('Accept-Encoding')) {
+            	$accepted = explode(',', $this->getRequestHeader('Accept-Encoding'));
+            	foreach($accepted as $format) {
+            		$format = strtolower(trim($format));
+            		$this->acceptedCompressions[$format] = true;
+            	}
+            }
+            #.endif
+            
             // Check for index-files
             if(is_dir($this->vHost->documentRoot . $this->requestFilePath)) {
             	if(substr($this->requestFilePath, -1, 1) != '/' && $this->requestType == 'GET') {
@@ -271,7 +282,14 @@
                 // No index file found, check if vHost allows directory listings
                 if($this->vHost->allowDirectoryListings !== true)
                     throw new invalidHTTPRequestException('You\'re not allowed to view the listing of the requested directory: ' . $this->requestFilePath, 403, $requestHeader);
+            } 
+            #.ifdef 'SUPPORT_GZIP_STATIC'
+            else if($this->vHost->gzipStatic && file_exists($this->vHost->documentRoot . $this->requestFilePath . '.gz') && isset($this->acceptedCompressions['gzip'])) {
+            	$this->mimeType = MIME::typeOf($this->vHost->documentRoot . $this->requestFilePath);
+            	$this->requestFilePath .= '.gz';
+            	$this->setHeader('Content-Encoding', 'gzip');
             }
+            #.endif
 
             checkRead:
             
@@ -315,17 +333,6 @@
                     throw new invalidHTTPRequestException('File was modified since requested time.', 412, $requestHeader);
             }
             
-            #.ifdef 'SUPPORT_GZIP'
-            // Check for accepted compressions
-            if($this->getRequestHeader('Accept-Encoding')) {
-                $accepted = explode(',', $this->getRequestHeader('Accept-Encoding'));
-                foreach($accepted as $format) {
-                    $format = strtolower(trim($format));
-                    $this->acceptedCompressions[$format] = true;
-                }
-            }
-            #.endif
-            
             // Check for Range-header
             if($this->getRequestHeader('Range')) {
                 preg_match('~([0-9]+)-([0-9]+)?~', $this->getRequestHeader('Range'), $range);
@@ -334,7 +341,10 @@
             }
             
             // Get MIME-type of the requested file
-            $this->mimeType = MIME::typeOf($this->vHost->documentRoot . $this->requestFilePath);
+            #.ifdef 'SUPPORT_GZIP_STATIC'
+            if(!$this->mimeType)
+            #.endif
+            	$this->mimeType = MIME::typeOf($this->vHost->documentRoot . $this->requestFilePath);
             
             $this->requestTime = time();
             $this->requestMicrotime = microtime(true);

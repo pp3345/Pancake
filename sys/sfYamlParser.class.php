@@ -3,7 +3,7 @@
 	/****************************************************************/
 	/* Pancake                                                      */
 	/* sfYamlParser.class.php                                       */
-    /* Fabien Potencier                                             */
+	/* Fabien Potencier                                             */
 	/* 2012 Yussuf Khalil                                           */
 	/* License: http://pancakehttp.net/license/                     */
 	/****************************************************************/

@@ -46,6 +46,19 @@
     global $Pancake_vHosts;
     
     foreach($Pancake_vHosts as $vHost)
+    	if($vHost->gzipStatic && !$vHost->AJP13)
+    		return true;
+    return false;
+    #.endLongDefine
+    
+    #.if #.eval EVAL_CODE false
+    	#.SUPPORT_GZIP_STATIC = true
+    #.endif
+    
+    #.longDefine 'EVAL_CODE'
+    global $Pancake_vHosts;
+    
+    foreach($Pancake_vHosts as $vHost)
     	if($vHost->allowDirectoryListings)
     		return true;
     return false;
@@ -766,8 +779,8 @@
             /* .ANSWER_BODY */ = ob_get_clean();
         } else {
 		#.endif
-            $requestObject->setHeader('Content-Type', /* .MIME_TYPE */); 
-            $requestObject->setHeader('Accept-Ranges', 'bytes'); 
+			$requestObject->setHeader('Content-Type', /* .MIME_TYPE */); 
+			$requestObject->setHeader('Accept-Ranges', 'bytes');
             
             #.ifdef 'SUPPORT_GZIP'
             // Check if GZIP-compression should be used  

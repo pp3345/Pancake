@@ -38,15 +38,22 @@
 	        #.ifdef 'SUPPORT_REWRITE'
 	        public $rewriteRules = array();
 	        #.endif
+	        #.ifdef 'SUPPORT_PHP'
 	        public $phpSocketName = "";
 	        public $shouldCompareObjects = false;
+	        #.endif
 	        #.ifdef 'SUPPORT_FASTCGI'
 	        public $fastCGI = array();
 	        #.endif
 	        #.ifdef 'SUPPORT_AJP13'
 	        public $AJP13 = "";
 	        #.endif
+	        #.ifdef 'SUPPORT_DIRECTORY_LISTINGS'
 	        public $directoryPageHandler = "";
+	        #.endif
+	        #.ifdef 'SUPPORT_GZIP_STATIC'
+	        public $gzipStatic = false;
+	        #.endif
 	        public static $defaultvHost = "";
 	    #.endif
 	    #.ifdef 'PHPWORKER'
