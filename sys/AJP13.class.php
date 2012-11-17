@@ -249,7 +249,7 @@
 						} else
 							socket_write($socket, "\x12\x34\x0\x0");
 					#.endif
-					break;
+					return 5;
 				case /* .AJP13_SEND_BODY_CHUNK */:
 					$requestObject->answerBody .= substr($data, 7, (ord($data[5]) << 8) + ord($data[6]));
 					return 5;
