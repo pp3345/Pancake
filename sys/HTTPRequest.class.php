@@ -267,6 +267,9 @@
             }
             #.endif
             
+            #.ifdef 'SUPPORT_AJP13'
+            if(!$this->vHost->AJP13) {
+            #.endif
             // Check for index-files
             if(is_dir($this->vHost->documentRoot . $this->requestFilePath)) {
             	if(substr($this->requestFilePath, -1, 1) != '/' && $this->requestType == 'GET') {
@@ -288,6 +291,9 @@
             	$this->mimeType = MIME::typeOf($this->vHost->documentRoot . $this->requestFilePath);
             	$this->requestFilePath .= '.gz';
             	$this->setHeader('Content-Encoding', 'gzip');
+            }
+            #.endif
+            #.ifdef 'SUPPORT_AJP13'
             }
             #.endif
 
