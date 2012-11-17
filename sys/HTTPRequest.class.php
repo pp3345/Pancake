@@ -192,9 +192,10 @@
             
             // Check if Content-Length is given and not too large on POST
             if($this->requestType == 'POST') {
-                if($this->getRequestHeader('Content-Length') > /* .constant 'POST_MAX_SIZE' */)
+            	$contentLength = $this->getRequestHeader('Content-Length', false);
+                if($contentLength > /* .constant 'POST_MAX_SIZE' */)
                     throw new invalidHTTPRequestException('The uploaded content is too large.', 413, $requestHeader);
-                if($this->getRequestHeader('Content-Length') === null)
+                if($contentLength === null)
                     throw new invalidHTTPRequestException('Your request can\'t be processed without a given Content-Length', 411, $requestHeader);
             }
             

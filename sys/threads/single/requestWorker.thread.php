@@ -105,6 +105,7 @@
     #.macro 'ANSWER_CODE' '$requestObject->answerCode'
     #.macro 'UPLOADED_FILES' '$requestObject->uploadedFiles'
     #.macro 'SIMPLE_GET_REQUEST_HEADER' '(isset($requestObject->requestHeaders[$headerName]) ? $requestObject->requestHeaders[$headerName] : null)' '$headerName'
+    #.macro 'CASE_INSENSITIVE_GET_REQUEST_HEADER' '$requestObject->getRequestHeader($headerName, false)' '$headerName'
     #.macro 'QUERY_STRING' '$requestObject->queryString'
     #.macro 'PROTOCOL_VERSION' '$requestObject->protocolVersion'
     #.macro 'REQUEST_URI' '$requestObject->requestURI'
@@ -438,7 +439,7 @@
         
         // Receive data from client
         if(isset($requests[$socketID]))
-            $bytes = @socket_read($requestSocket, /* .SIMPLE_GET_REQUEST_HEADER '"Content-Length"' */ - strlen($postData[$socketID]));
+            $bytes = @socket_read($requestSocket, /* .CASE_INSENSITIVE_GET_REQUEST_HEADER '"Content-Length"' */ - strlen($postData[$socketID]));
         else
             $bytes = @socket_read($requestSocket, 10240);
         
@@ -458,7 +459,7 @@
         // Check if request was already initialized and we are only reading POST-data
         if(isset($requests[$socketID])) {
             $postData[$socketID] .= $bytes;
-            if(strlen($postData[$socketID]) >= /* .SIMPLE_GET_REQUEST_HEADER '"Content-Length"' */)
+            if(strlen($postData[$socketID]) >= /* .CASE_INSENSITIVE_GET_REQUEST_HEADER '"Content-Length"' */)
                 goto readData;
         } else if($bytes) {
         	#.ifdef 'USE_IOCACHE'
@@ -544,13 +545,13 @@
         // Check for POST and get all POST-data
         if(/* .REQUEST_TYPE */ == 'POST') {
 			#.ifdef 'USE_IOCACHE'
-			if(/* .IOCACHE_BUFFER_TOTAL_BYTES '$postData[$socketID]' */ >= /* .SIMPLE_GET_REQUEST_HEADER '"Content-Length"' */) {
-				if(/* .IOCACHE_BUFFER_TOTAL_BYTES '$postData[$socketID]' */ > /* .SIMPLE_GET_REQUEST_HEADER '"Content-Length"' */)
-					$ioCache->setBytes($postData[$socketID], substr($ioCache->getBytes($postData[$socketID], -1), 0, /* .SIMPLE_GET_REQUEST_HEADER '"Content-Length"' */));
+			if(/* .IOCACHE_BUFFER_TOTAL_BYTES '$postData[$socketID]' */ >= /* .CASE_INSENSITIVE_GET_REQUEST_HEADER '"Content-Length"' */) {
+				if(/* .IOCACHE_BUFFER_TOTAL_BYTES '$postData[$socketID]' */ > /* .CASE_INSENSITIVE_GET_REQUEST_HEADER '"Content-Length"' */)
+					$ioCache->setBytes($postData[$socketID], substr($ioCache->getBytes($postData[$socketID], -1), 0, /* .CASE_INSENSITIVE_GET_REQUEST_HEADER '"Content-Length"' */));
 			#.else
-            if(strlen($postData[$socketID]) >= /* .SIMPLE_GET_REQUEST_HEADER '"Content-Length"' */) {
-                if(strlen($postData[$socketID]) > /* .SIMPLE_GET_REQUEST_HEADER '"Content-Length"' */)
-                    $postData[$socketID] = substr($postData[$socketID], 0, /* .SIMPLE_GET_REQUEST_HEADER '"Content-Length"' */);
+            if(strlen($postData[$socketID]) >= /* .CASE_INSENSITIVE_GET_REQUEST_HEADER '"Content-Length"' */) {
+                if(strlen($postData[$socketID]) > /* .CASE_INSENSITIVE_GET_REQUEST_HEADER '"Content-Length"' */)
+                    $postData[$socketID] = substr($postData[$socketID], 0, /* .CASE_INSENSITIVE_GET_REQUEST_HEADER '"Content-Length"' */);
             #.endif
                 if($key = array_search($requestSocket, $listenSocketsOrig))
                     unset($listenSocketsOrig[$key]);
