@@ -19,7 +19,7 @@ PHPMAJOR=`$PHPCOMMAND -r "echo PHP_MAJOR_VERSION;"`
 PHPMINOR=`$PHPCOMMAND -r "echo PHP_MINOR_VERSION;"`
 echo "Found PHP $PHPMAJOR.$PHPMINOR"
 
-if test $PHPMAJOR != "5" || (test $PHPMINOR != "3" && test $PHPMINOR != "4")
+if test $PHPMAJOR != "5" || (test $PHPMINOR != "3" && test $PHPMINOR != "4" && test $PHPMINOR != "5")
 then
     echo "Incompatible PHP-Version. Please install PHP 5.3.0 or newer (PHP 5.4 recommended)"
     exit
