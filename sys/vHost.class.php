@@ -80,9 +80,10 @@
             	throw new \InvalidArgumentException('Unknown vHost specified');
             
             $this->documentRoot = $config['docroot'];
+            $this->AJP13 = (string) $config['ajp13'];
             
             // Check if document root exists and is a directory
-            if(!file_exists($this->documentRoot) || !is_dir($this->documentRoot))
+            if((!file_exists($this->documentRoot) || !is_dir($this->documentRoot)) && !$this->AJP13)
                 throw new \Exception('Document root does not exist or is not a directory: '.$this->documentRoot);
                 
             // Resolve exact path to docroot
@@ -115,7 +116,6 @@
             $this->phpMaxExecutionTime = (int) $config['phpmaxexecutiontime'];
             $this->fixStaticMethodCalls = (!$this->phpCodeCache) || ($this->phpCodeCache && $config['phpfixstaticmethodcalls'] === false) ? false : true;
             $this->fastCGI = (array) $config['fastcgi'];
-            $this->AJP13 = (string) $config['ajp13'];
             $this->exceptionPageHandler = $config['exceptionpagehandler'] && is_readable($config['exceptionpagehandler']) ? $config['exceptionpagehandler'] : getcwd() . '/php/exceptionPageHandler.php';
             $this->directoryPageHandler = $config['directorypagehandler'] && is_readable($config['directorypagehandler']) ? $config['directorypagehandler'] : getcwd() . '/php/directoryPageHandler.php';
             $this->gzipStatic = (bool) $config['gzipstatic'];
