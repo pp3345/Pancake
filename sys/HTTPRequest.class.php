@@ -512,7 +512,7 @@
             // Check for TRACE
             if($this->requestType == 'TRACE') {
                 $answer = $this->requestLine . "\r\n";
-                $answer .= $this->requestHeaders . "\r\n";
+                $answer .= $this->getRequestHeaders();
                 return $answer;
             }
             #.endif
