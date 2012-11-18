@@ -150,7 +150,7 @@
          * Destroys the configuration
          */
         static public function workerDestroy() {
-        	unset(self::$configuration['mime'], self::$configuration['include'], self::$configuration['vhosts'], self::$configuration['moody'], self::$configuration['fastcgi']);
+        	unset(self::$configuration['mime'], self::$configuration['include'], self::$configuration['vhosts'], self::$configuration['moody'], self::$configuration['fastcgi'], self::$configuration['ajp13']);
         }
     }
 ?>
