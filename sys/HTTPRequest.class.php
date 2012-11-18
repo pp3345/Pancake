@@ -362,127 +362,6 @@
         }
         #.endif
         
-        #.ifdef 'PHPWORKER'
-        /**
-        * Processes the POST request body
-        * 
-        * @param string $postData The request body received from the client
-        */
-        public function readPOSTData($postData) {
-            // Check for url-encoded parameters
-            if(strpos($this->getRequestHeader('Content-Type', false), 'application/x-www-form-urlencoded') !== false) {
-                // Split POST-parameters
-                $post = explode('&', $postData);
-
-                // Read POST-parameters
-                foreach($post as $param) {
-                    if($param == null)
-                        break;
-                    $param = explode('=', $param, 2);
-                    $param[0] = urldecode($param[0]);
-                    $param[1] = urldecode($param[1]);
-                    
-                    if(strpos($param[0], '[') < strpos($param[0], ']')) {
-                        preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $param[0], $parts);
-                        
-                        $paramDefinition = '$this->POSTParameters[$parts[1][0]]';
-                        foreach((array) $parts[2] as $index => $arrayKey) {
-                            if($arrayKey == null)
-                                $paramDefinition .= '[]';
-                            else
-                                $paramDefinition .= '[$parts[2]['.$index.']]';
-                        }
-                        
-                        $paramDefinition .= ' = $param[1];';
-                        eval($paramDefinition);
-                    } else
-                        $this->POSTParameters[$param[0]] = $param[1];
-                }
-            // Check for multipart-data
-            } else if(strpos($this->getRequestHeader('Content-Type', false), 'multipart/form-data') !== false) {
-                // Get boundary string that splits the dispositions
-                preg_match('~boundary=(.*)~', $this->getRequestHeader('Content-Type'), $boundary);
-                if(!($boundary = $boundary[1]))
-                    return false;
-                
-                // For some strange reason the actual boundary string is -- + the specified boundary string
-                $postData = str_replace("\r\n--" . $boundary . "--\r\n", null, $postData);
-                
-                $dispositions = explode("\r\n--" . $boundary, $postData);
-                
-                // The first disposition will have a boundary string at its beginning
-                $disposition[0] = substr($disposition[0], strlen('--' . $boundary . "\r\n"));
-
-                $paramDefinitions = array();
-                
-                foreach($dispositions as $disposition) {
-                    $dispParts = explode("\r\n\r\n", $disposition, 2);
-                    preg_match('~Content-Disposition: form-data;[ ]?name="(.*?)";?[ ]?(?:filename="(.*?)")?(?:\r\n)?(?:Content-Type: (.*))?~', $dispParts[0], $data);
-                    // [ 0 => string, 1 => name, 2 => filename, 3 => Content-Type ]
-                    if(isset($data[2]) && isset($data[3])) {
-                        $tmpFileName = tempnam(/* .call 'Pancake\Config::get' 'main.tmppath' */, 'UPL');
-                        file_put_contents($tmpFileName, $dispParts[1]);
-                        
-                        $dataArray = array(
-                                            'name' => $data[2],
-                                            'type' => $data[3],
-                                            'error' => /* .constant 'UPLOAD_ERR_OK' */,
-                                            'size' => strlen($dispParts[1]),
-                                            'tmp_name' => $tmpFileName);
-                        
-                        if(strpos($data[1], '[') < strpos($data[1], ']')) {
-                            preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $data[1], $parts);
-                            
-                            $paramDefinition = '$file[$parts[1][0]]';
-                            foreach((array) $parts[2] as $index => $arrayKey) {
-                                if($arrayKey)
-                                    $paramDefinition .= '[$parts[2]['.$index.']]';
-                                else
-                                    $multi = true;
-                            }
-                            
-                            if($multi) {
-                                $paramDefinitions[$paramDefinition]++;
-                                $dataArray = array( 'name' => array( $paramDefinitions[$paramDefinition] - 1 => $data[2]),
-                                                    'type' => array( $paramDefinitions[$paramDefinition] - 1 => $data[3]),
-                                                    'error' => array( $paramDefinitions[$paramDefinition] - 1 => /* .constant 'UPLOAD_ERR_OK' */),
-                                                    'size' => array( $paramDefinitions[$paramDefinition] - 1 => strlen($dispParts[1])),
-                                                    'tmp_name' => array( $paramDefinitions[$paramDefinition] - 1 => $tmpFileName));
-                            }
-                            
-                            $paramDefinition .= ' = $dataArray;';
-                            eval($paramDefinition);
-                            
-                            $this->uploadedFiles = array_merge($file, $this->uploadedFiles);
-                        } else
-                            $this->uploadedFiles[$data[1]] = $dataArray;  
-                             
-                        $this->uploadedFileTempNames[] = $tmpFileName;
-                    } else {
-                        if(strpos($data[1], '[') < strpos($data[1], ']')) {
-                            preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $data[1], $parts);
-                            
-                            $paramDefinition = '$this->POSTParameters[$parts[1][0]]';
-                            foreach((array) $parts[2] as $index => $arrayKey) {
-                                if($arrayKey == null)
-                                    $paramDefinition .= '[]';
-                                else
-                                    $paramDefinition .= '[$parts[2]['.$index.']]';
-                            }
-                            
-                            $paramDefinition .= ' = $dispParts[1];';
-                            eval($paramDefinition);
-                        } else
-                            $this->POSTParameters[$data[1]] = $dispParts[1];
-                    }
-                    
-                    unset($multi);
-                }
-            }
-            return true;
-        }
-        #.endif
-        
         /**
         * Set answer on invalid request
         * 
@@ -765,7 +644,117 @@
         */
         public function getPOSTParams() {
         	if($this->rawPOSTData) {
-        		$this->readPOSTData($this->rawPOSTData);
+        		// Check for url-encoded parameters
+        		if(strpos($this->getRequestHeader('Content-Type', false), 'application/x-www-form-urlencoded') !== false) {
+        			// Split POST-parameters
+        			$post = explode('&', $this->rawPOSTData);
+        		
+        			// Read POST-parameters
+        			foreach($post as $param) {
+        				if($param == null)
+        					break;
+        				$param = explode('=', $param, 2);
+        				$param[0] = urldecode($param[0]);
+        				$param[1] = urldecode($param[1]);
+        		
+        				if(strpos($param[0], '[') < strpos($param[0], ']')) {
+        					preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $param[0], $parts);
+        		
+        					$paramDefinition = '$this->POSTParameters[$parts[1][0]]';
+        					foreach((array) $parts[2] as $index => $arrayKey) {
+        						if($arrayKey == null)
+        							$paramDefinition .= '[]';
+        						else
+        							$paramDefinition .= '[$parts[2]['.$index.']]';
+        					}
+        		
+        					$paramDefinition .= ' = $param[1];';
+        					eval($paramDefinition);
+        				} else
+        					$this->POSTParameters[$param[0]] = $param[1];
+        			}
+        			// Check for multipart-data
+        		} else if(strpos($this->getRequestHeader('Content-Type', false), 'multipart/form-data') !== false) {
+        			// Get boundary string that splits the dispositions
+        			preg_match('~boundary=(.*)~', $this->getRequestHeader('Content-Type'), $boundary);
+        			if(!($boundary = $boundary[1]))
+        				return false;
+        		
+        			// For some strange reason the actual boundary string is -- + the specified boundary string
+        			$this->rawPOSTData = str_replace("\r\n--" . $boundary . "--\r\n", null, $this->rawPOSTData);
+        		
+        			$dispositions = explode("\r\n--" . $boundary, $this->rawPOSTData);
+        		
+        			// The first disposition will have a boundary string at its beginning
+        			$disposition[0] = substr($disposition[0], strlen('--' . $boundary . "\r\n"));
+        		
+        			$paramDefinitions = array();
+        		
+        			foreach($dispositions as $disposition) {
+        				$dispParts = explode("\r\n\r\n", $disposition, 2);
+        				preg_match('~Content-Disposition: form-data;[ ]?name="(.*?)";?[ ]?(?:filename="(.*?)")?(?:\r\n)?(?:Content-Type: (.*))?~', $dispParts[0], $data);
+        				// [ 0 => string, 1 => name, 2 => filename, 3 => Content-Type ]
+        				if(isset($data[2]) && isset($data[3])) {
+        					$tmpFileName = tempnam(/* .call 'Pancake\Config::get' 'main.tmppath' */, 'UPL');
+        					file_put_contents($tmpFileName, $dispParts[1]);
+        		
+        					$dataArray = array(
+        							'name' => $data[2],
+        							'type' => $data[3],
+        							'error' => /* .constant 'UPLOAD_ERR_OK' */,
+        							'size' => strlen($dispParts[1]),
+        							'tmp_name' => $tmpFileName);
+        		
+        					if(strpos($data[1], '[') < strpos($data[1], ']')) {
+        						preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $data[1], $parts);
+        		
+        						$paramDefinition = '$file[$parts[1][0]]';
+        						foreach((array) $parts[2] as $index => $arrayKey) {
+        							if($arrayKey)
+        								$paramDefinition .= '[$parts[2]['.$index.']]';
+        							else
+        								$multi = true;
+        						}
+        		
+        						if($multi) {
+        							$paramDefinitions[$paramDefinition]++;
+        							$dataArray = array( 'name' => array( $paramDefinitions[$paramDefinition] - 1 => $data[2]),
+        									'type' => array( $paramDefinitions[$paramDefinition] - 1 => $data[3]),
+        									'error' => array( $paramDefinitions[$paramDefinition] - 1 => /* .constant 'UPLOAD_ERR_OK' */),
+        									'size' => array( $paramDefinitions[$paramDefinition] - 1 => strlen($dispParts[1])),
+        									'tmp_name' => array( $paramDefinitions[$paramDefinition] - 1 => $tmpFileName));
+        						}
+        		
+        						$paramDefinition .= ' = $dataArray;';
+        						eval($paramDefinition);
+        		
+        						$this->uploadedFiles = array_merge($file, $this->uploadedFiles);
+        					} else
+        						$this->uploadedFiles[$data[1]] = $dataArray;
+        					 
+        					$this->uploadedFileTempNames[] = $tmpFileName;
+        				} else {
+        					if(strpos($data[1], '[') < strpos($data[1], ']')) {
+        						preg_match_all('~(.*?)(?:\[([^\]]*)\])~', $data[1], $parts);
+        		
+        						$paramDefinition = '$this->POSTParameters[$parts[1][0]]';
+        						foreach((array) $parts[2] as $index => $arrayKey) {
+        							if($arrayKey == null)
+        								$paramDefinition .= '[]';
+        							else
+        								$paramDefinition .= '[$parts[2]['.$index.']]';
+        						}
+        		
+        						$paramDefinition .= ' = $dispParts[1];';
+        						eval($paramDefinition);
+        					} else
+        						$this->POSTParameters[$data[1]] = $dispParts[1];
+        				}
+        		
+        				unset($multi);
+        			}
+        		}
+        		
         		$this->rawPOSTData = "";
         	}
             return $this->POSTParameters;
