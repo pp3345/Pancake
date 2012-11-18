@@ -28,8 +28,7 @@
         if(defined('PANCAKE_PHP') && DEBUG_MODE !== true)
         	return false;
         
-        if(!$Pancake_currentThread && class_exists('Pancake\vars'))
-            $Pancake_currentThread = vars::$Pancake_currentThread;
+        $thread = !$Pancake_currentThread && class_exists('Pancake\vars') ? vars::$Pancake_currentThread : $Pancake_currentThread;
         
         if($type !== SYSTEM && $type !== REQUEST)
             return false;
@@ -41,7 +40,7 @@
             }
         }
     
-        $friendlyName = ($Pancake_currentThread) ? $Pancake_currentThread->friendlyName : 'Master';
+        $friendlyName = ($thread) ? $thread->friendlyName : 'Master';
         
         $message = '['.$friendlyName.'] '
                     .date(Config::get('main.dateformat')).' '
