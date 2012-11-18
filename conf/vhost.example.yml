@@ -11,6 +11,9 @@ vhosts:
     gzipLevel: 1                                                # Level of the GZIP-compression - Lower = bigger size, less CPU-usage
     enableGZIP: false                                           # Enable and disable GZIP-compression - We recommend leaving it disabled, it's better to precompress big files - GZIP-compression may produce very heavy CPU-load
     gzipStatic: false                                           # If enabled and for example /jquery.js is requested and /jquery.js.gz exists on the disk, Pancake will deliver the GZIP-compressed file
+    gzipMimeTypes:                                              # Allow limiting automatic GZIP compression to specific MIME types (does not apply to static GZIP compression)
+#      - image/png
+#      - application/x-javascript
     allowDirectoryListings: true                                # Enable directory listings
     isDefault: true                                             # Whether this vHost is the default vHost or not (one of your vHosts MUST have this settings enabled)
     204OnEmptyPage: false                                       # If true, Pancake will send 204 No Content instead of 200 OK when the page is empty

@@ -68,6 +68,19 @@
     	#.SUPPORT_DIRECTORY_LISTINGS = true
     #.endif
     
+    #.longDefine 'EVAL_CODE'
+    global $Pancake_vHosts;
+    
+    foreach($Pancake_vHosts as $vHost)
+    	if($vHost->gzipMimeTypes && $vHost->allowGZIP)
+    		return true;
+    return false;
+    #.endLongDefine
+    
+    #.if #.eval EVAL_CODE false
+    	#.SUPPORT_GZIP_MIME_TYPE_LIMIT = true
+    #.endif
+    
     #.if #.call 'Pancake\Config::get' 'main.waitslotwaitlimit'
     	#.ifdef 'SUPPORT_PHP'
     		#.define 'SUPPORT_WAITSLOTS' true
@@ -785,7 +798,11 @@
             
             #.ifdef 'SUPPORT_GZIP'
             // Check if GZIP-compression should be used  
-            if(/* .ACCEPTS_COMPRESSION "'gzip'" */ && /* .VHOST_ALLOW_GZIP_COMPRESSION */ === true && filesize(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */) >= /* .VHOST_GZIP_MINIMUM */) {
+            if(/* .ACCEPTS_COMPRESSION "'gzip'" */ && /* .VHOST_ALLOW_GZIP_COMPRESSION */ === true && filesize(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */) >= /* .VHOST_GZIP_MINIMUM */
+            #.ifdef 'SUPPORT_GZIP_MIME_TYPE_LIMIT'
+            && /* .VHOST */->gzipMimeTypes && in_array(/* .MIME_TYPE */, /* .VHOST */->gzipMimeTypes)
+            #.endif
+            ) {
                 // Set encoding-header
                 $requestObject->setHeader('Content-Encoding', 'gzip');
                 // Create temporary file

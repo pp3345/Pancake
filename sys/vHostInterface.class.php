@@ -54,6 +54,9 @@
 	        #.ifdef 'SUPPORT_GZIP_STATIC'
 	        public $gzipStatic = false;
 	        #.endif
+	        #.ifdef 'SUPPORT_GZIP_MIME_TYPE_LIMIT'
+	        public $gzipMimeTypes = array();
+	        #.endif
 	        public static $defaultvHost = "";
 	    #.endif
 	    #.ifdef 'PHPWORKER'

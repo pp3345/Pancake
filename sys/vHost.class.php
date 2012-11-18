@@ -60,6 +60,7 @@
         public $exceptionPageHandler = "";
         public $directoryPageHandler = "";
         public $gzipStatic = false;
+        public $gzipMimeTypes = array();
         
         /**
         * Loads a vHost
@@ -119,6 +120,7 @@
             $this->exceptionPageHandler = $config['exceptionpagehandler'] && is_readable($config['exceptionpagehandler']) ? $config['exceptionpagehandler'] : getcwd() . '/php/exceptionPageHandler.php';
             $this->directoryPageHandler = $config['directorypagehandler'] && is_readable($config['directorypagehandler']) ? $config['directorypagehandler'] : getcwd() . '/php/directoryPageHandler.php';
             $this->gzipStatic = (bool) $config['gzipstatic'];
+            $this->gzipMimeTypes = (array) $config['gzipmimetypes'];
             
             // Check for Hosts to listen on
             $this->listen = (array) $config['listen'];
