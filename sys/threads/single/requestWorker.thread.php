@@ -687,7 +687,11 @@
        	#.ifdef 'SUPPORT_PHP'
         // Check for PHP
         if(/* .MIME_TYPE */ == 'text/x-php' && /* .VHOST_PHP_WORKERS */) {
-            $socket = socket_create(/* .constant 'AF_UNIX' */, /* .constant 'SOCK_SEQPACKET' */, 0);
+            if(!($socket = socket_create(/* .constant 'AF_UNIX' */, /* .constant 'SOCK_SEQPACKET' */, 0)) {
+            	$requestObject->invalidRequest(new invalidHTTPRequestException('Failed to create communication socket. Probably the server is overladed. Try again later.', 500));
+            	goto write;
+            }
+            
             socket_set_nonblock($socket);
             // @ - Do not spam errorlog with Resource temporarily unavailable if there is no PHPWorker available
             @socket_connect($socket, /* .VHOST_SOCKET_NAME */);
