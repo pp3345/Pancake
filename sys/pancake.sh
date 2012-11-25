@@ -30,7 +30,7 @@ then
     ARCH=x86
 elif test $ARCH == "armv6l" || test $ARCH == "armv7l"
 then
-	ARCH=armel
+	ARCH=armhf
 fi
 
 if [ -d ./ext/ ];
