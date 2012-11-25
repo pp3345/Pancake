@@ -541,9 +541,6 @@
                 #.else
                 	$requestObject->init($socketData[$socketID]);
                 #.endif
-                if(isset($requestObject->getGETParams()['DUMP_VARS'])) {
-                	$DUMPVARS = true;
-                }
                 unset($socketData[$socketID]);
             } catch(invalidHTTPRequestException $e) {
                 $requestObject->invalidRequest($e);
