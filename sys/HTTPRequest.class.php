@@ -228,8 +228,8 @@
             			$this->setHeader($headerName, $headerValue);
             	}
             	
-            	if(isset($rule['pattern']) && isset($rule['replacement']))
-            		$firstLine[1] = preg_replace($rule['pattern'], $rule['replacement'], $firstLine[1]);
+            	if(isset($rule['pattern']) && isset($rule['replace']))
+            		$firstLine[1] = preg_replace($rule['pattern'], $rule['replace'], $firstLine[1]);
             	else if(isset($rule['destination'])) {
             		$this->setHeader('Location', $rule['destination']);
             		throw new invalidHTTPRequestException('Redirecting...', 301/*, $requestHeader*/);
