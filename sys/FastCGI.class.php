@@ -129,7 +129,11 @@
 			$body .= "\xb" . chr(strlen(/* .LOCAL_PORT */)) . "SERVER_PORT" . /* .LOCAL_PORT */;
 			$body .= /* .eval 'return "\xf" . chr(strlen("Pancake/" . \Pancake\VERSION)) . "SERVER_SOFTWAREPancake/" . \Pancake\VERSION;' */;
 			$body .= "\xb" . chr(strlen(/* .LOCAL_IP */)) . "SERVER_ADDR" . /* .LOCAL_IP */;
-
+			if($requestObject->pathInfo) {
+				$body .= "\x9" . chr(strlen($requestObject->pathInfo)) . "PATH_INFO" . $requestObject->pathInfo;
+				$body .= "\xf" . chr(strlen($requestObject->documentRoot . $requestObject->pathInfo)) . "PATH_TRANSLATED" . $requestObject->documentRoot . $requestObject->pathInfo;
+			}
+			
 			if(/* .RAW_POST_DATA */) {
 				$body .= "\xc" . chr(strlen($requestObject->getRequestHeader('Content-Type', false))) . "CONTENT_TYPE" . $requestObject->getRequestHeader('Content-Type', false);
 				$body .= "\xe" . chr(strlen(/* .SIMPLE_GET_REQUEST_HEADER '"Content-Length"' */)) . "CONTENT_LENGTH" . /* .SIMPLE_GET_REQUEST_HEADER '"Content-Length"' */;

@@ -50,6 +50,7 @@
         public $requestTime = 0;
         public $requestMicrotime = 0;
     	public $rawPOSTData = "";
+    	public $pathInfo = "";
         public static $answerCodes = array(
                                             100 => 'Continue',
                                             101 => 'Switching Protocols',
@@ -235,6 +236,15 @@
             		throw new invalidHTTPRequestException('Redirecting...', 301/*, $requestHeader*/);
             	} else if(isset($rule['exception']) && is_numeric($rule['exception']))
             		throw new invalidHTTPRequestException(isset($rule['exceptionmessage']) ? $rule['exceptionmessage'] : 'The server was unable to process your request', $rule['exception'], $requestHeader);
+            	else if(isset($rule['pathinfo'])) {
+            		$matches = array();
+            		preg_match($rule['pathinfo'], $firstLine[1], $matches);
+            		if($matches) {
+            			$this->pathInfo = $matches[2];
+            			$firstLine[1] = $matches[1];
+            		}
+            		
+            	}
             }
             #.endif
             
@@ -503,6 +513,10 @@
             $_SERVER['SERVER_NAME'] = $this->getRequestHeader('Host') ? $this->getRequestHeader('Host') : $this->vHost->listen[0];
             $_SERVER['SERVER_ADDR'] = $this->localIP;
             $_SERVER['SERVER_PORT'] = $this->localPort;
+            if($this->pathInfo) {
+            	$_SERVER['PATH_INFO'] = $this->pathInfo;
+            	$_SERVER['PATH_TRANSLATED'] = $this->vHost->documentRoot . $this->pathInfo;
+            }
 
             foreach($this->requestHeaders as $name => $value)
                 $_SERVER['HTTP_'.str_replace('-', '_', strtoupper($name))] = $value;

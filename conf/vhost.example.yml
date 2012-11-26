@@ -69,6 +69,7 @@ vhosts:
 #        exceptionMessage: "This should not happen"
 #        headers:
 #          X-Reason: 403
+#      - pathinfo: ~^((?U).+\.php)(/?.+)$~
     index:                                                      # List of files allowed as directory-indexes
       - index.php
       - index.html
