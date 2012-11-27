@@ -25,7 +25,7 @@
 	require_once 'moody.cphp';
 
 	foreach(get_declared_classes() as $class) {
-		if(in_array('Moody\TokenHandler', class_implements($class)) || in_array('Moody\InstructionHandler', class_implements($class)))
+		if(in_array('Moody\TokenHandler', class_implements($class)))
 			$class::getInstance();
 	}
 	
