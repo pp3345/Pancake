@@ -71,6 +71,8 @@
 		}
 		
 		private function connect() {
+			$this->requestID = 0;
+			
 			switch($this->type) {
 				case 'ipv6':
 					$this->socket = socket_create(/* .constant 'AF_INET6' */, /* .constant 'SOCK_STREAM' */, /* .constant 'SOL_TCP' */);
@@ -106,6 +108,9 @@
 			/* FCGI_BEGIN_REQUEST */
 			$requestIDInt = $this->requestID++;
 			$requestID = ($requestIDInt < 256 ? "\0" . chr($requestIDInt) : chr($requestIDInt >> 8) . chr($requestIDInt));
+			
+			if(!$this->socket)
+				$this->connect();
 			
 			/* VERSION . TYPE . REQUEST_ID (2) . CONTENT_LENGTH (2) . PADDING_LENGTH . RESERVED . ROLE (2) . FLAG . RESERVED (5) */
 			if(!@socket_write($this->socket, "\1\1" .  $requestID . "\0\x8\0\0\0\1\1\0\0\0\0\0")) {
@@ -182,6 +187,8 @@
 				socket_write($this->socket, "\1\5" . $requestID . "\0\0\0\0");
 			}
 			
+			$requestObject->fCGISocket = (int) $this->socket;
+			
 			$this->requests[$requestIDInt] = $requestObject;
 			$this->requestSockets[$requestIDInt] = $requestSocket;
 			
@@ -189,14 +196,16 @@
 				$this->requestID = 0;
 		}
 		
-		public function upstreamRecord($data) {
+		public function upstreamRecord($data, $socketID) {
 			if($data === "") {
 				/* Upstream server closed connection */
-				
 				foreach($this->requests as $requestID => $request) {
+					if($request->fCGISocket != $socketID)
+						continue;
+					
 					$request->invalidRequest(new invalidHTTPRequestException("The FastCGI upstream server unexpectedly closed the network connection.", 502));
 					
-					$retval = array($this->requestSockets[$requestID], $request);
+					$retval = array($this->requestSockets[$requestID], $request, true);
 					unset($this->requestSockets[$requestID], $this->requests[$requestID]);
 					return $retval;
 				}
@@ -249,7 +258,7 @@
 							// fallthrough
 						case /* .constant 'FCGI_REQUEST_COMPLETE' */:
 							$retval = array($this->requestSockets[$requestID], $requestObject);
-							unset($this->requestSockets[$requestID], $requestObject);
+							unset($this->requestSockets[$requestID], $this->requests[$requestID]);
 							return $retval;
 					}
 			}

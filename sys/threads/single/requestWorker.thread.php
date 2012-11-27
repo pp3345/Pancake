@@ -274,7 +274,7 @@
     ) !== false) {
     	// If there are jobs left in the queue at the end of the job-run, we're going to jump back to this point to execute the jobs that are left
     	cycle:
-    	
+
     	#.ifdef 'SUPPORT_WAITSLOTS'
     	// Check if there are requests waiting for a PHPWorker
     	foreach((array) $waitSlots as $socketID => $requestSocket) {
@@ -344,7 +344,7 @@
         				$data .= $newData;
         			else
         				$data = $newData;
-        			$result = $fastCGI->upstreamRecord($data);
+        			$result = $fastCGI->upstreamRecord($data, (int) $socket);
         			if($result === 0) {
         				unset($fastCGISockets[(int) $socket]);
         				unset($listenSocketsOrig[array_search($socket, $listenSocketsOrig)]);
@@ -354,9 +354,14 @@
         		} while($result & /* .constant 'FCGI_APPEND_DATA' */);
         		 
         		if(is_array($result)) {
+        			if(isset($result[2])) {
+        				// [2] will be set on error - this will cause Pancake to return to the cycle point after answering the client
+        				$listenSockets[] = $socket;
+        			}
+        			
         			list($requestSocket, $requestObject) = $result;
         			$socketID = (int) $requestSocket;
-        	
+
         			unset($result);
         			unset($data);
         			unset($newData);
