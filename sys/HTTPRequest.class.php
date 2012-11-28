@@ -39,6 +39,7 @@
         public $acceptedCompressions = array();
         #.endif
         public $requestURI = null;
+        public $originalRequestURI = "";
         public $remoteIP = null;
        	public $remotePort = 0;
         public $localIP = null;
@@ -214,6 +215,8 @@
             global $Pancake_vHosts;
             if(isset($Pancake_vHosts[$this->getRequestHeader('Host')]))
                 $this->vHost = $Pancake_vHosts[$this->getRequestHeader('Host')];
+            
+            $this->originalRequestURI = $firstLine[1];
             
             #.ifdef 'SUPPORT_REWRITE'
             foreach($this->vHost->rewriteRules as $rule) {
@@ -504,7 +507,8 @@
             $_SERVER['SERVER_PROTOCOL'] = 'HTTP/' . $this->protocolVersion;
             $_SERVER['SERVER_SOFTWARE'] = 'Pancake/' . VERSION;
             $_SERVER['PHP_SELF'] = $_SERVER['SCRIPT_NAME'] = $_SERVER['DOCUMENT_URI'] = $this->requestFilePath . $appendSlash;
-            $_SERVER['REQUEST_URI'] = $this->requestURI;
+            $_SERVER['REQUEST_URI'] = $this->originalRequestURI;
+            $_SERVER['DOCUMENT_URI'] = $this->requestURI;
             $_SERVER['SCRIPT_FILENAME'] = (substr($this->vHost->documentRoot, -1, 1) == '/' ? substr($this->vHost->documentRoot, 0, strlen($this->vHost->documentRoot) - 1) : $this->vHost->documentRoot) . $this->requestFilePath . $appendSlash;
             $_SERVER['REMOTE_ADDR'] = $this->remoteIP;
             $_SERVER['REMOTE_PORT'] = $this->remotePort;

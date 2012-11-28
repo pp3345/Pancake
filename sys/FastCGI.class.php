@@ -128,7 +128,8 @@
 			$body .= "\xb" . chr(strlen(/* .REQUEST_FILE_PATH */)) . "SCRIPT_NAME" . /* .REQUEST_FILE_PATH */;
 			$body .= "\xf\x8SERVER_PROTOCOLHTTP/" . /* .PROTOCOL_VERSION */;
 			$body .= "\x11\x7GATEWAY_INTERFACECGI/1.1";
-			$body .= "\xb" . chr(strlen(/* .REQUEST_URI */)) . "REQUEST_URI" . /* .REQUEST_URI */;
+			$body .= "\xb" . chr(strlen($requestObject->originalRequestURI)) . "REQUEST_URI" . $requestObject->originalRequestURI;
+			$body .= "\xc" . chr(strlen(/* .REQUEST_URI */)) . "DOCUMENT_URI" . /* .REQUEST_URI */;
 			$body .= "\xb" . chr(strlen(/* .REMOTE_IP */)) . "REMOTE_ADDR" . /* .REMOTE_IP */;
 			$body .= "\xb" . chr(strlen(/* .VHOST */->listen[0])) . "SERVER_NAME" . /* .VHOST */->listen[0];
 			$body .= "\xb" . chr(strlen(/* .LOCAL_PORT */)) . "SERVER_PORT" . /* .LOCAL_PORT */;
