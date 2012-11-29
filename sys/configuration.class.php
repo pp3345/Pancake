@@ -88,13 +88,6 @@
             	}
             }
             
-            self::$configuration['include'] = (array) self::$configuration['include'];
-            
-            foreach(self::$configuration['include'] as &$include) {
-            	$include = realpath($include);
-                self::loadFile($include);
-            }
-            
             self::$configuration = arrayIndicesToLower(self::$configuration, $caseSensitivePaths);
                 
             self::$configuration['main']['tmppath'] = realpath(self::$configuration['main']['tmppath']) . '/';
@@ -127,6 +120,13 @@
             if(!($data = file_get_contents($fileName)) || !($config = self::$parser->parse($data))) {
                 out('Failed to load configuration file ' . $fileName);
                 return false;
+            }
+            
+            if(isset($config['include'])) {
+            	foreach($config['include'] as &$include) {
+            		$include = realpath($include);
+            		self::loadFile($include);
+            	}
             }
             
             self::$configuration = array_merge(self::$configuration, $config);
