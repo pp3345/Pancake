@@ -403,9 +403,8 @@
         	#.if #.call 'Pancake\Config::get' 'main.allowtrace'
             // Check for TRACE
             if($this->requestType == 'TRACE') {
-                $answer = $this->requestLine . "\r\n";
-                $answer .= $this->getRequestHeaders();
-                return $answer;
+                $this->answerBody = $this->requestLine . "\r\n" . $this->getRequestHeaders() . "\r\n";
+                $this->setHeader('Content-Type', 'message/http');
             }
             #.endif
             
