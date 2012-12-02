@@ -490,6 +490,7 @@
 	        
 	        // Reset ini-settings
 	        ini_set(null, null, true);
+	        stream_register_wrapper(null, null, null, true);
 	        
 	        vars::$errorHandler = null;
 	        vars::$errorHandlerHistory = array();
