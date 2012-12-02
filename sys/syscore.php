@@ -128,6 +128,7 @@
     dt_remove_function('get_required_files');
     dt_remove_function('restore_error_handler');
     dt_remove_function('ini_alter');
+    dt_remove_function('stream_register_wrapper');
     if(function_exists('http_response_code')) dt_remove_function('http_response_code');
     if(function_exists('header_register_callback')) dt_remove_function('header_register_callback');
     if(function_exists('session_register_shutdown')) dt_remove_function('session_register_shutdown');
@@ -153,6 +154,7 @@
     dt_rename_function('spl_autoload_register', 'Pancake\PHPFunctions\registerAutoload');
     dt_rename_function('register_tick_function', 'Pancake\PHPFunctions\registerTickFunction');
     dt_rename_function('session_destroy', 'Pancake\PHPFunctions\sessionDestroy');
+    dt_rename_function('stream_wrapper_register', 'Pancake\PHPFunctions\streamWrapperRegister');
     dt_rename_method('ReflectionFunction', 'isDisabled', 'Pancake_isDisabledOrig');
     dt_remove_constant('PHP_SAPI');
     
