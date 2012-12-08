@@ -686,6 +686,15 @@ FUNCTIONBODY
 		return stream_register_wrapper($protocol, $classname, $flags);
 	}
 	
+	function session_regenerate_id($delete_old_session = false) {
+		if(Pancake\PHPFunctions\sessionRegenerateID($delete_old_session)) {
+			Pancake\vars::$sessionID = Pancake\PHPFunctions\sessionID();
+			return true;
+		}
+		
+		return false;
+	}
+	
     dt_rename_method('\Exception', 'getTrace', 'Pancake_getTraceOrig');
     dt_add_method('\Exception', 'getTrace', null, <<<'FUNCTIONBODY'
 $trace = $this->Pancake_getTraceOrig();
