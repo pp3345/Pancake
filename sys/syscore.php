@@ -155,6 +155,7 @@
     dt_rename_function('register_tick_function', 'Pancake\PHPFunctions\registerTickFunction');
     dt_rename_function('session_destroy', 'Pancake\PHPFunctions\sessionDestroy');
     dt_rename_function('stream_wrapper_register', 'Pancake\PHPFunctions\streamWrapperRegister');
+    dt_rename_function('session_regenerate_id', 'Pancake\PHPFunctions\sessionRegenerateID');
     dt_rename_method('ReflectionFunction', 'isDisabled', 'Pancake_isDisabledOrig');
     dt_remove_constant('PHP_SAPI');
     
