@@ -220,10 +220,11 @@
             
             #.ifdef 'SUPPORT_REWRITE'
             foreach($this->vHost->rewriteRules as $rule) {
+            	$path = explode('?', $firstLine[1], 2);
             	if((isset($rule['location']) && strpos($firstLine[1], $rule['location']) !== 0)
             	|| (isset($rule['if']) && !preg_match($rule['if'], $firstLine[1]))
-            	|| (isset($rule['precondition']) && $rule['precondition'] == 404 && file_exists($this->vHost->documentRoot . $firstLine[1]))
-            	|| (isset($rule['precondition']) && $rule['precondition'] == 403 && (!file_exists($this->vHost->documentRoot . $firstLine[1]) || is_readable($this->vHost->documentRoot . $firstLine[1])))
+            	|| (isset($rule['precondition']) && $rule['precondition'] == 404 && file_exists($this->vHost->documentRoot . $path[0]))
+            	|| (isset($rule['precondition']) && $rule['precondition'] == 403 && (!file_exists($this->vHost->documentRoot . $path[0]) || is_readable($this->vHost->documentRoot . $path[0])))
             	)
             		continue;
 
