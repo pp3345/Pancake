@@ -49,7 +49,8 @@
             			. md5_file('moody.cphp')
             			. md5_file('workerFunctions.php')
             			. \PHP_MINOR_VERSION
-            			. \PHP_RELEASE_VERSION);
+            			. \PHP_RELEASE_VERSION
+            			. VERSION);
             	if(!(file_exists('threads/single/phpWorker.thread.' . $vHost->name . '.hash') 
             	&& file_get_contents('threads/single/phpWorker.thread.' . $vHost->name . '.hash') == $hash)) {
             		require_once 'threads/codeProcessor.class.php';

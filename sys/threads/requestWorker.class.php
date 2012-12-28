@@ -46,7 +46,8 @@
         				. md5_file('IOCache.class.php')
         				. md5_file('AJP13.class.php')
         				. \PHP_MINOR_VERSION
-        				. \PHP_RELEASE_VERSION);
+        				. \PHP_RELEASE_VERSION
+        				. VERSION);
         		if(!(file_exists('threads/single/requestWorker.thread.hash')
         		&& file_get_contents('threads/single/requestWorker.thread.hash') == $hash)) {
         			require_once 'threads/codeProcessor.class.php';
