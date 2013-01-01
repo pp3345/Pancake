@@ -21,6 +21,7 @@
         public $ppid = 0;
         public $running = false;
         public $friendlyName = null;
+        public $doGracefulExit = false;
         private static $threadCache = array();
         
         /**
@@ -78,7 +79,12 @@
                 if(!$loadCodeFile)
                     return true;
                 require $this->codeFile;
-                exit;
+
+                if($this->doGracefulExit)
+                	// I know that this is very ugly but Zend won't show memory leak info when using exit;
+                	return "THREAD_EXIT";
+                else
+                	exit;
             }
         }
 

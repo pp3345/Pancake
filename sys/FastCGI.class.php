@@ -141,8 +141,8 @@
 			}
 			
 			if(/* .RAW_POST_DATA */) {
-				$body .= "\xc" . chr(strlen($requestObject->getRequestHeader('Content-Type', false))) . "CONTENT_TYPE" . $requestObject->getRequestHeader('Content-Type', false);
-				$body .= "\xe" . chr(strlen(/* .SIMPLE_GET_REQUEST_HEADER '"Content-Length"' */)) . "CONTENT_LENGTH" . /* .SIMPLE_GET_REQUEST_HEADER '"Content-Length"' */;
+				$body .= "\xc" . chr(strlen(/* .GET_REQUEST_HEADER '"content-type"' */)) . "CONTENT_TYPE" . /* .GET_REQUEST_HEADER '"content-type"' */;
+				$body .= "\xe" . chr(strlen(/* .GET_REQUEST_HEADER '"content-length"' */)) . "CONTENT_LENGTH" . /* .GET_REQUEST_HEADER '"content-length"' */;
 			}
 			
 			// HTTP header data

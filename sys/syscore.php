@@ -11,16 +11,17 @@
 
     if(defined('Pancake\PANCAKE'))
         exit;
+    
+    if(!extension_loaded('PancakeBase')) {
+    	echo "Pancake natives not loaded. Please run pancake.sh\n";
+    	exit;
+    }
 
-    const VERSION = '1.3-devel';
     const PANCAKE = true;
     const REQUEST_WORKER_TYPE = 1;
     const PHP_WORKER_TYPE = 2;
-    const SYSTEM = 1;
-    const REQUEST = 2;
     // \Pancake\STDOUT = \STDOUT
     const STDOUT = STDOUT;
-    define('Pancake\ERROR_REPORTING', \E_COMPILE_ERROR | \E_COMPILE_WARNING | \E_CORE_ERROR | \E_CORE_WARNING | \E_ERROR | \E_PARSE | \E_RECOVERABLE_ERROR | \E_USER_ERROR | \E_USER_WARNING | \E_WARNING);
     
     // Deactivate static method cache fixing per default in order to improve performance
     if(\PHP_MINOR_VERSION >= 4 && extension_loaded('DeepTrace'))
@@ -37,9 +38,6 @@
     // Set error reporting
     error_reporting(ERROR_REPORTING);
     
-    // Set error handler
-    set_error_handler('Pancake\errorHandler');
-    
     // Get start options 
     $startOptions = getopt('-h', array('benchmark::', 'debug', 'daemon', 'live', 'help'));
     
@@ -55,57 +53,57 @@
         exit;
     }
     
-    out('Loading Pancake '.VERSION.'... 2012 Yussuf Khalil', SYSTEM, false);
+    out('Loading Pancake ' . VERSION . '... 2012 Yussuf Khalil', OUTPUT_SYSTEM);
     
     // Check for php-cli
     if(\PHP_SAPI != 'cli') {
-    	out('Pancake must be executed with the PHP CLI-SAPI. You are using the "' . \PHP_SAPI . '" SAPI.', SYSTEM, false);
+    	out('Pancake must be executed with the PHP CLI-SAPI. You are using the "' . \PHP_SAPI . '" SAPI.', OUTPUT_SYSTEM);
     	abort();
     }
     
     // Check for POSIX-compliance
     if(!is_callable('posix_getpid')) {
-        out('Pancake can\'t run on this system. Either your operating system isn\'t POSIX-compliant or PHP was compiled with --disable-posix', SYSTEM, false);
+        out('Pancake can\'t run on this system. Either your operating system isn\'t POSIX-compliant or PHP was compiled with --disable-posix', OUTPUT_SYSTEM);
         abort();
     }
     
     // Check for available PCNTL-functions
     if(!extension_loaded('pcntl')) {
-        out('Pancake can\'t run on this system. You need to recompile PHP with --enable-pcntl', SYSTEM, false);
+        out('Pancake can\'t run on this system. You need to recompile PHP with --enable-pcntl', OUTPUT_SYSTEM);
         abort();
     }
     
     // Check for System V IPC
     if(!extension_loaded('sysvmsg')) {
-        out('You need to compile PHP with --enable-sysvmsg in order to run Pancake.', SYSTEM, false);
+        out('You need to compile PHP with --enable-sysvmsg in order to run Pancake.', OUTPUT_SYSTEM);
         abort();
     }
     
     // Check if socket-extension is available
     if(!extension_loaded('sockets')) {
-        out('You need to compile PHP with support for sockets (--enable-sockets) in order to run Pancake.', SYSTEM, false);
+        out('You need to compile PHP with support for sockets (--enable-sockets) in order to run Pancake.', OUTPUT_SYSTEM);
         abort();
     }
     
     // Check for Zend Tokenizer
     if(!extension_loaded('tokenizer')) {
-    	out('You need to compile PHP with tokenizer support.', SYSTEM, false);
+    	out('You need to compile PHP with tokenizer support.', OUTPUT_SYSTEM);
     	abort();
     }
     
     // Check for DeepTrace
     if(!extension_loaded('DeepTrace')) {
-        out('You need to run Pancake with the bundled DeepTrace-extension. Just run pancake.sh.', SYSTEM, false);
+        out('You need to run Pancake with the bundled DeepTrace-extension. Just run pancake.sh.', OUTPUT_SYSTEM);
         abort();
     }
     
     // Check for Suhosin
     if(extension_loaded('suhosin'))
-    	out('It seems that your server is running Suhosin. Although everything should work fine, Suhosin is not officially supported by Pancake. If you encounter any errors, please try deactivating Suhosin.', SYSTEM, false);
+    	out('It seems that your server is running Suhosin. Although everything should work fine, Suhosin is not officially supported by Pancake. If you encounter any errors, please try deactivating Suhosin.', OUTPUT_SYSTEM);
     
     // Check for root-user
     if(posix_getuid() !== 0) {
-        out('You need to run Pancake as root.', SYSTEM, false);
+        out('You need to run Pancake as root.', OUTPUT_SYSTEM);
         abort();
     }
     
@@ -163,19 +161,19 @@
     
     // Set thread title 
     dt_set_proctitle('Pancake HTTP Server ' . VERSION);
-    
+
     // Set PANCAKE_DEBUG_MODE
     if(isset($startOptions['debug']) || Config::get('main.debugmode') === true) {
         define('Pancake\DEBUG_MODE', true);
-        out('Debugging enabled');
+        out('Debugging enabled', OUTPUT_SYSTEM | OUTPUT_LOG | OUTPUT_DEBUG);
     } else
         define('Pancake\DEBUG_MODE', false);
-        
-    out('Basic configuration initialized', SYSTEM, true, true);
-           
+
+    out('Basic configuration initialized', OUTPUT_SYSTEM | OUTPUT_LOG | OUTPUT_DEBUG);
+
     // Check if configured user exists
     if(posix_getpwnam(Config::get('main.user')) === false || posix_getgrnam(Config::get('main.group')) === false) {
-        out('The configured user/group doesn\'t exist.', SYSTEM, false);
+        out('The configured user/group doesn\'t exist.');
         abort();
     }
     
@@ -195,28 +193,28 @@
     
     // Check for ports to listen on
     if(!Config::get('main.listenports')) {
-        out('You need to specify at least one port for Pancake to listen on. We recommend port 80.', SYSTEM, false);
+        out('You need to specify at least one port for Pancake to listen on. We recommend port 80.');
         abort();
     }       
     
     // Check if configured worker-amounts are OK
     if(Config::get('main.requestworkers') < 1) {
-        out('You need to specify an amount of request-workers greater or equal to 1.', SYSTEM, false);
+        out('You need to specify an amount of request-workers greater or equal to 1.');
         abort();
     }
     
     // Check for configured vhosts
     if(!Config::get('vhosts')) {
-        out('You need to define at least one virtual host.', SYSTEM, false);
+        out('You need to define at least one virtual host.');
         abort();
     }
     
     // Load IPC
     IPC::create();
-    
+
     // Dirty workaround for error-logging (else may get permission denied)
     trigger_error('Nothing', \E_USER_NOTICE);
-    
+
     // Create sockets
     // IPv6
     foreach((array) Config::get('main.ipv6') as $interface) { 
@@ -229,7 +227,7 @@
             
             // Bind to interface
             if(!socket_bind($socket, $interface, $listenPort)) {
-                trigger_error('Failed to create socket for '.$interface.' (IPv6) on port '.$listenPort, \E_USER_WARNING);
+                trigger_error('Failed to create socket for ' . $interface . ' (IPv6) on port ' . $listenPort, \E_USER_WARNING);
                 continue;
             } 
             
@@ -242,7 +240,7 @@
         	goto socketsCreated;
     }
     
-    out('Listening on ' . count(Config::get('main.ipv6')) . ' IPv6 network interfaces', SYSTEM, true, true);
+    out('Listening on ' . count(Config::get('main.ipv6')) . ' IPv6 network interfaces', OUTPUT_SYSTEM | OUTPUT_LOG | OUTPUT_DEBUG);
     
     // IPv4
     foreach((array) Config::get('main.ipv4') as $interface) {
@@ -255,7 +253,7 @@
             
             // Bind to interface
             if(!socket_bind($socket, $interface, $listenPort)) {
-                trigger_error('Failed to create socket for '.$interface.' (IPv4) on port '.$listenPort, \E_USER_WARNING);
+                trigger_error('Failed to create socket for ' . $interface . ' (IPv4) on port ' . $listenPort, \E_USER_WARNING);
                 continue;
             } 
             
@@ -265,8 +263,8 @@
             $Pancake_sockets[] = $socket;
         }
     }
-    
-    out('Listening on ' . count(Config::get('main.ipv4')) . ' IPv4 network interfaces', SYSTEM, true, true);
+
+    out('Listening on ' . count(Config::get('main.ipv4')) . ' IPv4 network interfaces', OUTPUT_SYSTEM | OUTPUT_LOG | OUTPUT_DEBUG);
     
     // Check if any sockets are available
     if(!$Pancake_sockets) {
@@ -275,7 +273,7 @@
     }
 
     socketsCreated:
-    
+
     // Load vHosts
     foreach(Config::get('vhosts') as $name => $config) {
         try {
@@ -284,10 +282,10 @@
             	$haveDefault = true;
         } catch(\Exception $exception) {
             unset($vHosts[$name]);
-            trigger_error('Configuration of vHost "'.$name.'" is invalid: '.$exception->getMessage(), \E_USER_WARNING);
+            trigger_error('Configuration of vHost "' . $name . '" is invalid: ' . $exception->getMessage(), \E_USER_WARNING);
         }
     }
-    
+
     // Check if any vHosts are available
     if(!$vHosts) {
         trigger_error('No vHosts available.', \E_USER_ERROR);
@@ -296,7 +294,7 @@
     
     // Check if the default vHost is set
     if(!isset($haveDefault)) {
-        out('You need to specify a default vHost. (Set isdefault: true)', SYSTEM, false);
+        out('You need to specify a default vHost. (Set isdefault: true)');
         abort();
     }
     
@@ -337,7 +335,7 @@
     }
     
     // Debug-output
-    out('Loaded '.count($vHosts).' vHosts', SYSTEM, true, true);
+    out('Loaded '.count($vHosts).' vHosts', OUTPUT_SYSTEM | OUTPUT_LOG | OUTPUT_DEBUG);
                        
     cleanGlobals(array('Pancake_phpSockets'));
 
@@ -346,16 +344,17 @@
     // Create RequestWorkers
     for($i = 0;$i < Config::get('main.requestworkers');$i++) {
         $thread = new RequestWorker(); 
-        $thread->start();
+        if($thread->start() === "THREAD_EXIT")
+        	goto do_exit;
         pcntl_sigtimedwait(array(\SIGUSR1), $x, Config::get('main.workerboottime'));
         if(!$x) {
             $thread->kill();
             out('Failed to boot ' . $thread->friendlyName . ' in time - Aborting');
             abort();
         }
-    }           
-            
-    out('Created '.Config::get('main.requestworkers').' RequestWorkers', SYSTEM, true, true);
+    }
+
+    out('Created '.Config::get('main.requestworkers').' RequestWorkers', OUTPUT_SYSTEM | OUTPUT_LOG | OUTPUT_DEBUG);
     
     out('Ready');
     
@@ -381,7 +380,7 @@
                 
                 $thread = Thread::get($info['pid']);
                 if(IPC::get(\MSG_IPC_NOWAIT, 9999)) {
-                    out($thread->friendlyName . ' requested reboot', SYSTEM, true, true);
+                    out($thread->friendlyName . ' requested reboot', OUTPUT_DEBUG | OUTPUT_SYSTEM | OUTPUT_LOG);
                 } else
                     out('Detected crash of ' . $thread->friendlyName . ' - Rebooting worker');
                 
@@ -392,18 +391,20 @@
                         require $thread->codeFile;
                         exit;
                     }
-                } else
-                    $thread->start();
+                } else if($thread->start() === "THREAD_EXIT")
+                	goto do_exit;
                 
-                out('New PID of ' . $thread->friendlyName . ': ' . $thread->pid, SYSTEM, false, true);
+                out('New PID of ' . $thread->friendlyName . ': ' . $thread->pid, OUTPUT_DEBUG | OUTPUT_SYSTEM);
             break;
             case \SIGINT:
             case \SIGTERM:
             case \SIGUSR2:
-                abort();
-            break;
+                abort(true);
+            	break 2;
         }
         
         unset($info);
     }
+    
+    do_exit:
 ?>

@@ -11,55 +11,11 @@
     
     if(PANCAKE !== true)
         exit;
-    
-    /**
-    * Function for output and logging
-    * 
-    * @param string $text The string to be logged
-    * @param int $type SYSTEM or REQUEST 
-    * @param bool $log Whether the text should be logged to a file or not
-    * @param bool $debugMode Whether the text should only be output in debugmode
-    * @return false|string false on error; message on success
-    */
-    function out($text, $type = SYSTEM, $log = true, $debugMode = false) {
-        static $fileStream = array();
-        global $Pancake_currentThread;
         
-        if(defined('PANCAKE_PHP') && DEBUG_MODE !== true)
-        	return false;
-        
-        $thread = !$Pancake_currentThread && class_exists('Pancake\vars') ? vars::$Pancake_currentThread : $Pancake_currentThread;
-        
-        if($type !== SYSTEM && $type !== REQUEST)
-            return false;
-        
-        if(!$fileStream && $log === true) {
-            if(!($fileStream[SYSTEM] = @fopen(Config::get('main.logging.system'), 'a+')) || !($fileStream[REQUEST] = @fopen(Config::get('main.logging.request'), 'a+'))) {
-                out('Couldn\'t open file for logging - Check if it exists and is accessible for Pancake', SYSTEM, false);
-                abort();
-            }
-        }
-    
-        $friendlyName = ($thread) ? $thread->friendlyName : 'Master';
-        
-        $message = '['.$friendlyName.'] '
-                    .date(Config::get('main.dateformat')).' '
-                    .$text."\n";
-        
-        if($debugMode && DEBUG_MODE !== true)
-            return $message;
-        
-        if(DAEMONIZED !== true)
-            fwrite(STDOUT, $message);
-        if($log === true && is_resource($fileStream[$type]) && !fwrite($fileStream[$type], $message))
-            trigger_error('Couldn\'t write to logfile', \E_USER_WARNING);
-        return $message;
-    }
-    
     /**
     * Aborts execution of Pancake
     */
-    function abort() {
+    function abort($return = false) {
         global $Pancake_currentThread;
         global $Pancake_sockets;
         global $Pancake_phpSockets;
@@ -87,12 +43,19 @@
             
             if(!$worker->running)
                 continue;
-            $worker->stop();            
+            if($worker instanceof RequestWorker) {
+            	socket_write($worker->localSocket, "GRACEFUL_SHUTDOWN");
+            	unlink($worker->socketName);
+            } else
+            	$worker->stop();
             $worker->waitForExit();
         }
         
         @IPC::destroy();
-        exit;
+        if($return)
+        	return;
+        else
+        	exit;
     }
     
     /**
@@ -111,31 +74,7 @@
                 $endArray[$key] = $array2[$key];
         return $endArray;
     }
-    
-    /**
-    * ErrorHandler. Outputs errors if DebugMode is switched on and logs them to a file
-    * 
-    * @param int $errtype Type of the occured error 
-    * @param string $errstr String that describes the error
-    * @param string $errfile The file in which the error occured
-    * @param int $errline The line in which the error occured
-    */
-    function errorHandler($errtype, $errstr, $errfile = null, $errline = null) {
-        static $fileStream = null;
-        if(!$fileStream)
-            $fileStream = @fopen(Config::get('main.logging.error'), 'a+');
-        // Check for @
-        if(error_reporting() == 0)
-            return true;
-        if($errtype & ERROR_REPORTING) {
-            $message = 'An error ('.$errtype.') occured: '.$errstr.' in '.$errfile.' on line '.$errline;
-            $msg = out($message, SYSTEM, false);
-            if(is_resource($fileStream))
-                fwrite($fileStream, $msg);
-        }
-        return true;
-    }
-    
+        
     /**
     * Cleans all global and superglobal variables
     * 

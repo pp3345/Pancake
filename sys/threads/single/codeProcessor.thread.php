@@ -22,7 +22,15 @@
 	 */
 	global $Pancake_currentThread;
 
-	require_once 'moody.cphp';
+	setThread($Pancake_currentThread);
+	
+	if(isset($Pancake_currentThread->vHost)) {
+		out("Compiling PHPWorker for vHost \"" . $Pancake_currentThread->vHost->name . "\" - Please wait...");
+	} else {
+		out("Compiling RequestWorker - Please wait...");
+	}
+	
+	require_once 'moody_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '.cphp';
 
 	foreach(get_declared_classes() as $class) {
 		if(in_array('Moody\TokenHandler', class_implements($class)))

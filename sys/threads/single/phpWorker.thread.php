@@ -1,5 +1,5 @@
 <?php
-  
+
     /****************************************************************/
     /* Pancake                                                      */
     /* phpWorker.thread.php                                         */
@@ -9,13 +9,9 @@
 	 
 	#.define 'PHPWORKER' true
 	
-	#.if #.config 'compressvariables'
-		#.config 'compressvariables' false
-	#.endif
-	
-	#.if #.config 'compressproperties'
-		#.config 'compressproperties' false
-	#.endif
+	#.config 'autosubstitutesymbols' false
+	#.config 'compressvariables' false
+	#.config 'compressproperties' false
 	
 	#.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpInfoConfig;' false
 		#.define 'EXPOSE_PANCAKE_IN_PHPINFO' true
@@ -87,14 +83,13 @@
     	#.include 'php/util.php'
 
     	#.include 'workerFunctions.php'
-    	#.include 'invalidHTTPRequest.exception.php'
-    	#.include 'HTTPRequest.class.php'
     	#.include 'vHostInterface.class.php'
     	
     	// Clear thread cache
     	Thread::clearCache();
 
     	$Pancake_currentThread->vHost = new vHostInterface($Pancake_currentThread->vHost);
+    	setThread($Pancake_currentThread);
 	    vars::$Pancake_currentThread = $Pancake_currentThread;
 	    unset($Pancake_currentThread);
 	    
@@ -102,7 +97,6 @@
 	    
 	    #.ifdef 'SUPPORT_CODECACHE'
 		    // MIME types are only needed for CodeCache
-		    #.include 'mime.class.php'
 		    MIME::load();
 		#.endif
 	    
@@ -185,6 +179,8 @@
 		    foreach(vars::$Pancake_currentThread->vHost->phpCodeCache as $cacheFile)
 		        cacheFile($cacheFile);
 	    
+		    CodeCacheJITGlobals();
+		    
 		    // Load CodeCache
 		    foreach($Pancake_cacheFiles as $cacheFile) {
 		    	#.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpMaxExecutionTime;' false
@@ -242,7 +238,9 @@
 	    	benchmarkFunction('Pancake\cleanGlobals');
 	    	benchmarkFunction('Pancake\recursiveClearObjects');
 	    #.endif
-	    
+	    	
+	    ExecuteJITGlobals();
+	    	
 	    // Set user and group
 	    setUser();
 
@@ -273,11 +271,7 @@
 	        chdir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */ . dirname(vars::$Pancake_request->requestFilePath));
 
 	        // Set environment vars
-	        $_GET = vars::$Pancake_request->getGETParams();
-	        $_POST = vars::$Pancake_request->getPOSTParams();
-	        $_COOKIE = vars::$Pancake_request->getCookies();
-	        $_REQUEST = $_COOKIE + $_POST + $_GET;
-	        $_SERVER = vars::$Pancake_request->createSERVER();
+	     	vars::$Pancake_request->registerJITGlobals();
 	        $_FILES = vars::$Pancake_request->uploadedFiles;
 	        
 	        #.if #.call 'ini_get' 'expose_php'
@@ -298,7 +292,8 @@
 	        	#.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpMaxExecutionTime;' false
 	        		set_time_limit(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpMaxExecutionTime;' false */);
 	        	#.endif
-	            include /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */ . vars::$Pancake_request->requestFilePath;
+
+	        	include /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */ . vars::$Pancake_request->requestFilePath;
 
 	            runShutdown:
 	            
@@ -832,7 +827,7 @@
 		        		foreach($functionResults as $result)
 		        			$total += $result;
 		        
-		        		out('Benchmark of function ' . $function . '(): ' . count($functionResults) . ' calls - ' . (min($functionResults) * 1000) . ' ms min - ' . ($total / count($functionResults) * 1000) . ' ms ave - ' . (max($functionResults) * 1000) . ' ms max - ' . ($total * 1000) . ' ms total', /* .constant 'Pancake\REQUEST' */);
+		        		out('Benchmark of function ' . $function . '(): ' . count($functionResults) . ' calls - ' . (min($functionResults) * 1000) . ' ms min - ' . ($total / count($functionResults) * 1000) . ' ms ave - ' . (max($functionResults) * 1000) . ' ms max - ' . ($total * 1000) . ' ms total', OUTPUT_REQUEST | OUTPUT_LOG);
 		        		unset($total);
 		        	}
 		        	

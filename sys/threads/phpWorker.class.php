@@ -46,19 +46,19 @@
             			. md5_file('php/sapi.php')
             			. md5_file('php/util.php')
             			. md5_file('mime.class.php')
-            			. md5_file('moody.cphp')
+            			. md5_file('moody_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '.cphp')
             			. md5_file('workerFunctions.php')
             			. \PHP_MINOR_VERSION
             			. \PHP_RELEASE_VERSION
             			. VERSION);
-            	if(!(file_exists('threads/single/phpWorker.thread.' . $vHost->name . '.hash') 
-            	&& file_get_contents('threads/single/phpWorker.thread.' . $vHost->name . '.hash') == $hash)) {
+            	if(!(file_exists('compilecache/phpWorker.thread.' . $vHost->name . '.hash') 
+            	&& file_get_contents('compilecache/phpWorker.thread.' . $vHost->name . '.hash') == $hash)) {
             		require_once 'threads/codeProcessor.class.php';
             		
-	            	$codeProcessor = new CodeProcessor('threads/single/phpWorker.thread.php', 'threads/single/phpWorker.thread.' . $vHost->name . '.cphp');
+	            	$codeProcessor = new CodeProcessor('threads/single/phpWorker.thread.php', 'compilecache/phpWorker.thread.' . $vHost->name . '.cphp');
 	            	$codeProcessor->vHost = $vHost;
 	            	$codeProcessor->run();
-	            	file_put_contents('threads/single/phpWorker.thread.' . $vHost->name . '.hash', $hash);
+	            	file_put_contents('compilecache/phpWorker.thread.' . $vHost->name . '.hash', $hash);
             	}
             	self::$codeProcessed[$vHost->name] = true;
             	unset($hash);
@@ -71,7 +71,7 @@
             $this->id = max(array_keys(self::$instances));
             $this->IPCid = PHP_WORKER_TYPE.$this->vHost->id;
             
-            $this->codeFile = 'threads/single/phpWorker.thread.' . $vHost->name . '.cphp';
+            $this->codeFile = 'compilecache/phpWorker.thread.' . $vHost->name . '.cphp';
             $this->friendlyName = 'PHPWorker #'.($this->id+1).' ("'.$this->vHost->name.'")';
             
             // Start worker

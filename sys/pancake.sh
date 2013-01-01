@@ -33,14 +33,19 @@ then
 	ARCH=armhf
 fi
 
-if [ -d ./ext/ ];
+if [ -d ./natives ];
 then
-	chmod +x ./ext/*
+	chmod -R +x ./natives/*
 fi
 
-if [ -x ./ext/$ARCH\_$PHPMAJOR$PHPMINOR.so ];
+if [ -x ./natives/DeepTrace/$ARCH\_$PHPMAJOR$PHPMINOR.so ];
 then
-    $PHPCOMMAND -d zend_extension=./ext/$ARCH\_$PHPMAJOR$PHPMINOR.so $DIRNAME/syscore.php $1
+	if [ -x ./natives/base/$ARCH\_$PHPMAJOR$PHPMINOR.so ];
+	then
+    	$PHPCOMMAND -d zend_extension=./natives/DeepTrace/$ARCH\_$PHPMAJOR$PHPMINOR.so -d extension=./natives/base/$ARCH\_$PHPMAJOR$PHPMINOR.so $DIRNAME/syscore.php $1
+    else
+    	echo "No compiled PancakeBase natives found (looking for ./natives/base/$ARCH""_$PHPMAJOR$PHPMINOR.so) - Please compile PancakeBase for your system using compile.php"
+    fi
 else
-    echo "No compatible DeepTrace-extension found (looking for ./ext/$ARCH""_$PHPMAJOR$PHPMINOR.so) - Please compile DeepTrace for your system and make sure it is executable"
+    echo "No compatible DeepTrace-extension found (looking for ./natives/DeepTrace/$ARCH""_$PHPMAJOR$PHPMINOR.so) - Please compile DeepTrace for your system and make sure it is executable"
 fi

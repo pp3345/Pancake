@@ -25,7 +25,7 @@
     }
     
     function setcookie($name, $value = null, $expire = 0, $path = null, $domain = null, $secure = false, $httponly = false) {
-        return Pancake\vars::$Pancake_request->setCookie($name, $value, $expire, $path, $domain, $secure, $httponly); 
+    	return Pancake\vars::$Pancake_request->setCookie($name, $value, $expire, $path, $domain, $secure, $httponly); 
     }
     
     function setrawcookie($name, $value = null, $expire = 0, $path = null, $domain = null, $secure = false, $httponly = false) {
@@ -33,15 +33,15 @@
     }
     
     function header($string, $replace = true, $http_response_code = 0) {
-        if(strtoupper(substr($string, 0, 5)) == 'HTTP/') {
+    	if(strtoupper(substr($string, 0, 5)) == 'HTTP/') {
             $data = explode(' ', $string);
             if(isset($data[1]))
             	Pancake\vars::$Pancake_request->answerCode = $data[1];
         } else {
             $header = explode(':', $string, 2);
             Pancake\vars::$Pancake_request->setHeader($header[0], isset($header[1]) ? trim($header[1]) : null, $replace);
-            if($header[0] == 'Location' && Pancake\vars::$Pancake_request->answerCode != 201 && substr(Pancake\vars::$Pancake_request->answerCode, 0, 1) != 3)
-                Pancake\vars::$Pancake_request->answerCode = 302;
+            if(strtolower($header[0]) == 'location' && Pancake\vars::$Pancake_request->answerCode != 201 && substr(Pancake\vars::$Pancake_request->answerCode, 0, 1) != 3)
+            	Pancake\vars::$Pancake_request->answerCode = 302;
         }
         
         if($http_response_code)
@@ -297,25 +297,25 @@
         // Get variable
         switch($type) {
             case /* .constant 'INPUT_GET' */:
-                $GET = Pancake\vars::$Pancake_request->getGETParams();   
+                $GET = Pancake\vars::$Pancake_request->getGETParams();
                 if(!array_key_exists($variable_name, $GET))
                     return $flags & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
                 $var = $GET[$variable_name];
                 break;
             case /* .constant 'INPUT_POST' */:
-                $POST = Pancake\vars::$Pancake_request->getPOSTParams();   
+                $POST = Pancake\vars::$Pancake_request->getPOSTParams();
                 if(!array_key_exists($variable_name, $POST))
                     return $flags & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
                 $var = $POST[$variable_name];
                 break;
             case /* .constant 'INPUT_COOKIE' */:
-                $COOKIE = Pancake\vars::$Pancake_request->getCookies();   
+                $COOKIE = Pancake\vars::$Pancake_request->getCookies();
                 if(!array_key_exists($variable_name, $COOKIE))
                     return $flags & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
                 $var = $COOKIE[$variable_name];
                 break;
             case /* .constant 'INPUT_SERVER' */:
-                $SERVER = Pancake\vars::$Pancake_request->createSERVER();   
+                $SERVER = Pancake\vars::$Pancake_request->createSERVER();
                 if(!array_key_exists($variable_name, $SERVER))
                     return $flags & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
                 $var = $SERVER[$variable_name];

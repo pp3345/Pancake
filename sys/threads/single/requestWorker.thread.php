@@ -87,13 +87,9 @@
     	#.endif
     #.endif
     
-    #.if #.config 'compressvariables'
-    	#.config 'compressvariables' false
-    #.endif
-    
-    #.if #.config 'compressproperties'
-    	#.config 'compressproperties' false
-    #.endif
+    #.config 'compressvariables' false
+    #.config 'compressproperties' false
+    #.config 'autosubstitutesymbols' false
     
     #.if 1 < #.call 'count' #.call 'Pancake\Config::get' 'vhosts'
     	#.define 'SUPPORT_MULTIPLE_VHOSTS' true
@@ -117,8 +113,7 @@
     #.macro 'REQUEST_LINE' '$requestObject->requestLine'
     #.macro 'ANSWER_CODE' '$requestObject->answerCode'
     #.macro 'UPLOADED_FILES' '$requestObject->uploadedFiles'
-    #.macro 'SIMPLE_GET_REQUEST_HEADER' '(isset($requestObject->requestHeaders[$headerName]) ? $requestObject->requestHeaders[$headerName] : null)' '$headerName'
-    #.macro 'CASE_INSENSITIVE_GET_REQUEST_HEADER' '$requestObject->getRequestHeader($headerName, false)' '$headerName'
+    #.macro 'GET_REQUEST_HEADER' '(isset($requestObject->requestHeaders[$headerName]) ? $requestObject->requestHeaders[$headerName] : null)' '$headerName'
     #.macro 'QUERY_STRING' '$requestObject->queryString'
     #.macro 'PROTOCOL_VERSION' '$requestObject->protocolVersion'
     #.macro 'REQUEST_URI' '$requestObject->requestURI'
@@ -151,8 +146,6 @@
     // Precalculate post_max_size in bytes
     // It is impossible to keep this in a more readable way thanks to the nice Zend Tokenizer
    	#.define 'POST_MAX_SIZE' #.eval '$size = strtolower(ini_get("post_max_size")); if(strpos($size, "k")) $size = (int) $size * 1024; else if(strpos($size, "m")) $size = (int) $size * 1024 * 1024; else if(strpos($size, "g")) $size = (int) $size * 1024 * 1024 * 1024; return $size;' false
-
-    #.include 'mime.class.php'
     
     #.ifdef 'SUPPORT_TLS'
     	#.include 'TLSConnection.class.php'
@@ -171,8 +164,6 @@
     #.endif
     
     #.include 'workerFunctions.php'
-    #.include 'HTTPRequest.class.php'
-    #.include 'invalidHTTPRequest.exception.php'
     #.include 'vHostInterface.class.php'
     
     #.ifdef 'USE_IOCACHE'
@@ -207,9 +198,13 @@
     		$Pancake_vHosts[$address] = $vHost;
     }
     
+    setThread($Pancake_currentThread, vHostInterface::$defaultvHost, $Pancake_vHosts, /* .constant 'POST_MAX_SIZE' */);
+    
     unset($id, $vHost, $address);
     
     Config::workerDestroy();
+    
+    $Pancake_sockets[] = $Pancake_currentThread->socket;
     
     $listenSockets = $listenSocketsOrig = $Pancake_sockets;
     
@@ -244,6 +239,7 @@
     #.endif
     #.ifdef 'SUPPORT_WAITSLOTS'
     $waitSlots = array();
+    $waitSlotsOrig = array();
     $waits = array();
     #.endif
     
@@ -260,6 +256,9 @@
     
     // Ready
     $Pancake_currentThread->parentSignal(/* .constant 'SIGUSR1' */);
+    
+    // Set blocking for signals
+    pcntl_sigprocmask(SIG_BLOCK, array(SIGINT));
     
     // Set user and group
     setUser();
@@ -430,6 +429,16 @@
             }
             #.endif
 
+            // Internal communication
+            if($socket == $this->socket) {
+            	// Assume that message is GRACEFUL_SHUTDOWN as this is the only possibility currently
+            	foreach($Pancake_sockets as $index => $socket)
+            		unset($listenSocketsOrig[$index]);
+            	
+            	$doShutdown = true;
+            	goto clean;
+            }
+            
             if(
             #.if 0 != #.call 'Pancake\Config::get' 'main.maxconcurrent'
             /* .call 'Pancake\Config::get' 'main.maxconcurrent' */ < count($listenSocketsOrig) - count($Pancake_sockets) || 
@@ -457,7 +466,7 @@
         
         // Receive data from client
         if(isset($requests[$socketID]))
-            $bytes = @socket_read($requestSocket, /* .CASE_INSENSITIVE_GET_REQUEST_HEADER '"Content-Length"' */ - strlen($postData[$socketID]));
+            $bytes = @socket_read($requestSocket, /* .GET_REQUEST_HEADER '"content-length"' */ - strlen($postData[$socketID]));
         else
             $bytes = @socket_read($requestSocket, 10240);
         
@@ -477,7 +486,7 @@
         // Check if request was already initialized and we are only reading POST-data
         if(isset($requests[$socketID])) {
             $postData[$socketID] .= $bytes;
-            if(strlen($postData[$socketID]) >= /* .CASE_INSENSITIVE_GET_REQUEST_HEADER '"Content-Length"' */)
+            if(strlen($postData[$socketID]) >= /* .GET_REQUEST_HEADER '"content-length"' */)
                 goto readData;
         } else if($bytes) {
         	#.ifdef 'USE_IOCACHE'
@@ -529,7 +538,7 @@
         goto clean;
         
         readData:
-    
+
         if(!isset($requests[$socketID])) {
             // Get information about client
             socket_getPeerName($requestSocket, $ip, $port);
@@ -547,26 +556,26 @@
                 	$requestObject->init($socketData[$socketID]);
                 #.endif
                 unset($socketData[$socketID]);
-            } catch(invalidHTTPRequestException $e) {
-                $requestObject->invalidRequest($e);
+            } catch(invalidHTTPRequestException $exception) {
+                $requestObject->invalidRequest($exception);
                 #.ifdef 'USE_IOCACHE'
                 	$ioCache->deallocateBuffer($socketData[$socketID]);
                 #.endif
-                unset($socketData[$socketID], $e);
+                unset($socketData[$socketID], $exception);
                 goto write;
             }
         }
-        
+
         // Check for POST and get all POST-data
         if(/* .REQUEST_TYPE */ == 'POST') {
 			#.ifdef 'USE_IOCACHE'
-			if(/* .IOCACHE_BUFFER_TOTAL_BYTES '$postData[$socketID]' */ >= /* .CASE_INSENSITIVE_GET_REQUEST_HEADER '"Content-Length"' */) {
-				if(/* .IOCACHE_BUFFER_TOTAL_BYTES '$postData[$socketID]' */ > /* .CASE_INSENSITIVE_GET_REQUEST_HEADER '"Content-Length"' */)
-					$ioCache->setBytes($postData[$socketID], substr($ioCache->getBytes($postData[$socketID], -1), 0, /* .CASE_INSENSITIVE_GET_REQUEST_HEADER '"Content-Length"' */));
+			if(/* .IOCACHE_BUFFER_TOTAL_BYTES '$postData[$socketID]' */ >= /* .GET_REQUEST_HEADER '"content-length"' */) {
+				if(/* .IOCACHE_BUFFER_TOTAL_BYTES '$postData[$socketID]' */ > /* .GET_REQUEST_HEADER '"content-length"' */)
+					$ioCache->setBytes($postData[$socketID], substr($ioCache->getBytes($postData[$socketID], -1), 0, /* .GET_REQUEST_HEADER '"content-length"' */));
 			#.else
-            if(strlen($postData[$socketID]) >= /* .CASE_INSENSITIVE_GET_REQUEST_HEADER '"Content-Length"' */) {
-                if(strlen($postData[$socketID]) > /* .CASE_INSENSITIVE_GET_REQUEST_HEADER '"Content-Length"' */)
-                    $postData[$socketID] = substr($postData[$socketID], 0, /* .CASE_INSENSITIVE_GET_REQUEST_HEADER '"Content-Length"' */);
+            if(strlen($postData[$socketID]) >= /* .GET_REQUEST_HEADER '"content-length"' */) {
+                if(strlen($postData[$socketID]) > /* .GET_REQUEST_HEADER '"content-length"' */)
+                    $postData[$socketID] = substr($postData[$socketID], 0, /* .GET_REQUEST_HEADER '"content-length"' */);
             #.endif
                 if($key = array_search($requestSocket, $listenSocketsOrig))
                     unset($listenSocketsOrig[$key]);
@@ -661,7 +670,7 @@
         #.endif
         
         load:
-        
+
         #.ifdef 'SUPPORT_AJP13'
         if($ajp13 = /* .VHOST_AJP13 */) {
         	$socket = $ajp13->makeRequest($requestObject, $requestSocket);
@@ -766,7 +775,7 @@
         $requestObject->setHeader('Last-Modified', date('r', $modified));
         
         // Check for If-Modified-Since
-        if(strtotime(/* .SIMPLE_GET_REQUEST_HEADER '"If-Modified-Since"' */) == $modified) {
+        if(strtotime(/* .GET_REQUEST_HEADER '"if-modified-since"' */) == $modified) {
         	/* .ANSWER_CODE */ = 304;
             goto write;
         }
@@ -782,7 +791,7 @@
             	$isDir = is_dir(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH*/ . $file);
             	$files[] =
             	array('name' => $file,
-            			'address' => 'http://' . /* .SIMPLE_GET_REQUEST_HEADER '"Host"' */ . /* .REQUEST_FILE_PATH*/ . $file . ($isDir ? '/' : ''),
+            			'address' => 'http://' . /* .GET_REQUEST_HEADER '"host"' */ . /* .REQUEST_FILE_PATH*/ . $file . ($isDir ? '/' : ''),
             			'directory' => $isDir,
             			'type' => MIME::typeOf($file),
             			'modified' => filemtime(/* .VHOST_DOCUMENT_ROOT */ .  /* .REQUEST_FILE_PATH*/ . $file),
@@ -859,10 +868,10 @@
 	    $writeBuffer[$socketID] .= /* .ANSWER_BODY */;
 
         // Output request information
-        out('REQ './* .ANSWER_CODE */.' './* .REMOTE_IP */.': './* .REQUEST_LINE */.' on vHost '.((/* .VHOST */) ? /* .VHOST_NAME */ : null).' (via './* .SIMPLE_GET_REQUEST_HEADER '"Host"' */.' from './* .SIMPLE_GET_REQUEST_HEADER "'Referer'" */.') - './* .SIMPLE_GET_REQUEST_HEADER '"User-Agent"' */, /* .constant 'Pancake\REQUEST' */);
+        out('REQ './* .ANSWER_CODE */.' './* .REMOTE_IP */.': './* .REQUEST_LINE */.' on vHost '.((/* .VHOST */) ? /* .VHOST_NAME */ : null).' (via './* .GET_REQUEST_HEADER '"host"' */.' from './* .GET_REQUEST_HEADER "'referer'" */.') - './* .GET_REQUEST_HEADER '"user-agent"' */, OUTPUT_REQUEST | OUTPUT_LOG);
 
         // Check if user wants keep-alive connection
-        if($requestObject->getAnswerHeader('Connection') == 'keep-alive')
+        if($requestObject->answerHeaders["connection"] == 'keep-alive')
             socket_set_option($requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_KEEPALIVE' */, 1);
 
         #.if 0 < #.call 'Pancake\Config::get' 'main.requestworkerlimit'
@@ -921,7 +930,7 @@
         close:
 
         // Close socket
-        if(!isset($requests[$socketID]) || $requestObject->getAnswerHeader('Connection') != 'keep-alive') {
+        if(!isset($requests[$socketID]) || $requestObject->answerHeaders["connection"] != 'keep-alive') {
             @socket_shutdown($requestSocket);
             socket_close($requestSocket);
 
@@ -930,7 +939,7 @@
         }
         
         if(isset($requests[$socketID])) {
-            if(!in_array($requestSocket, $listenSocketsOrig, true) && $requestObject->getAnswerHeader('Connection') == 'keep-alive')
+            if(!in_array($requestSocket, $listenSocketsOrig, true) && $requestObject->answerHeaders["connection"] == 'keep-alive')
                 $listenSocketsOrig[] = $requestSocket;
                
             foreach((array) /* .UPLOADED_FILES */ as $file)
@@ -982,7 +991,7 @@
         		foreach($functionResults as $result)
         			$total += $result;
         
-        		out('Benchmark of function ' . $function . '(): ' . count($functionResults) . ' calls' . ( $functionResults ? ' - ' . (min($functionResults) * 1000) . ' ms min - ' . ($total / count($functionResults) * 1000) . ' ms ave - ' . (max($functionResults) * 1000) . ' ms max - ' . ($total * 1000) . ' ms total' : "") , /* .constant 'Pancake\REQUEST' */);
+        		out('Benchmark of function ' . $function . '(): ' . count($functionResults) . ' calls' . ( $functionResults ? ' - ' . (min($functionResults) * 1000) . ' ms min - ' . ($total / count($functionResults) * 1000) . ' ms ave - ' . (max($functionResults) * 1000) . ' ms max - ' . ($total * 1000) . ' ms total' : "") , OUTPUT_DEBUG | OUTPUT_SYSTEM | OUTPUT_LOG);
         		unset($total);
         	}
         	 
@@ -999,7 +1008,7 @@
             exit;
         }
         #.endif
-        
+
         clean:
         
         #.if #.call 'Pancake\Config::get' 'main.maxconcurrent'
@@ -1027,6 +1036,11 @@
         #.endif
         )
         	goto cycle;
+        
+        if(isset($doShutdown)
+        && !$requests) {
+        	break;
+        }
         
         $listenSockets = $listenSocketsOrig;
         $liveWriteSockets = $liveWriteSocketsOrig;
