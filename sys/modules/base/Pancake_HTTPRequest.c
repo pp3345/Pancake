@@ -374,13 +374,13 @@ PHP_METHOD(HTTPRequest, init) {
 		for(zend_hash_internal_pointer_reset(Z_ARRVAL_P(rewriteRules));
 			zend_hash_get_current_data(Z_ARRVAL_P(rewriteRules), (void**) &rewriteRule) == SUCCESS;
 			zend_hash_move_forward(Z_ARRVAL_P(rewriteRules))) {
-			zval *value;
+			zval **value;
 
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "if", sizeof("if"), 193494708, (void**) &value) == SUCCESS) {
 				pcre_cache_entry *pcre;
 				zval *pcre_retval;
 
-				if((pcre = pcre_get_compiled_regex_cache(Z_STRVAL_P(value), Z_STRLEN_P(value) TSRMLS_CC)) == NULL) {
+				if((pcre = pcre_get_compiled_regex_cache(Z_STRVAL_PP(value), Z_STRLEN_PP(value) TSRMLS_CC)) == NULL) {
 					continue;
 				}
 
@@ -393,24 +393,24 @@ PHP_METHOD(HTTPRequest, init) {
 			}
 
 			if(		(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "location", sizeof("location"), 249896952137776350, (void**) &value) == SUCCESS
-					&& strncmp(Z_STRVAL_P(value), firstLine[1], Z_STRLEN_P(value)) != 0)
+					&& strncmp(Z_STRVAL_PP(value), firstLine[1], Z_STRLEN_PP(value)) != 0)
 			||		(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "precondition", sizeof("precondition"), 17926165567001274195, (void**) &value) == SUCCESS
-					&& (	Z_TYPE_P(value) != IS_LONG
-						||	(	Z_LVAL_P(value) == 404
+					&& (	Z_TYPE_PP(value) != IS_LONG
+						||	(	Z_LVAL_PP(value) == 404
 							&&	virtual_access(filePath, F_OK TSRMLS_CC) == 0)
-						||	(	Z_LVAL_P(value) == 403
+						||	(	Z_LVAL_PP(value) == 403
 							&&	(	virtual_access(filePath, F_OK TSRMLS_CC) == -1
 								||	virtual_access(filePath, R_OK TSRMLS_CC) == 0))))) {
 				continue;
 			}
 
-			zval *value2;
+			zval **value2;
 
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "pattern", sizeof("pattern"), 7572787993791075, (void**) &value) == SUCCESS
 			&& zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "replace", sizeof("replace"), 7572878230359585, (void**) &value2) == SUCCESS) {
 				char *result;
 
-				result = php_pcre_replace(Z_STRVAL_P(value), Z_STRLEN_P(value), firstLine[1], sizeof(firstLine[1]) - 1, value2, 0, NULL, -1, NULL);
+				result = php_pcre_replace(Z_STRVAL_PP(value), Z_STRLEN_PP(value), firstLine[1], sizeof(firstLine[1]) - 1, *value2, 0, NULL, -1, NULL);
 
 				if(result != NULL) {
 					*firstLine[1] = *result;
@@ -418,11 +418,11 @@ PHP_METHOD(HTTPRequest, init) {
 			}
 
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "exception", sizeof("exception"), 8246287202855534580, (void**) &value) == SUCCESS
-			&& Z_TYPE_P(value) == IS_LONG) {
+			&& Z_TYPE_PP(value) == IS_LONG) {
 				if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "exceptionmessage", sizeof("exceptionmessage") - 1, 14507601710368331673, (void**) &value2) == SUCCESS) {
-					PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL(Z_STRVAL_P(value2), Z_STRLEN_P(value2), Z_LVAL_P(value), requestHeader, requestHeader_len);
+					PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL(Z_STRVAL_PP(value2), Z_STRLEN_PP(value2), Z_LVAL_PP(value), requestHeader, requestHeader_len);
 				} else {
-					PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("The server was unable to process your request", Z_LVAL_P(value), requestHeader, requestHeader_len);
+					PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("The server was unable to process your request", Z_LVAL_PP(value), requestHeader, requestHeader_len);
 				}
 
 				efree(filePath);
@@ -433,7 +433,7 @@ PHP_METHOD(HTTPRequest, init) {
 			}
 
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "destination", sizeof("destination"), 15010265353095908391, (void**) &value) == SUCCESS) {
-				PancakeSetAnswerHeader(this_ptr, "location", sizeof("location"), value, 1, 249896952137776350);
+				PancakeSetAnswerHeader(this_ptr, "location", sizeof("location"), *value, 1, 249896952137776350);
 				PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("Redirecting...", 301);
 				efree(filePath);
 				efree(firstLine);
@@ -446,7 +446,7 @@ PHP_METHOD(HTTPRequest, init) {
 				pcre_cache_entry *pcre;
 				zval *pcre_retval, *matches;
 
-				if((pcre = pcre_get_compiled_regex_cache(Z_STRVAL_P(value), Z_STRLEN_P(value) TSRMLS_CC)) == NULL) {
+				if((pcre = pcre_get_compiled_regex_cache(Z_STRVAL_PP(value), Z_STRLEN_PP(value) TSRMLS_CC)) == NULL) {
 					continue;
 				}
 
@@ -869,7 +869,7 @@ PHP_METHOD(HTTPRequest, invalidRequest) {
 		if(!strncmp(contents, "<?php", 5)) {
 			eval = &contents[5];
 		} else {
-			strcat(eval, contents);
+			strcat(eval, contents); // !
 		}
 
 		char *description = zend_make_compiled_string_description(useDefaultHandler ? "Pancake Exception Page Handler" : Z_STRVAL_P(exceptionPageHandler) TSRMLS_CC);
