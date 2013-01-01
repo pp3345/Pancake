@@ -198,7 +198,7 @@
     		$Pancake_vHosts[$address] = $vHost;
     }
     
-    setThread($Pancake_currentThread, vHostInterface::$defaultvHost, $Pancake_vHosts, /* .constant 'POST_MAX_SIZE' */);
+    setThread($Pancake_currentThread, vHostInterface::$defaultvHost, $Pancake_vHosts, /* .constant 'POST_MAX_SIZE' */, /* .constant 'SUPPORT_AUTHENTICATION' */);
     
     unset($id, $vHost, $address);
     

@@ -611,85 +611,87 @@ PHP_METHOD(HTTPRequest, init) {
 		}
 	}
 
-	zval *callArray, authData, *arg;
+	if(PANCAKE_GLOBALS(enableAuthentication)) {
+		zval *callArray, authData, *arg;
 
-	MAKE_STD_ZVAL(callArray);
-	array_init(callArray);
-	add_next_index_zval(callArray, *vHost);
-	add_next_index_string(callArray, "requiresAuthentication", 1);
+		MAKE_STD_ZVAL(callArray);
+		array_init(callArray);
+		add_next_index_zval(callArray, *vHost);
+		add_next_index_string(callArray, "requiresAuthentication", 1);
 
-	MAKE_STD_ZVAL(arg);
-	arg->type = IS_STRING;
-	arg->value.str.val = estrdup(requestFilePath);
-	arg->value.str.len = strlen(requestFilePath);
+		MAKE_STD_ZVAL(arg);
+		arg->type = IS_STRING;
+		arg->value.str.val = estrdup(requestFilePath);
+		arg->value.str.len = strlen(requestFilePath);
 
-	if(call_user_function(CG(function_table), NULL, callArray, &authData, 1, &arg TSRMLS_CC) == FAILURE) {
+		if(call_user_function(CG(function_table), NULL, callArray, &authData, 1, &arg TSRMLS_CC) == FAILURE) {
+			zval_dtor(callArray);
+			zval_dtor(arg);
+			efree(callArray);
+			efree(arg);
+			efree(firstLine);
+			efree(requestLine);
+
+			// Let's throw a 500 for safety
+			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("An internal server error occured while trying to handle your request", 500, requestHeader, requestHeader_len);
+			return;
+		}
+
 		zval_dtor(callArray);
 		zval_dtor(arg);
 		efree(callArray);
 		efree(arg);
-		efree(firstLine);
-		efree(requestLine);
 
-		// Let's throw a 500 for safety
-		PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("An internal server error occured while trying to handle your request", 500, requestHeader, requestHeader_len);
-		return;
-	}
-
-	zval_dtor(callArray);
-	zval_dtor(arg);
-	efree(callArray);
-	efree(arg);
-
-	if(Z_TYPE(authData) == IS_ARRAY) {
-		if(authorization != NULL) {
-			strtok(authorization, " ");
-			authorization = strtok(NULL, " ");
-
+		if(Z_TYPE(authData) == IS_ARRAY) {
 			if(authorization != NULL) {
-				char **userPassword = ecalloc(2, sizeof(char*));
+				strtok(authorization, " ");
+				authorization = strtok(NULL, " ");
 
-				char decoded = php_base64_decode_ex(authorization, strlen(authorization), NULL, 0);
+				if(authorization != NULL) {
+					char **userPassword = ecalloc(2, sizeof(char*));
 
-				userPassword[0] = strtok(&decoded, ":");
-				userPassword[1] = strtok(NULL, ":");
+					char decoded = php_base64_decode_ex(authorization, strlen(authorization), NULL, 0);
 
-				/*if(userPassword[0] != NULL && userPassword[1] != NULL) {
-					MAKE_STD_ZVAL(callArray);
-					array_init(callArray);
-					add_next_index_zval(callArray, *vHost);
-					add_next_index_string(callArray, "requiresAuthentication", 1);
+					userPassword[0] = strtok(&decoded, ":");
+					userPassword[1] = strtok(NULL, ":");
 
-					zval *arg2, *arg3;
+					/*if(userPassword[0] != NULL && userPassword[1] != NULL) {
+						MAKE_STD_ZVAL(callArray);
+						array_init(callArray);
+						add_next_index_zval(callArray, *vHost);
+						add_next_index_string(callArray, "requiresAuthentication", 1);
 
-					MAKE_STD_ZVAL(arg);
-					arg->type = IS_STRING;
-					arg->value.str.val = requestFilePath;
-					arg->value.str.len = strlen(requestFilePath);
+						zval *arg2, *arg3;
 
-					MAKE_STD_ZVAL(arg2);
-					arg2->type = IS_STRING;
-					arg2->value.str.val = userPassword[0];
-					arg2->value.str.len = strlen(userPassword[0]);
+						MAKE_STD_ZVAL(arg);
+						arg->type = IS_STRING;
+						arg->value.str.val = requestFilePath;
+						arg->value.str.len = strlen(requestFilePath);
 
-					MAKE_STD_ZVAL(arg3);
-					arg3->type = IS_STRING;
-					arg3->value.str.val = userPassword[1];
-					arg3->value.str.len = strlen(userPassword[1]);
+						MAKE_STD_ZVAL(arg2);
+						arg2->type = IS_STRING;
+						arg2->value.str.val = userPassword[0];
+						arg2->value.str.len = strlen(userPassword[0]);
 
-					zval **args[3] = {arg, arg2, arg3};
-					zval retval;
+						MAKE_STD_ZVAL(arg3);
+						arg3->type = IS_STRING;
+						arg3->value.str.val = userPassword[1];
+						arg3->value.str.len = strlen(userPassword[1]);
 
-					if(call_user_function(CG(function_table), NULL, callArray, &retval, 3, &args TSRMLS_CC) == FAILURE) {
-						// Continue here
-					}
-				}*/
+						zval **args[3] = {arg, arg2, arg3};
+						zval retval;
 
-				efree(userPassword);
+						if(call_user_function(CG(function_table), NULL, callArray, &retval, 3, &args TSRMLS_CC) == FAILURE) {
+							// Continue here
+						}
+					}*/
+
+					efree(userPassword);
+				}
 			}
-		}
 
-		//PancakeSetAnswerHeader();
+			//PancakeSetAnswerHeader();
+		}
 	}
 
 	end:;

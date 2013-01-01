@@ -149,6 +149,7 @@ ZEND_BEGIN_MODULE_GLOBALS(PancakeBase)
 	int JIT_SERVER;
 	int JIT_REQUEST;
 	int JIT_POST;
+	int enableAuthentication;
 ZEND_END_MODULE_GLOBALS(PancakeBase)
 extern ZEND_DECLARE_MODULE_GLOBALS(PancakeBase);
 
