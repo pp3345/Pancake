@@ -32,13 +32,13 @@
         	$caseSensitivePaths = array('phppredefinedconstants', 'auth');
         	
         	if(!file_exists(self::PATH) && file_exists(self::EXAMPLE_PATH)) {
-        		out('It seems that Pancake is being started for the first time - Welcome to Pancake!', SYSTEM, false);
-        		out('Using example configuration', SYSTEM, false);
+        		out('It seems that Pancake is being started for the first time - Welcome to Pancake!');
+        		out('Using example configuration');
         		
         		copy(self::EXAMPLE_PATH, self::PATH);
         		
         		if(!file_exists(self::DEFAULT_VHOST_INCLUDE_DIR) && file_exists(self::VHOST_EXAMPLE_PATH)) {
-        			out('Loading example vHost', SYSTEM, false);
+        			out('Loading example vHost');
         			 
         			if(!file_exists(self::DEFAULT_VHOST_INCLUDE_DIR))
         				mkdir(self::DEFAULT_VHOST_INCLUDE_DIR, 0644);
