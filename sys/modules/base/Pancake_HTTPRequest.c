@@ -386,8 +386,7 @@ PHP_METHOD(HTTPRequest, init) {
 
 				php_pcre_match_impl(pcre, firstLine[1], sizeof(firstLine[1]) - 1,  pcre_retval, NULL, 0, 0, 0, 0 TSRMLS_CC);
 
-				if(Z_TYPE_P(pcre_retval) != IS_LONG
-				|| Z_LVAL_P(pcre_retval) == 0) {
+				if(Z_LVAL_P(pcre_retval) == 0) {
 					continue;
 				}
 			}
@@ -483,9 +482,12 @@ PHP_METHOD(HTTPRequest, init) {
 		requestFilePath =  strchr(requestFilePath, '/');
 	}
 
+	requestFilePath = estrdup(requestFilePath);
+
 	if(requestFilePath[0] != '/') {
 		char *requestFilePath_c = estrdup(requestFilePath);
-		sprintf(requestFilePath, "/%s", requestFilePath_c);
+		efree(requestFilePath);
+		spprintf(requestFilePath, 0, "/%s", requestFilePath_c);
 		efree(requestFilePath_c);
 	}
 
@@ -494,6 +496,7 @@ PHP_METHOD(HTTPRequest, init) {
 		efree(host);
 		efree(firstLine);
 		efree(requestLine);
+		efree(requestFilePath);
 		return;
 	}
 
@@ -519,6 +522,7 @@ PHP_METHOD(HTTPRequest, init) {
 				efree(host);
 				efree(firstLine);
 				efree(requestLine);
+				efree(requestFilePath);
 				return;
 			}
 
@@ -538,6 +542,7 @@ PHP_METHOD(HTTPRequest, init) {
 					efree(filePath);
 					spprintf(&filePath, 0, "%s%s%s", documentRoot, requestFilePath, Z_STRVAL_PP(indexFile));
 					if(!virtual_access(filePath, F_OK | R_OK)) {
+						requestFilePath = erealloc(requestFilePath, (strlen(requestFilePath) + Z_STRLEN_PP(indexFile) - 1) * sizeof(char));
 						strcat(requestFilePath, Z_STRVAL_PP(indexFile));
 						goto checkRead;
 					}
@@ -551,6 +556,7 @@ PHP_METHOD(HTTPRequest, init) {
 				efree(filePath);
 				efree(firstLine);
 				efree(requestLine);
+				efree(requestFilePath);
 				return;
 			}
 		// end is_dir
@@ -564,6 +570,7 @@ PHP_METHOD(HTTPRequest, init) {
 				filePath_len = spprintf(&filePath, 0, "%s%s.gz", documentRoot, requestFilePath);
 				if(!virtual_access(filePath, F_OK | R_OK)) {
 					mimeType = PancakeMIMEType(filePath, filePath_len TSRMLS_CC);
+					efree(requestFilePath);
 					requestFilePath = filePath;
 
 					zval *gzipStr;
@@ -590,6 +597,7 @@ PHP_METHOD(HTTPRequest, init) {
 			efree(filePath);
 			efree(firstLine);
 			efree(requestLine);
+			efree(requestFilePath);
 			return;
 		}
 
@@ -598,6 +606,7 @@ PHP_METHOD(HTTPRequest, init) {
 			efree(filePath);
 			efree(firstLine);
 			efree(requestLine);
+			efree(requestFilePath);
 			return;
 		}
 
@@ -607,6 +616,7 @@ PHP_METHOD(HTTPRequest, init) {
 			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("File was modified since requested time.", 412, requestHeader, requestHeader_len);
 			efree(firstLine);
 			efree(requestLine);
+			efree(requestFilePath);
 			return;
 		}
 	}
@@ -620,9 +630,9 @@ PHP_METHOD(HTTPRequest, init) {
 		add_next_index_string(callArray, "requiresAuthentication", 1);
 
 		MAKE_STD_ZVAL(arg);
-		arg->type = IS_STRING;
-		arg->value.str.val = estrdup(requestFilePath);
-		arg->value.str.len = strlen(requestFilePath);
+		Z_TYPE_P(arg) = IS_STRING;
+		Z_STRLEN_P(arg) = strlen(requestFilePath);
+		Z_STRVAL_P(arg) = estrndup(requestFilePath, Z_STRLEN_P(arg));
 
 		if(call_user_function(CG(function_table), NULL, callArray, &authData, 1, &arg TSRMLS_CC) == FAILURE) {
 			zval_dtor(callArray);
@@ -631,12 +641,12 @@ PHP_METHOD(HTTPRequest, init) {
 			efree(arg);
 			efree(firstLine);
 			efree(requestLine);
+			efree(requestFilePath);
 
 			// Let's throw a 500 for safety
 			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("An internal server error occured while trying to handle your request", 500, requestHeader, requestHeader_len);
 			return;
 		}
-
 		zval_dtor(callArray);
 		zval_dtor(arg);
 		efree(callArray);
@@ -710,6 +720,7 @@ PHP_METHOD(HTTPRequest, init) {
 
 	efree(firstLine);
 	efree(requestLine);
+	efree(requestFilePath);
 
 	struct timeval tp = {0};
 
