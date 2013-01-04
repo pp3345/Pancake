@@ -542,7 +542,7 @@ PHP_METHOD(HTTPRequest, init) {
 					efree(filePath);
 					spprintf(&filePath, 0, "%s%s%s", documentRoot, requestFilePath, Z_STRVAL_PP(indexFile));
 					if(!virtual_access(filePath, F_OK | R_OK)) {
-						requestFilePath = erealloc(requestFilePath, (strlen(requestFilePath) + Z_STRLEN_PP(indexFile) - 1) * sizeof(char));
+						requestFilePath = erealloc(requestFilePath, (strlen(requestFilePath) + Z_STRLEN_PP(indexFile) + 1) * sizeof(char));
 						strcat(requestFilePath, Z_STRVAL_PP(indexFile));
 						goto checkRead;
 					}
