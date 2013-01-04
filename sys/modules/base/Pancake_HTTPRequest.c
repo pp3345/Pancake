@@ -487,7 +487,7 @@ PHP_METHOD(HTTPRequest, init) {
 	if(requestFilePath[0] != '/') {
 		char *requestFilePath_c = estrdup(requestFilePath);
 		efree(requestFilePath);
-		spprintf(requestFilePath, 0, "/%s", requestFilePath_c);
+		spprintf(&requestFilePath, 0, "/%s", requestFilePath_c);
 		efree(requestFilePath_c);
 	}
 
