@@ -198,7 +198,11 @@
     		$Pancake_vHosts[$address] = $vHost;
     }
     
-    setThread($Pancake_currentThread, vHostInterface::$defaultvHost, $Pancake_vHosts, /* .constant 'POST_MAX_SIZE' */, /* .constant 'SUPPORT_AUTHENTICATION' */);
+    #.ifdef 'SUPPORT_AUTHENTICATION'
+        setThread($Pancake_currentThread, vHostInterface::$defaultvHost, $Pancake_vHosts, /* .constant 'POST_MAX_SIZE' */, /* .constant 'SUPPORT_AUTHENTICATION' */);
+    #.else
+        setThread($Pancake_currentThread, vHostInterface::$defaultvHost, $Pancake_vHosts, /* .constant 'POST_MAX_SIZE' */, 0);
+    #.endif
     
     unset($id, $vHost, $address);
     
