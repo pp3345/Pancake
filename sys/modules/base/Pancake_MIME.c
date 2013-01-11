@@ -96,8 +96,6 @@ PHP_METHOD(MIME, load) {
 
 	free:
 	zval_dtor(&retval);
-	zval_dtor(array);
-	zval_dtor(arg);
-	efree(array);
-	efree(arg);
+	zval_ptr_dtor(&array);
+	zval_ptr_dtor(&arg);
 }

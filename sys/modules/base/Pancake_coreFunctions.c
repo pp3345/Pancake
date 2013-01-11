@@ -40,10 +40,8 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 		arg->value.str.len = strlen("main.dateformat");
 
 		if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
-			zval_dtor(array);
-			zval_dtor(arg);
-			efree(array);
-			efree(arg);
+			zval_ptr_dtor(&array);
+			zval_ptr_dtor(&arg);
 			return 0;
 		}
 
@@ -51,10 +49,8 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 			PANCAKE_GLOBALS(dateFormat) = Z_STRVAL(retval);
 		}
 
-		zval_dtor(array);
-		zval_dtor(arg);
-		efree(array);
-		efree(arg);
+		zval_ptr_dtor(&array);
+		zval_ptr_dtor(&arg);
 	}
 
 	char *date = php_format_date(PANCAKE_GLOBALS(dateFormat), strlen(PANCAKE_GLOBALS(dateFormat)), time(NULL), 1 TSRMLS_CC);
@@ -92,10 +88,8 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 				arg->value.str.len = strlen("main.logging.system");
 
 				if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
-					zval_dtor(array);
-					zval_dtor(arg);
-					efree(array);
-					efree(arg);
+					zval_ptr_dtor(&array);
+					zval_ptr_dtor(&arg);
 					efree(outputString);
 					return 0;
 				}
@@ -104,10 +98,8 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 					PANCAKE_GLOBALS(systemLogStream) = fopen(Z_STRVAL(retval), "a+");
 
 				zval_dtor(&retval);
-				zval_dtor(array);
-				zval_dtor(arg);
-				efree(array);
-				efree(arg);
+				zval_ptr_dtor(&array);
+				zval_ptr_dtor(&arg);
 
 				if(PANCAKE_GLOBALS(systemLogStream) == NULL) {
 					char *errorString = "Couldn\'t open file for logging - Check if it exists and is accessible for Pancake";
@@ -137,10 +129,8 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 				Z_STRVAL_P(arg) = estrndup("main.logging.request", Z_STRLEN_P(arg));
 
 				if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
-					zval_dtor(array);
-					zval_dtor(arg);
-					efree(array);
-					efree(arg);
+					zval_ptr_dtor(&array);
+					zval_ptr_dtor(&arg);
 					efree(outputString);
 					return 0;
 				}
@@ -149,10 +139,8 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 					PANCAKE_GLOBALS(requestLogStream) = fopen(Z_STRVAL(retval), "a+");
 
 				zval_dtor(&retval);
-				zval_dtor(array);
-				zval_dtor(arg);
-				efree(array);
-				efree(arg);
+				zval_ptr_dtor(&array);
+				zval_ptr_dtor(&arg);
 
 				if(PANCAKE_GLOBALS(requestLogStream) == NULL) {
 					char *errorString = "Couldn\'t open file for logging - Check if it exists and is accessible for Pancake";
@@ -227,10 +215,8 @@ PHP_FUNCTION(errorHandler)
 			arg->value.str.len = strlen("main.logging.error");
 
 			if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
-				zval_dtor(array);
-				zval_dtor(arg);
-				efree(array);
-				efree(arg);
+				zval_ptr_dtor(&array);
+				zval_ptr_dtor(&arg);
 				efree(errorMessage);
 				RETURN_FALSE;
 			}
@@ -240,10 +226,8 @@ PHP_FUNCTION(errorHandler)
 			}
 
 			zval_dtor(&retval);
-			zval_dtor(array);
-			zval_dtor(arg);
-			efree(array);
-			efree(arg);
+			zval_ptr_dtor(&array);
+			zval_ptr_dtor(&arg);
 		}
 
 		if(PANCAKE_GLOBALS(errorLogStream))
@@ -282,18 +266,15 @@ PHP_FUNCTION(setThread) {
 		arg->value.str.len = strlen("main.allowhead");
 
 		if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
-			zval_dtor(array);
-			zval_dtor(arg);
-			efree(array);
-			efree(arg);
+			zval_ptr_dtor(&array);
+			zval_ptr_dtor(&arg);
 			RETURN_FALSE;
 		}
 
 		if(Z_TYPE(retval) <= IS_BOOL)
 			PANCAKE_GLOBALS(allowHEAD) = Z_LVAL(retval);
 
-		zval_dtor(arg);
-		efree(arg);
+		zval_ptr_dtor(&arg);
 
 		/* Fetch allowTRACE */
 		MAKE_STD_ZVAL(arg);
@@ -302,18 +283,15 @@ PHP_FUNCTION(setThread) {
 		arg->value.str.len = strlen("main.allowtrace");
 
 		if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
-			zval_dtor(array);
-			zval_dtor(arg);
-			efree(array);
-			efree(arg);
+			zval_ptr_dtor(&array);
+			zval_ptr_dtor(&arg);
 			RETURN_FALSE;
 		}
 
 		if(Z_TYPE(retval) <= IS_BOOL)
 			PANCAKE_GLOBALS(allowTRACE) = Z_LVAL(retval);
 
-		zval_dtor(arg);
-		efree(arg);
+		zval_ptr_dtor(&arg);
 
 		/* Fetch allowOPTIONS */
 		MAKE_STD_ZVAL(arg);
@@ -322,18 +300,15 @@ PHP_FUNCTION(setThread) {
 		arg->value.str.len = strlen("main.allowoptions");
 
 		if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
-			zval_dtor(array);
-			zval_dtor(arg);
-			efree(array);
-			efree(arg);
+			zval_ptr_dtor(&array);
+			zval_ptr_dtor(&arg);
 			RETURN_FALSE;
 		}
 
 		if(Z_TYPE(retval) <= IS_BOOL)
 			PANCAKE_GLOBALS(allowOPTIONS) = Z_LVAL(retval);
 
-		zval_dtor(arg);
-		efree(arg);
+		zval_ptr_dtor(&arg);
 	}
 
 	/* Fetch exposePancake */
@@ -343,19 +318,15 @@ PHP_FUNCTION(setThread) {
 	arg->value.str.len = strlen("main.exposepancake");
 
 	if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
-		zval_dtor(array);
-		zval_dtor(arg);
-		efree(array);
-		efree(arg);
+		zval_ptr_dtor(&array);
+		zval_ptr_dtor(&arg);
 		RETURN_FALSE;
 	}
 
 	PANCAKE_GLOBALS(exposePancake) = Z_LVAL(retval);
 
-	zval_dtor(arg);
-	efree(arg);
-	zval_dtor(array);
-	efree(array);
+	zval_ptr_dtor(&arg);
+	zval_ptr_dtor(&array);
 
 	MAKE_STD_ZVAL(PANCAKE_GLOBALS(pancakeVersionString));
 	PANCAKE_GLOBALS(pancakeVersionString)->type = IS_STRING;

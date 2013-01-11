@@ -660,10 +660,8 @@ PHP_METHOD(HTTPRequest, init) {
 		Z_STRVAL_P(arg) = estrndup(requestFilePath, Z_STRLEN_P(arg));
 
 		if(call_user_function(CG(function_table), NULL, callArray, &authData, 1, &arg TSRMLS_CC) == FAILURE) {
-			zval_dtor(callArray);
-			zval_dtor(arg);
-			efree(callArray);
-			efree(arg);
+			zval_ptr_dtor(&callArray);
+			zval_ptr_dtor(&arg);
 			efree(firstLine);
 			efree(requestLine);
 			efree(requestFilePath);
@@ -673,10 +671,8 @@ PHP_METHOD(HTTPRequest, init) {
 			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("An internal server error occured while trying to handle your request", 500, requestHeader, requestHeader_len);
 			return;
 		}
-		zval_dtor(callArray);
-		zval_dtor(arg);
-		efree(callArray);
-		efree(arg);
+		zval_ptr_dtor(&callArray);
+		zval_ptr_dtor(&arg);
 
 		if(Z_TYPE(authData) == IS_ARRAY) {
 			if(authorization != NULL) {
@@ -1002,8 +998,7 @@ zval *PancakeProcessQueryString(zval *destination, zval *queryString, const char
 		}
 
 		if(!strlen(part) && !Z_STRLEN_P(zvalue)) {
-			zval_dtor(zvalue);
-			efree(zvalue);
+			zval_ptr_dtor(&zvalue);
 			continue;
 		}
 
@@ -1023,8 +1018,7 @@ zval *PancakeProcessQueryString(zval *destination, zval *queryString, const char
 
 			add_assoc_zval(array, part, zvalue);
 			php_array_merge(Z_ARRVAL_P(destination), Z_ARRVAL_P(array), 1 TSRMLS_CC);
-			zval_dtor(array);
-			efree(array);
+			zval_ptr_dtor(&array);
 		} else {
 			add_assoc_zval(destination, part, zvalue);
 		}
@@ -1358,35 +1352,29 @@ PHP_METHOD(HTTPRequest, __destruct) {
 	/* Free memory */
 	zval *requestHeaderArray = zend_read_property(HTTPRequest_ce, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, 1);
 	if(Z_TYPE_P(requestHeaderArray) == IS_ARRAY) {
-		zval_dtor(requestHeaderArray);
-		efree(requestHeaderArray);
+		zval_ptr_dtor(&requestHeaderArray);
 	}
 
 	zval *answerHeaderArray = zend_read_property(HTTPRequest_ce, this_ptr, "answerHeaders", sizeof("answerHeaders") - 1, 1);
-	zval_dtor(answerHeaderArray);
-	efree(answerHeaderArray);
+	zval_ptr_dtor(&answerHeaderArray);
 
 	zval *acceptedCompressions = zend_read_property(HTTPRequest_ce, this_ptr, "acceptedCompressions", sizeof("acceptedCompressions") - 1, 1);
 	if(Z_TYPE_P(acceptedCompressions) == IS_ARRAY) {
-		zval_dtor(acceptedCompressions);
-		efree(acceptedCompressions);
+		zval_ptr_dtor(&acceptedCompressions);
 	}
 
 	zval *GETParameters = zend_read_property(HTTPRequest_ce, this_ptr, "GETParameters", sizeof("GETParameters") - 1, 1);
 	if(Z_TYPE_P(GETParameters) == IS_ARRAY) {
-		zval_dtor(GETParameters);
-		efree(GETParameters);
+		zval_ptr_dtor(&GETParameters);
 	}
 
 	zval *cookies = zend_read_property(HTTPRequest_ce, this_ptr, "cookies", sizeof("cookies") - 1, 1);
 	if(Z_TYPE_P(cookies) == IS_ARRAY) {
-		zval_dtor(cookies);
-		efree(cookies);
+		zval_ptr_dtor(&cookies);
 	}
 
 	zval *POSTParameters = zend_read_property(HTTPRequest_ce, this_ptr, "POSTParameters", sizeof("POSTParameters") - 1, 1);
 	if(Z_TYPE_P(POSTParameters) == IS_ARRAY) {
-		zval_dtor(POSTParameters);
-		efree(POSTParameters);
+		zval_ptr_dtor(&POSTParameters);
 	}
 }

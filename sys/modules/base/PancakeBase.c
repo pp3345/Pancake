@@ -245,29 +245,21 @@ PHP_RSHUTDOWN_FUNCTION(PancakeBase)
 		zend_hash_destroy(PANCAKE_GLOBALS(mimeTable));
 		FREE_HASHTABLE(PANCAKE_GLOBALS(mimeTable));
 
-		zval_dtor(PANCAKE_GLOBALS(defaultMimeType));
-		efree(PANCAKE_GLOBALS(defaultMimeType));
+		zval_ptr_dtor(&PANCAKE_GLOBALS(defaultMimeType));
 	}
 
 	if(PANCAKE_GLOBALS(pancakeVersionString)) {
-		zval_dtor(PANCAKE_GLOBALS(pancakeVersionString));
-		efree(PANCAKE_GLOBALS(pancakeVersionString));
-
-		zval_dtor(PANCAKE_GLOBALS(defaultContentType));
-		efree(PANCAKE_GLOBALS(defaultContentType));
+		zval_ptr_dtor(&PANCAKE_GLOBALS(pancakeVersionString));
+		zval_ptr_dtor(&PANCAKE_GLOBALS(defaultContentType));
 	}
 
 	if(PANCAKE_GLOBALS(virtualHostArray)) {
-		zval_dtor(PANCAKE_GLOBALS(virtualHostArray));
-		efree(PANCAKE_GLOBALS(virtualHostArray));
-
-		zval_dtor(PANCAKE_GLOBALS(defaultVirtualHost));
-		efree(PANCAKE_GLOBALS(defaultVirtualHost));
+		zval_ptr_dtor(&PANCAKE_GLOBALS(virtualHostArray));
+		zval_ptr_dtor(&PANCAKE_GLOBALS(defaultVirtualHost));
 	}
 
 	if(PANCAKE_GLOBALS(currentThread)) {
-		zval_dtor(PANCAKE_GLOBALS(currentThread));
-		efree(PANCAKE_GLOBALS(currentThread));
+		zval_ptr_dtor(&PANCAKE_GLOBALS(currentThread));
 	}
 
 	if(strlen(PANCAKE_GLOBALS(dateFormat))) {
