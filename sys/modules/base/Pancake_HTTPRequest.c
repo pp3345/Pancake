@@ -359,22 +359,30 @@ PHP_METHOD(HTTPRequest, init) {
 	}
 
 	char *documentRoot = Z_STRVAL_P(zend_read_property(HTTPRequest_ce, *vHost, "documentRoot", sizeof("documentRoot") - 1, 0 TSRMLS_CC));
-	char *filePath;
-	int filePath_len;
-	spprintf(&filePath, 0, "%s%s", documentRoot, firstLine[1]);
 
 	zend_update_property_string(HTTPRequest_ce, this_ptr, "originalRequestURI", sizeof("originalRequestURI") - 1, firstLine[1] TSRMLS_CC);
 
 	/* Apply rewrite rules */
 	zval *rewriteRules = zend_read_property(HTTPRequest_ce, *vHost, "rewriteRules", sizeof("rewriteRules") - 1, 0 TSRMLS_CC);
 
+	int fL1isMalloced = 0;
+
 	if(Z_TYPE_P(rewriteRules) == IS_ARRAY) {
 		zval **rewriteRule;
+		char *path = NULL;
+		char *queryStringStart;
 
 		for(zend_hash_internal_pointer_reset(Z_ARRVAL_P(rewriteRules));
 			zend_hash_get_current_data(Z_ARRVAL_P(rewriteRules), (void**) &rewriteRule) == SUCCESS;
 			zend_hash_move_forward(Z_ARRVAL_P(rewriteRules))) {
 			zval **value;
+
+			if(path != NULL) {
+				efree(path);
+			}
+			spprintf(&path, ((queryStringStart = strchr(firstLine[1], '?')) != NULL)
+									? strlen(documentRoot) + (firstLine[1] - queryStringStart)
+									: 0, "%s%s", documentRoot, firstLine[1]);
 
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "if", sizeof("if"), 193494708, (void**) &value) == SUCCESS) {
 				pcre_cache_entry *pcre;
@@ -396,10 +404,10 @@ PHP_METHOD(HTTPRequest, init) {
 			||		(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "precondition", sizeof("precondition"), 17926165567001274195, (void**) &value) == SUCCESS
 					&& (	Z_TYPE_PP(value) != IS_LONG
 						||	(	Z_LVAL_PP(value) == 404
-							&&	virtual_access(filePath, F_OK TSRMLS_CC) == 0)
+							&&	virtual_access(path, F_OK TSRMLS_CC) == 0)
 						||	(	Z_LVAL_PP(value) == 403
-							&&	(	virtual_access(filePath, F_OK TSRMLS_CC) == -1
-								||	virtual_access(filePath, R_OK TSRMLS_CC) == 0))))) {
+							&&	(	virtual_access(path, F_OK TSRMLS_CC) == -1
+								||	virtual_access(path, R_OK TSRMLS_CC) == 0))))) {
 				continue;
 			}
 
@@ -408,11 +416,14 @@ PHP_METHOD(HTTPRequest, init) {
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "pattern", sizeof("pattern"), 7572787993791075, (void**) &value) == SUCCESS
 			&& zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "replace", sizeof("replace"), 7572878230359585, (void**) &value2) == SUCCESS) {
 				char *result;
+				int result_len;
 
-				result = php_pcre_replace(Z_STRVAL_PP(value), Z_STRLEN_PP(value), firstLine[1], sizeof(firstLine[1]) - 1, *value2, 0, NULL, -1, NULL);
+				result = php_pcre_replace(Z_STRVAL_PP(value), Z_STRLEN_PP(value), firstLine[1], strlen(firstLine[1]), *value2, 0, &result_len, -1, NULL TSRMLS_CC);
 
 				if(result != NULL) {
-					*firstLine[1] = *result;
+					fL1isMalloced = 1;
+					firstLine[1] = estrndup(result, result_len);
+					efree(result);
 				}
 			}
 
@@ -424,7 +435,7 @@ PHP_METHOD(HTTPRequest, init) {
 					PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("The server was unable to process your request", Z_LVAL_PP(value), requestHeader, requestHeader_len);
 				}
 
-				efree(filePath);
+				if(fL1isMalloced) efree(firstLine[1]);
 				efree(firstLine);
 				efree(host);
 				efree(requestLine);
@@ -434,7 +445,7 @@ PHP_METHOD(HTTPRequest, init) {
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "destination", sizeof("destination"), 15010265353095908391, (void**) &value) == SUCCESS) {
 				PancakeSetAnswerHeader(this_ptr, "location", sizeof("location"), *value, 1, 249896952137776350);
 				PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("Redirecting...", 301);
-				efree(filePath);
+				if(fL1isMalloced) efree(firstLine[1]);
 				efree(firstLine);
 				efree(host);
 				efree(requestLine);
@@ -461,14 +472,16 @@ PHP_METHOD(HTTPRequest, init) {
 					}
 
 					zend_hash_index_find(Z_ARRVAL_P(matches), 1, (void**) &match);
-
+					if(fL1isMalloced) efree(firstLine[1]);
 					firstLine[1] = Z_STRVAL_PP(match);
 				}
 			}
 		}
-	}
 
-	efree(filePath);
+		if(path != NULL) {
+			efree(path);
+		}
+	}
 
 	zend_update_property_string(HTTPRequest_ce, this_ptr, "requestURI", sizeof("requestURI") - 1, firstLine[1] TSRMLS_CC);
 
@@ -476,6 +489,10 @@ PHP_METHOD(HTTPRequest, init) {
 
 	requestFilePath = strtok_r(firstLine[1], "?", &uriptr);
 	queryString = strtok_r(NULL, "?", &uriptr);
+	if(queryString != NULL)
+		queryString = estrdup(queryString);
+	else
+		queryString = estrndup("", 0);
 
 	if(!strncasecmp("http://", requestFilePath, 7)) {
 		requestFilePath = &requestFilePath[7];
@@ -483,6 +500,7 @@ PHP_METHOD(HTTPRequest, init) {
 	}
 
 	requestFilePath = estrdup(requestFilePath);
+	if(fL1isMalloced) { efree(firstLine[1]); }
 
 	if(requestFilePath[0] != '/') {
 		char *requestFilePath_c = estrdup(requestFilePath);
@@ -501,6 +519,8 @@ PHP_METHOD(HTTPRequest, init) {
 	}
 
 	zval *mimeType = NULL;
+	char *filePath;
+	int filePath_len;
 
 	if(Z_TYPE_P(zend_read_property(HTTPRequest_ce, *vHost, "AJP13", sizeof("AJP13") - 1, 1 TSRMLS_CC)) != IS_OBJECT) {
 		struct stat st;
@@ -523,6 +543,7 @@ PHP_METHOD(HTTPRequest, init) {
 				efree(firstLine);
 				efree(requestLine);
 				efree(requestFilePath);
+				efree(queryString);
 				return;
 			}
 
@@ -557,6 +578,7 @@ PHP_METHOD(HTTPRequest, init) {
 				efree(firstLine);
 				efree(requestLine);
 				efree(requestFilePath);
+				efree(queryString);
 				return;
 			}
 		// end is_dir
@@ -598,6 +620,7 @@ PHP_METHOD(HTTPRequest, init) {
 			efree(firstLine);
 			efree(requestLine);
 			efree(requestFilePath);
+			efree(queryString);
 			return;
 		}
 
@@ -607,6 +630,7 @@ PHP_METHOD(HTTPRequest, init) {
 			efree(firstLine);
 			efree(requestLine);
 			efree(requestFilePath);
+			efree(queryString);
 			return;
 		}
 
@@ -617,6 +641,7 @@ PHP_METHOD(HTTPRequest, init) {
 			efree(firstLine);
 			efree(requestLine);
 			efree(requestFilePath);
+			efree(queryString);
 			return;
 		}
 	}
@@ -642,6 +667,7 @@ PHP_METHOD(HTTPRequest, init) {
 			efree(firstLine);
 			efree(requestLine);
 			efree(requestFilePath);
+			efree(queryString);
 
 			// Let's throw a 500 for safety
 			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("An internal server error occured while trying to handle your request", 500, requestHeader, requestHeader_len);
@@ -721,6 +747,7 @@ PHP_METHOD(HTTPRequest, init) {
 	efree(firstLine);
 	efree(requestLine);
 	efree(requestFilePath);
+	efree(queryString);
 
 	struct timeval tp = {0};
 
