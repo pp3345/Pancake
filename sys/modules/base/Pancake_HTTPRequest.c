@@ -49,6 +49,7 @@ PANCAKE_API void PancakeSetAnswerHeader(zval *answerHeaderArray, char *name, uin
 
 	if(zend_hash_quick_find(Z_ARRVAL_P(answerHeaderArray), name, name_len, h, (void**) &answerHeader) == SUCCESS) {
 		if(replace) {
+			Z_ADDREF_P(value);
 			zend_hash_quick_update(Z_ARRVAL_P(answerHeaderArray), name, name_len, h, (void*) &value, sizeof(zval*), NULL);
 			return;
 		}
