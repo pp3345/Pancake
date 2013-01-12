@@ -262,7 +262,7 @@
     $Pancake_currentThread->parentSignal(/* .constant 'SIGUSR1' */);
     
     // Set blocking for signals
-    pcntl_sigprocmask(SIG_BLOCK, array(SIGINT));
+    pcntl_sigprocmask(/* .constant 'SIG_BLOCK' */, array(/* .constant 'SIGINT' */, /* .constant 'SIGHUP' */));
     
     // Set user and group
     setUser();
