@@ -319,7 +319,7 @@
             $thread = new PHPWorker($vHost);
             if(isset($Pancake_currentThread)) {
                 require $thread->codeFile;
-                exit;
+                goto do_exit;
             }
             if(Config::get('main.waitphpworkerboot')) {
 	            pcntl_sigtimedwait(array(\SIGUSR1), $x, Config::get('main.workerboottime'));
@@ -387,7 +387,7 @@
                     $thread->start(false);
                     if(isset($Pancake_currentThread)) {
                         require $thread->codeFile;
-                        exit;
+                        break 2;
                     }
                 } else if($thread->start() === "THREAD_EXIT")
                 	break 2;

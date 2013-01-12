@@ -301,6 +301,8 @@
         #.endif
         public static $resetSessionSaveHandler = false;
         public static $tickFunctions = array();
+        public static $listenArray = array();
+        public static $listenArrayOrig = array();
     }
     
 ?>

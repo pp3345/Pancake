@@ -252,12 +252,29 @@
 	    #.endif
 	    	
 	    ExecuteJITGlobals();
-	    	
+	    
+        vars::$listenArray = vars::$listenArrayOrig = array(vars::$Pancake_currentThread->vHost->phpSocket, vars::$Pancake_currentThread->socket);
+        
+        // Set blocking for signals
+        pcntl_sigprocmask(/* .constant 'SIG_BLOCK' */, array(/* .constant 'SIGINT' */, /* .constant 'SIGHUP' */));
+        
 	    // Set user and group
 	    setUser();
 
 	    // Wait for requests
-	    while(vars::$requestSocket = socket_accept(vars::$Pancake_currentThread->vHost->phpSocket)) {
+	    while(socket_select(vars::$listenArray, $x, $x, null) !== false) {
+            if(current(vars::$listenArray) == vars::$Pancake_currentThread->socket) {
+                echo "YES\n";
+                switch(socket_read(vars::$Pancake_currentThread->socket, 512)) {
+                    case "GRACEFUL_SHUTDOWN":
+                        break 2;
+                    case "LOAD_FILE_POINTERS":
+                        loadFilePointers();
+                        goto cycle;
+                }
+            }
+            
+            vars::$requestSocket = socket_accept(vars::$listenArray[0]);
 	    	socket_set_block(vars::$requestSocket);
 	    	
 	    	// Get request object from RequestWorker
@@ -852,6 +869,10 @@
 		        	unset($results);
 		        }
 	        #.endif
+	        
+	        cycle:
+	        
+	        $listenArray = $listenArrayOrig;
 	    }
     }
 ?>

@@ -43,11 +43,8 @@
             
             if(!$worker->running)
                 continue;
-            if($worker instanceof RequestWorker) {
-            	socket_write($worker->localSocket, "GRACEFUL_SHUTDOWN");
-            	unlink($worker->socketName);
-            } else
-            	$worker->stop();
+            socket_write($worker->localSocket, "GRACEFUL_SHUTDOWN");
+            unlink($worker->socketName);
             $worker->waitForExit();
         }
         

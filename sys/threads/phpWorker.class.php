@@ -20,6 +20,9 @@
         static private $codeProcessed = array();
         public $id = 0;
         public $IPCid = 0;
+        public $socket = null;
+        public $socketName = "";
+        public $localSocket = null;
         
         /**
          * 
@@ -73,6 +76,14 @@
             
             $this->codeFile = 'compilecache/phpWorker.thread.' . $vHost->name . '.cphp';
             $this->friendlyName = 'PHPWorker #'.($this->id+1).' ("'.$this->vHost->name.'")';
+                        
+            $this->socketName = Config::get('main.tmppath') . mt_rand() . "_phpworker_local";
+            $this->socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
+            socket_bind($this->socket, $this->socketName);
+            socket_listen($this->socket);
+            $this->localSocket = socket_create(AF_UNIX, SOCK_STREAM, 0);
+            socket_connect($this->localSocket, $this->socketName);
+            $this->socket = socket_accept($this->socket);
             
             // Start worker
             $this->start(false);

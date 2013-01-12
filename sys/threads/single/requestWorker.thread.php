@@ -144,7 +144,6 @@
     global $Pancake_vHosts;
     
     // Precalculate post_max_size in bytes
-    // It is impossible to keep this in a more readable way thanks to the nice Zend Tokenizer
    	#.define 'POST_MAX_SIZE' #.eval '$size = strtolower(ini_get("post_max_size")); if(strpos($size, "k")) $size = (int) $size * 1024; else if(strpos($size, "m")) $size = (int) $size * 1024 * 1024; else if(strpos($size, "g")) $size = (int) $size * 1024 * 1024 * 1024; return $size;' false
     
     #.ifdef 'SUPPORT_TLS'
