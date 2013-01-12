@@ -110,6 +110,9 @@
     // Load configuration
     Config::load();
     
+    // Open log files
+    loadFilePointers();
+    
     // Remove some PHP-functions and -constants in order to provide ability to run PHP under Pancake
     dt_remove_function('php_sapi_name');
     dt_remove_function('setcookie');
@@ -363,11 +366,11 @@
     gc_collect_cycles();
     
     // Set blocking mode for some signals
-    pcntl_sigprocmask(\SIG_BLOCK, array(\SIGCHLD, \SIGINT, \SIGUSR2, \SIGTERM));
+    pcntl_sigprocmask(\SIG_BLOCK, array(\SIGCHLD, \SIGINT, \SIGUSR2, \SIGTERM, \SIGHUP));
     
     // Don't do anything except if one of the children died or Pancake gets the signal to shutdown
     while(true) {
-        pcntl_sigwaitinfo(array(\SIGCHLD, \SIGINT, \SIGUSR2, \SIGTERM), $info);
+        pcntl_sigwaitinfo(array(\SIGCHLD, \SIGINT, \SIGUSR2, \SIGTERM, \SIGHUP), $info);
         
         // pcntl_sigwaitinfo() might be interrupted in some cases
         if(!$info)
@@ -392,15 +395,21 @@
                         exit;
                     }
                 } else if($thread->start() === "THREAD_EXIT")
-                	goto do_exit;
+                	break 2;
                 
                 out('New PID of ' . $thread->friendlyName . ': ' . $thread->pid, OUTPUT_DEBUG | OUTPUT_SYSTEM);
-            break;
+                break;
             case \SIGINT:
             case \SIGTERM:
             case \SIGUSR2:
                 abort(true);
             	break 2;
+            case \SIGHUP:
+                loadFilePointers();
+                foreach(Thread::getAll() as $thread) {
+                    if(isset($thread->localSocket))
+                        socket_write($thread->localSocket, "LOAD_FILE_POINTERS");
+                }
         }
         
         unset($info);

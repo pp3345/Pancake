@@ -51,6 +51,7 @@ PHP_FUNCTION(errorHandler);
 PHP_FUNCTION(setThread);
 PHP_FUNCTION(CodeCacheJITGlobals);
 PHP_FUNCTION(ExecuteJITGlobals);
+PHP_FUNCTION(loadFilePointers);
 
 PHP_METHOD(HTTPRequest, __construct);
 PHP_METHOD(HTTPRequest, __destruct);
@@ -78,6 +79,8 @@ zend_bool PancakeJITFetchREQUEST(const char *name, uint name_len TSRMLS_DC);
 zend_bool PancakeJITFetchPOST(const char *name, uint name_len TSRMLS_DC);
 
 zend_bool CodeCacheJITFetch(const char *name, uint name_len TSRMLS_DC);
+
+PANCAKE_API int PancakeLoadFilePointers(TSRMLS_C);
 
 extern zend_class_entry *HTTPRequest_ce;
 extern zend_class_entry *invalidHTTPRequestException_ce;

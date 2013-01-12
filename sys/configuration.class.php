@@ -60,16 +60,16 @@
             
             self::$configuration = arrayIndicesToLower(self::$configuration, $caseSensitivePaths);
             
+            if(!file_exists(self::$configuration['main']['logging']['request']))
+                touch(self::$configuration['main']['logging']['request']);
+            if(!file_exists(self::$configuration['main']['logging']['system']))
+                touch(self::$configuration['main']['logging']['system']);
+            if(!file_exists(self::$configuration['main']['logging']['error']))
+                touch(self::$configuration['main']['logging']['error']);
+            if(!file_exists(self::$configuration['main']['tmppath']))
+                touch(self::$configuration['main']['tmppath']);
+            
             if(isset($firstStart)) {
-            	if(!file_exists(self::$configuration['main']['logging']['request']))
-            		touch(self::$configuration['main']['logging']['request']);
-            	if(!file_exists(self::$configuration['main']['logging']['system']))
-            		touch(self::$configuration['main']['logging']['system']);
-            	if(!file_exists(self::$configuration['main']['logging']['error']))
-            		touch(self::$configuration['main']['logging']['error']);
-            	if(!file_exists(self::$configuration['main']['tmppath']))
-            		touch(self::$configuration['main']['tmppath']);
-            	
             	if(!@posix_getpwnam(self::get('main.user'))) {
             		out('The default user was not found. Trying to create it automatically');
             		exec('useradd --no-create-home --shell /dev/null ' . self::get('main.user'), $x, $returnValue);

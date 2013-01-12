@@ -8,6 +8,113 @@
 
 #include "php_PancakeBase.h"
 
+PANCAKE_API int PancakeLoadFilePointers(TSRMLS_D) {
+	int flushedSystemLogStream = 0;
+	int flushedErrorLogStream = 0;
+	int flushedRequestLogStream = 0;
+	if(PANCAKE_GLOBALS(systemLogStream) != NULL) {
+		flushedSystemLogStream = 1;
+		fclose(PANCAKE_GLOBALS(systemLogStream));
+	}
+	if(PANCAKE_GLOBALS(errorLogStream) != NULL) {
+		flushedErrorLogStream = 1;
+		fclose(PANCAKE_GLOBALS(errorLogStream));
+	}
+	if(PANCAKE_GLOBALS(requestLogStream) != NULL) {
+		flushedRequestLogStream = 1;
+		fclose(PANCAKE_GLOBALS(requestLogStream));
+	}
+
+	zval *array, *arg;
+
+	MAKE_STD_ZVAL(array);
+	array_init(array);
+	add_next_index_string(array, "Pancake\\Config", 1);
+	add_next_index_string(array, "get", 1);
+
+	int i;
+	for(i = 0; i < 3; i++) {
+		FILE **stream;
+
+		MAKE_STD_ZVAL(arg);
+		Z_TYPE_P(arg) = IS_STRING;
+
+		switch(i) {
+			case 0:
+				stream = &PANCAKE_GLOBALS(systemLogStream);
+				Z_STRLEN_P(arg) = sizeof("main.logging.system") - 1;
+				Z_STRVAL_P(arg) = estrndup("main.logging.system", Z_STRLEN_P(arg));
+				break;
+			case 1:
+				stream = &PANCAKE_GLOBALS(errorLogStream);
+				Z_STRLEN_P(arg) = sizeof("main.logging.error") - 1;
+				Z_STRVAL_P(arg) = estrndup("main.logging.error", Z_STRLEN_P(arg));
+				break;
+			case 2:
+				stream = &PANCAKE_GLOBALS(requestLogStream);
+				Z_STRLEN_P(arg) = sizeof("main.logging.request") - 1;
+				Z_STRVAL_P(arg) = estrndup("main.logging.request", Z_STRLEN_P(arg));
+				break;
+		}
+
+		/* Get system log configuration value */
+		zval retval;
+
+		if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
+			zval_ptr_dtor(&array);
+			zval_ptr_dtor(&arg);
+			return 0;
+		}
+
+		if(Z_TYPE(retval) == IS_STRING)
+			*stream = fopen(Z_STRVAL(retval), "a+");
+
+		zval_ptr_dtor(&arg);
+
+		if(*stream == NULL) {
+			char *errorString = "Couldn\'t open file for logging - Check if it exists and is accessible for Pancake";
+			PancakeOutput(&errorString, strlen(errorString), OUTPUT_SYSTEM TSRMLS_CC);
+			zval_dtor(&retval);
+			efree(errorString);
+			return 0;
+		} else {
+			chmod(Z_STRVAL(retval), S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+		}
+
+		zval_dtor(&retval);
+
+		switch(i) {
+			case 0:
+				if(flushedSystemLogStream) {
+					char *string = "Flushed system log stream";
+					PancakeOutput(&string, strlen(string), OUTPUT_SYSTEM | OUTPUT_LOG TSRMLS_CC);
+					efree(string);
+				}
+				break;
+			case 1:
+				if(flushedErrorLogStream) {
+					// Emit a dirty error
+					zend_error(E_WARNING, "Flushed error log stream");
+				}
+				break;
+			case 2:
+				if(flushedRequestLogStream) {
+					char *string = "Flushed request log stream";
+					PancakeOutput(&string, strlen(string), OUTPUT_REQUEST | OUTPUT_LOG TSRMLS_CC);
+					efree(string);
+				}
+				break;
+		}
+	}
+
+	zval_ptr_dtor(&array);
+	return 1;
+}
+
+PHP_FUNCTION(loadFilePointers) {
+	PancakeLoadFilePointers(TSRMLS_C);
+}
+
 PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_DC) {
 	char *outputString;
 	zval daemonized;
@@ -73,85 +180,19 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 
 	if((flags & OUTPUT_LOG)) {
 		if((flags & OUTPUT_SYSTEM)) {
-			if(!PANCAKE_GLOBALS(systemLogStream)) {
-				/* Get system log configuration value */
-				zval *array, retval, *arg;
-
-				MAKE_STD_ZVAL(array);
-				array_init(array);
-				add_next_index_string(array, "Pancake\\Config", 1);
-				add_next_index_string(array, "get", 1);
-
-				MAKE_STD_ZVAL(arg);
-				arg->type = IS_STRING;
-				arg->value.str.val = estrdup("main.logging.system");
-				arg->value.str.len = strlen("main.logging.system");
-
-				if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
-					zval_ptr_dtor(&array);
-					zval_ptr_dtor(&arg);
-					efree(outputString);
-					return 0;
-				}
-
-				if(Z_TYPE(retval) == IS_STRING)
-					PANCAKE_GLOBALS(systemLogStream) = fopen(Z_STRVAL(retval), "a+");
-
-				zval_dtor(&retval);
-				zval_ptr_dtor(&array);
-				zval_ptr_dtor(&arg);
-
-				if(PANCAKE_GLOBALS(systemLogStream) == NULL) {
-					char *errorString = "Couldn\'t open file for logging - Check if it exists and is accessible for Pancake";
-					PancakeOutput(&errorString, strlen(errorString), OUTPUT_SYSTEM TSRMLS_CC);
-					efree(outputString);
-					efree(errorString);
-					return 0;
-				}
+			if((!PANCAKE_GLOBALS(systemLogStream) && PancakeLoadFilePointers(TSRMLS_C))
+			|| PANCAKE_GLOBALS(systemLogStream)) {
+				fprintf(PANCAKE_GLOBALS(systemLogStream), outputString);
+				fflush(PANCAKE_GLOBALS(systemLogStream));
 			}
-
-			fprintf(PANCAKE_GLOBALS(systemLogStream), outputString);
 		}
 
 		if((flags & OUTPUT_REQUEST)) {
-			if(!PANCAKE_GLOBALS(requestLogStream)) {
-				/* Get request log configuration value */
-				zval *array, retval, *arg;
-
-				MAKE_STD_ZVAL(array);
-				array_init(array);
-				add_next_index_string(array, "Pancake\\Config", 1);
-				add_next_index_string(array, "get", 1);
-
-				MAKE_STD_ZVAL(arg);
-				Z_TYPE_P(arg) = IS_STRING;
-				Z_STRLEN_P(arg) = strlen("main.logging.request");
-				Z_STRVAL_P(arg) = estrndup("main.logging.request", Z_STRLEN_P(arg));
-
-				if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
-					zval_ptr_dtor(&array);
-					zval_ptr_dtor(&arg);
-					efree(outputString);
-					return 0;
-				}
-
-				if(Z_TYPE(retval) == IS_STRING)
-					PANCAKE_GLOBALS(requestLogStream) = fopen(Z_STRVAL(retval), "a+");
-
-				zval_dtor(&retval);
-				zval_ptr_dtor(&array);
-				zval_ptr_dtor(&arg);
-
-				if(PANCAKE_GLOBALS(requestLogStream) == NULL) {
-					char *errorString = "Couldn\'t open file for logging - Check if it exists and is accessible for Pancake";
-					PancakeOutput(&errorString, strlen(errorString), OUTPUT_SYSTEM TSRMLS_CC);
-					efree(outputString);
-					efree(errorString);
-					return 0;
-				}
+			if((!PANCAKE_GLOBALS(requestLogStream) && PancakeLoadFilePointers(TSRMLS_C))
+			|| PANCAKE_GLOBALS(requestLogStream)) {
+				fprintf(PANCAKE_GLOBALS(requestLogStream), outputString);
+				fflush(PANCAKE_GLOBALS(requestLogStream));
 			}
-
-			fprintf(PANCAKE_GLOBALS(requestLogStream), outputString);
 		}
 	}
 
@@ -200,38 +241,11 @@ PHP_FUNCTION(errorHandler)
 		PancakeOutput(&errorMessage, message_len, OUTPUT_SYSTEM TSRMLS_CC);
 		efree(errorMessage_d);
 
-		if(!PANCAKE_GLOBALS(errorLogStream)) {
-			/* Get system log configuration value */
-			zval *array, retval, *arg;
-
-			MAKE_STD_ZVAL(array);
-			array_init(array);
-			add_next_index_string(array, "Pancake\\Config", 1);
-			add_next_index_string(array, "get", 1);
-
-			MAKE_STD_ZVAL(arg);
-			arg->type = IS_STRING;
-			arg->value.str.val = estrdup("main.logging.error");
-			arg->value.str.len = strlen("main.logging.error");
-
-			if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
-				zval_ptr_dtor(&array);
-				zval_ptr_dtor(&arg);
-				efree(errorMessage);
-				RETURN_FALSE;
-			}
-
-			if(Z_TYPE(retval) == IS_STRING) {
-				PANCAKE_GLOBALS(errorLogStream) = fopen(Z_STRVAL(retval), "a+");
-			}
-
-			zval_dtor(&retval);
-			zval_ptr_dtor(&array);
-			zval_ptr_dtor(&arg);
-		}
-
-		if(PANCAKE_GLOBALS(errorLogStream))
+		if((!PANCAKE_GLOBALS(errorLogStream) && PancakeLoadFilePointers(TSRMLS_C))
+		|| PANCAKE_GLOBALS(errorLogStream)) {
 			fprintf(PANCAKE_GLOBALS(errorLogStream), errorMessage);
+			fflush(PANCAKE_GLOBALS(errorLogStream));
+		}
 
 		efree(errorMessage);
 	}

@@ -435,12 +435,16 @@
 
             // Internal communication
             if($socket == $this->socket) {
-            	// Assume that message is GRACEFUL_SHUTDOWN as this is the only possibility currently
-            	foreach($Pancake_sockets as $index => $socket)
-            		unset($listenSocketsOrig[$index]);
-            	
-            	$doShutdown = true;
-            	goto clean;
+                switch(socket_read($this->socket, 128)) {
+                    case "GRACEFUL_SHUTDOWN":
+                    	foreach($Pancake_sockets as $index => $socket)
+                    		unset($listenSocketsOrig[$index]);
+                    	
+                    	$doShutdown = true;
+                    	goto clean;
+                    case "LOAD_FILE_POINTERS":
+                        loadFilePointers();
+                }
             }
             
             if(

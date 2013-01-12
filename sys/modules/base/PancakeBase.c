@@ -85,6 +85,7 @@ const zend_function_entry PancakeBase_functions[] = {
 	ZEND_NS_FE("Pancake", setThread, arginfo_pancake_setThread)
 	ZEND_NS_FE("Pancake", CodeCacheJITGlobals, NULL)
 	ZEND_NS_FE("Pancake", ExecuteJITGlobals, NULL)
+	ZEND_NS_FE("Pancake", loadFilePointers, NULL)
 	ZEND_FE_END
 };
 
