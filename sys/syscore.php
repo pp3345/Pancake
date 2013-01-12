@@ -61,36 +61,27 @@
     	abort();
     }
     
-    // Check for POSIX-compliance
-    if(!is_callable('posix_getpid')) {
-        out('Pancake can\'t run on this system. Either your operating system isn\'t POSIX-compliant or PHP was compiled with --disable-posix', OUTPUT_SYSTEM);
+    foreach(array("posix", "pcntl", "sysvmsg", "sockets", "tokenizer", "ctype") as $extension) {
+        if(!extension_loaded($extension)) {
+            $missingExtensions++;
+            if($missingExtensions > 1) {
+                $description .= ", " . $extension;
+            } else {
+                $description = $extension;
+            }
+            $compileDescription .= " --enable-" . $extension;
+        }
+    }
+    
+    if(isset($missingExtensions)) {
+        if($missingExtensions > 1) {
+            out('You are missing the following ' . $missingExtensions . ' PHP extensions: ' . $description . ' - Please compile them as shared extensions and add them to your php.ini or recompile PHP using' . $compileDescription, OUTPUT_SYSTEM);
+        } else {
+            out('You are missing the PHP extension "' . $description . '" - Please compile it as a shared extension and add it to your php.ini or recompile PHP using' . $compileDescription, OUTPUT_SYSTEM);
+        }
         abort();
     }
-    
-    // Check for available PCNTL-functions
-    if(!extension_loaded('pcntl')) {
-        out('Pancake can\'t run on this system. You need to recompile PHP with --enable-pcntl', OUTPUT_SYSTEM);
-        abort();
-    }
-    
-    // Check for System V IPC
-    if(!extension_loaded('sysvmsg')) {
-        out('You need to compile PHP with --enable-sysvmsg in order to run Pancake.', OUTPUT_SYSTEM);
-        abort();
-    }
-    
-    // Check if socket-extension is available
-    if(!extension_loaded('sockets')) {
-        out('You need to compile PHP with support for sockets (--enable-sockets) in order to run Pancake.', OUTPUT_SYSTEM);
-        abort();
-    }
-    
-    // Check for Zend Tokenizer
-    if(!extension_loaded('tokenizer')) {
-    	out('You need to compile PHP with tokenizer support.', OUTPUT_SYSTEM);
-    	abort();
-    }
-    
+        
     // Check for DeepTrace
     if(!extension_loaded('DeepTrace')) {
         out('You need to run Pancake with the bundled DeepTrace-extension. Just run pancake.sh.', OUTPUT_SYSTEM);
