@@ -1,5 +1,6 @@
 vhosts:
   default:                                                      # Name of the vHost
+    enabled: true
     docRoot: ../vhosts/default/                                 # Path to document root
     listen:                                                     # Hosts to listen on
       - 127.0.0.1

@@ -276,6 +276,10 @@
     foreach(Config::get('vhosts') as $name => $config) {
         try {
             $vHosts[$name] = new vHost($name);
+            if(!$vHosts[$name]->enabled) {
+                unset($vHosts[$name]);
+                continue;
+            }
             if($vHosts[$name]->isDefault)
             	$haveDefault = true;
         } catch(\Exception $exception) {

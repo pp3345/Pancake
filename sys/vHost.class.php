@@ -17,6 +17,7 @@
     */
     class vHost {
         private static $vHosts = 0;
+        public $enabled = true;
         public $id = 0;
         public $name = null;
         public $documentRoot = null;
@@ -80,6 +81,11 @@
             if(!$config)
             	throw new \InvalidArgumentException('Unknown vHost specified');
             
+            if(isset($config['enabled']) && !$config['enabled']) {
+                $this->enabled = false;
+                return;
+            }
+            
             $this->documentRoot = $config['docroot'];
             $this->AJP13 = (string) $config['ajp13'];
             
@@ -89,7 +95,7 @@
                 
             // Resolve exact path to docroot
             $this->documentRoot = realpath($this->documentRoot) . '/';
-                                 
+
             $this->phpCodeCache = (array) $config['phpcache'];
             $this->phpCodeCacheExcludes = (array) $config['phpcacheexclude'];
             $this->phpWorkers = (int) $config['phpworkers'];
