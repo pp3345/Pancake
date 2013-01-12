@@ -264,7 +264,6 @@
 	    // Wait for requests
 	    while(socket_select(vars::$listenArray, $x, $x, null) !== false) {
             if(current(vars::$listenArray) == vars::$Pancake_currentThread->socket) {
-                echo "YES\n";
                 switch(socket_read(vars::$Pancake_currentThread->socket, 512)) {
                     case "GRACEFUL_SHUTDOWN":
                         break 2;
