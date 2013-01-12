@@ -228,6 +228,10 @@
 		    #.endif
 		#.endif
 	    
+	    // Seed random number generators
+	    mt_srand();
+        srand();
+	    
 	    // Ready
 	    vars::$Pancake_currentThread->parentSignal(/* .constant 'SIGUSR1' */);
 	    
