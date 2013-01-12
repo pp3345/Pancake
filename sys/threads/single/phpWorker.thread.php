@@ -56,6 +56,14 @@
 	#.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpWorkerLimit;' false
 		#.HAVE_LIMIT = true
 	#.endif
+	
+	#.if #.extension_loaded 'session'
+	   #.HAVE_SESSION_EXTENSION = true
+	#.endif
+	
+	#.if #.extension_loaded 'filter'
+	   #.HAVE_FILTER_EXTENSION = true
+	#.endif
 
 	#.if Pancake\DEBUG_MODE === true
 		#.define 'BENCHMARK' false
@@ -375,6 +383,7 @@
 	        // Get contents from output buffer
 	        $contents = ob_get_contents();
 	        
+            #.ifdef 'HAVE_SESSION_EXTENSION'
 	        if(session_id() || vars::$sessionID) {
 	            vars::$Pancake_request->setCookie(session_name(), session_id() ? session_id() : vars::$sessionID, ini_get('session.cookie_lifetime') ? time() + ini_get('session.cookie_lifetime') : 0, ini_get('session.cookie_path'), ini_get('session.cookie_domain'), ini_get('session.cookie_secure'), ini_get('session.cookie_httponly'));
 	            session_write_close();
@@ -405,6 +414,7 @@
 	        	// SID is not a user-defined constant and thus won't be auto-deleted
 	        	dt_remove_constant('SID');
 	        }
+            #.endif
 	
 	        #.if Pancake\DEBUG_MODE === true
 		        if(array_key_exists('pancakephpdebug', vars::$Pancake_request->getGETParams())) {
@@ -501,7 +511,9 @@
 	        #.ifdef 'HAVE_LIMIT'
 	        vars::$Pancake_processedRequests++;
 	        #.endif
+	        #.ifdef 'HAVE_SESSION_EXTENSION'
 	        vars::$sessionID = null;
+            #.endif
 	        vars::$tickFunctions = array();
 	        if(vars::$resetSessionSaveHandler) {
 	        	session_set_save_handler('Pancake\dummy', 'Pancake\dummy', 'Pancake\dummy', 'Pancake\dummy', 'Pancake\dummy', 'Pancake\dummy');

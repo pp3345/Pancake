@@ -79,9 +79,11 @@
             return true;
         }
         
-        function session_register_shutdown() {
-        	return register_shutdown_function('session_write_close');
-        }
+        #.ifdef 'HAVE_SESSION_EXTENSION'
+            function session_register_shutdown() {
+            	return register_shutdown_function('session_write_close');
+            }
+        #.endif
     #.endif
     
     function phpinfo($what = INFO_ALL) {
@@ -267,6 +269,7 @@
             return Pancake\PHPFunctions\OutputBuffering\flush();
     }
     
+    #.ifdef 'HAVE_SESSION_EXTENSION'
     function session_start() {
 		if(session_id());
 		else if(array_key_exists(session_name(), $_COOKIE))
@@ -283,7 +286,9 @@
         
         return false;
     }
+    #.endif
     
+    #.ifdef 'HAVE_FILTER_EXTENSION'
     function filter_input($type, $variable_name, $filter = /* .constant 'FILTER_DEFAULT' */, $options = /* .constant 'FILTER_FLAG_NONE' */) {
         // Create bitmask of flags
         if(is_array($options)) {
@@ -404,6 +409,7 @@
                 return false;
         }
     }
+    #.endif
     
     function ini_set($varname, $newvalue, $reset = false) {
         static $settings = array();
@@ -574,6 +580,7 @@
    		return is_array($lastError) && $lastError['type'] == /* .constant 'E_ERROR' */ ? $lastError : Pancake\vars::$lastError;
 	}
 	
+    #.ifdef 'HAVE_SESSION_EXTENSION'
 	function session_id($id = "") {
 		if(
 		#.if PHP_MINOR_VERSION >= 4
@@ -601,6 +608,7 @@
 			return Pancake\vars::$resetSessionSaveHandler = true;
 		return false;
 	}
+    #.endif
 	
 	function spl_autoload_register($autoload_function = null, $throw = true, $prepend = false, $unregister = false) {
 		 static $registeredFunctions = array();
@@ -659,10 +667,12 @@ FUNCTIONBODY
 		return call_user_func_array('Pancake\PHPFunctions\registerTickFunction', func_get_args());
 	}
 	
+    #.ifdef 'HAVE_SESSION_EXTENSION'
 	function session_destroy() {
 		Pancake\vars::$sessionID = "";
 		Pancake\PHPFunctions\sessionDestroy();
 	}
+    #.endif
 	
 	function stream_register_wrapper($protocol, $classname, $flags = 0, $unregister = false) {
 		static $registeredWrappers = array();
@@ -686,6 +696,7 @@ FUNCTIONBODY
 		return stream_register_wrapper($protocol, $classname, $flags);
 	}
 	
+    #.ifdef 'HAVE_SESSION_EXTENSION'
 	function session_regenerate_id($delete_old_session = false) {
 		if(Pancake\PHPFunctions\sessionRegenerateID($delete_old_session)) {
 			Pancake\vars::$sessionID = Pancake\PHPFunctions\sessionID();
@@ -694,6 +705,7 @@ FUNCTIONBODY
 		
 		return false;
 	}
+    #.endif
 	
     dt_rename_method('\Exception', 'getTrace', 'Pancake_getTraceOrig');
     dt_add_method('\Exception', 'getTrace', null, <<<'FUNCTIONBODY'

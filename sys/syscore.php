@@ -114,9 +114,11 @@
     dt_remove_function('header_remove');
     dt_remove_function('is_uploaded_file');
     dt_remove_function('move_uploaded_file');
-    dt_remove_function('filter_input');
-    dt_remove_function('filter_has_var');
-    dt_remove_function('filter_input_array');
+    if(extension_loaded('filter')) {
+        dt_remove_function('filter_input');
+        dt_remove_function('filter_has_var');
+        dt_remove_function('filter_input_array');
+    }
     dt_remove_function('get_required_files');
     dt_remove_function('restore_error_handler');
     dt_remove_function('ini_alter');
@@ -130,7 +132,6 @@
     dt_rename_function('ob_end_flush', 'Pancake\PHPFunctions\OutputBuffering\endFlush');
     dt_rename_function('ob_flush', 'Pancake\PHPFunctions\OutputBuffering\flush');
     dt_rename_function('ob_get_flush', 'Pancake\PHPFunctions\OutputBuffering\getFlush');
-    dt_rename_function('session_start', 'Pancake\PHPFunctions\sessionStart');
     dt_rename_function('ini_set', 'Pancake\PHPFunctions\setINI');
     dt_rename_function('debug_backtrace', 'Pancake\PHPFunctions\debugBacktrace');
     dt_rename_function('debug_print_backtrace', 'Pancake\PHPFunctions\debugPrintBacktrace');
@@ -140,15 +141,18 @@
     dt_rename_function('memory_get_usage', 'Pancake\PHPFunctions\getMemoryUsage');
     dt_rename_function('memory_get_peak_usage', 'Pancake\PHPFunctions\getPeakMemoryUsage');
     dt_rename_function('get_browser', 'Pancake\PHPFunctions\getBrowser');
-    dt_rename_function('session_id', 'Pancake\PHPFunctions\sessionID');
     dt_rename_function('error_get_last', 'Pancake\PHPFunctions\errorGetLast');
-    dt_rename_function('session_set_save_handler', 'Pancake\PHPFunctions\setSessionSaveHandler');
     dt_rename_function('spl_autoload_register', 'Pancake\PHPFunctions\registerAutoload');
     dt_rename_function('register_tick_function', 'Pancake\PHPFunctions\registerTickFunction');
-    dt_rename_function('session_destroy', 'Pancake\PHPFunctions\sessionDestroy');
     dt_rename_function('stream_wrapper_register', 'Pancake\PHPFunctions\streamWrapperRegister');
-    dt_rename_function('session_regenerate_id', 'Pancake\PHPFunctions\sessionRegenerateID');
     dt_rename_method('ReflectionFunction', 'isDisabled', 'Pancake_isDisabledOrig');
+    if(extension_loaded('session')) {
+        dt_rename_function('session_regenerate_id', 'Pancake\PHPFunctions\sessionRegenerateID');
+        dt_rename_function('session_start', 'Pancake\PHPFunctions\sessionStart');
+        dt_rename_function('session_destroy', 'Pancake\PHPFunctions\sessionDestroy');
+        dt_rename_function('session_set_save_handler', 'Pancake\PHPFunctions\setSessionSaveHandler');
+        dt_rename_function('session_id', 'Pancake\PHPFunctions\sessionID');
+    }
     dt_remove_constant('PHP_SAPI');
     
     dt_show_plain_info(false);

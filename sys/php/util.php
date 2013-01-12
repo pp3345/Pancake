@@ -80,6 +80,7 @@
     		PHPFunctions\OutputBuffering\endFlush();
     	vars::$Pancake_request->answerBody = ob_get_contents();
     	
+        #.ifdef 'HAVE_SESSION_EXTENSION'
     	if(session_id() || vars::$sessionID) {
     		vars::$Pancake_request->setCookie(session_name(), session_id() ? session_id() : vars::$sessionID, time() + ini_get('session.cookie_lifetime'), ini_get('session.cookie_path'), ini_get('session.cookie_domain'), ini_get('session.cookie_secure'), ini_get('session.cookie_httponly'));
     		session_write_close();
@@ -106,6 +107,7 @@
     				break;
     		}
     	}
+    	#.endif
     	
     	$data = serialize(vars::$Pancake_request);
     	
@@ -294,7 +296,9 @@
         public static $functions = array();
         #.endif
         public static $executingErrorHandler = false;
+        #.ifdef 'HAVE_SESSION_EXTENSION'
         public static $sessionID = null;
+        #.endif
         public static $resetSessionSaveHandler = false;
         public static $tickFunctions = array();
     }
