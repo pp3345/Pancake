@@ -47,6 +47,7 @@
     * 
     */
     function setUser() {
+        #.if Pancake\DEBUG_MODE == false
         $user = posix_getpwnam(/* .call 'Pancake\Config::get' 'main.user' */);
         $group = posix_getgrnam(/* .call 'Pancake\Config::get' 'main.group' */);
         if(!posix_setgid($group['gid'])) {
@@ -57,6 +58,7 @@
             trigger_error('Failed to change user', /* .constant 'E_USER_ERROR' */);
             abort();
         }
+        #.endif
         return true;
     }
     

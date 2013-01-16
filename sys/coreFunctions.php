@@ -98,8 +98,10 @@
                 if($listOnly)
                     $list[] = $globalName;
                 else {
-                	if($clearRecursive && (is_array($GLOBALS[$globalName]) || is_object($GLOBALS[$globalName])))
+                	if($clearRecursive && (is_array($GLOBALS[$globalName]) || is_object($GLOBALS[$globalName]))) {
+                	    //echo "RECURSIVE DTOR OBJ IN " . $globalName . "\n"; 
                 		recursiveClearObjects($GLOBALS[$globalName]);
+                    }
                 	
                     $GLOBALS[$globalName] = null;
                     unset($GLOBALS[$globalName]);
