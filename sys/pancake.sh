@@ -38,6 +38,12 @@ then
 	chmod -R +x ./natives/*
 fi
 
+if [ -n "$1" ] && test $1 == "--use-malloc"
+then
+	USE_ZEND_ALLOC_SET=1
+	export USE_ZEND_ALLOC=0
+fi
+
 if [ -x ./natives/DeepTrace/$ARCH\_$PHPMAJOR$PHPMINOR.so ];
 then
 	if [ -x ./natives/base/$ARCH\_$PHPMAJOR$PHPMINOR.so ];
@@ -48,4 +54,9 @@ then
     fi
 else
     echo "No compatible DeepTrace-extension found (looking for ./natives/DeepTrace/$ARCH""_$PHPMAJOR$PHPMINOR.so) - Please compile DeepTrace for your system and make sure it is executable"
+fi
+
+if [ -n "$USE_ZEND_ALLOC_SET" ]
+then
+	export USE_ZEND_ALLOC=1
 fi
