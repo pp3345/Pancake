@@ -77,6 +77,7 @@ zend_bool PancakeJITFetchGET(const char *name, uint name_len TSRMLS_DC);
 zend_bool PancakeJITFetchCookies(const char *name, uint name_len TSRMLS_DC);
 zend_bool PancakeJITFetchREQUEST(const char *name, uint name_len TSRMLS_DC);
 zend_bool PancakeJITFetchPOST(const char *name, uint name_len TSRMLS_DC);
+zend_bool PancakeJITFetchFILES(const char *name, uint name_len TSRMLS_DC);
 
 zend_bool CodeCacheJITFetch(const char *name, uint name_len TSRMLS_DC);
 
@@ -152,7 +153,9 @@ ZEND_BEGIN_MODULE_GLOBALS(PancakeBase)
 	int JIT_SERVER;
 	int JIT_REQUEST;
 	int JIT_POST;
+	int JIT_FILES;
 	int enableAuthentication;
+	char *tmpDir;
 ZEND_END_MODULE_GLOBALS(PancakeBase)
 extern ZEND_DECLARE_MODULE_GLOBALS(PancakeBase);
 

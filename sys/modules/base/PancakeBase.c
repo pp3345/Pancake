@@ -154,6 +154,7 @@ void php_PancakeBase_init_globals(zend_PancakeBase_globals *PancakeBase_globals)
 	PancakeBase_globals->JIT_SERVER = 1;
 	PancakeBase_globals->JIT_REQUEST = 1;
 	PancakeBase_globals->JIT_POST = 1;
+	PancakeBase_globals->JIT_FILES = 1;
 }
 
 PHP_MINIT_FUNCTION(PancakeBase)
@@ -197,12 +198,16 @@ PHP_MINIT_FUNCTION(PancakeBase)
 	zend_declare_property_null(HTTPRequest_ce, "cookies", sizeof("cookies") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_null(HTTPRequest_ce, "POSTParameters", sizeof("POSTParameters") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_null(HTTPRequest_ce, "uploadedFiles", sizeof("uploadedFiles") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_null(HTTPRequest_ce, "uploadedFileTempNames", sizeof("uploadedFileTempNames") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
 
 	INIT_NS_CLASS_ENTRY(exception, "Pancake", "invalidHTTPRequestException", invalidHTTPRequestException_methods);
 	invalidHTTPRequestException_ce = zend_register_internal_class_ex(&exception, zend_exception_get_default(TSRMLS_C), "Exception" TSRMLS_CC);
 
 	INIT_NS_CLASS_ENTRY(mime, "Pancake", "MIME", MIME_methods);
 	MIME_ce = zend_register_internal_class(&mime TSRMLS_CC);
+
+	//char *getHash = "realm";
+	//printf("hash of %s: %lu\n", getHash, zend_inline_hash_func(getHash, strlen(getHash) + 1));
 
 	return SUCCESS;
 }
@@ -252,6 +257,7 @@ PHP_RSHUTDOWN_FUNCTION(PancakeBase)
 	if(PANCAKE_GLOBALS(pancakeVersionString)) {
 		zval_ptr_dtor(&PANCAKE_GLOBALS(pancakeVersionString));
 		zval_ptr_dtor(&PANCAKE_GLOBALS(defaultContentType));
+		efree(PANCAKE_GLOBALS(tmpDir));
 	}
 
 	if(PANCAKE_GLOBALS(virtualHostArray)) {

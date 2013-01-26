@@ -138,13 +138,13 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 
 		MAKE_STD_ZVAL(array);
 		array_init(array);
-		add_next_index_string(array, "Pancake\\Config", 1);
-		add_next_index_string(array, "get", 1);
+		add_next_index_stringl(array, "Pancake\\Config", sizeof("Pancake\\Config") - 1, 1);
+		add_next_index_stringl(array, "get", sizeof("get") - 1, 1);
 
 		MAKE_STD_ZVAL(arg);
-		arg->type = IS_STRING;
-		arg->value.str.val = estrdup("main.dateformat");
-		arg->value.str.len = strlen("main.dateformat");
+		Z_TYPE_P(arg) = IS_STRING;
+		Z_STRLEN_P(arg) = sizeof("main.dateformat") - 1;
+		Z_STRVAL_P(arg) = estrndup("main.dateformat", sizeof("main.dateformat") - 1);
 
 		if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
 			zval_ptr_dtor(&array);
@@ -163,20 +163,20 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 	char *date = php_format_date(PANCAKE_GLOBALS(dateFormat), strlen(PANCAKE_GLOBALS(dateFormat)), time(NULL), 1 TSRMLS_CC);
 
 	if(PANCAKE_GLOBALS(currentThread) == NULL) {
-		char *pstring = estrdup(*string);
+		char *pstring = estrndup(*string, string_len);
 		spprintf(&outputString, 0, "[Master] %s %s\n", date, pstring);
 		efree(pstring);
 	} else {
 		zval *name = zend_read_property(NULL, PANCAKE_GLOBALS(currentThread), "friendlyName", sizeof("friendlyName") - 1, 0 TSRMLS_CC);
-
 		spprintf(&outputString, 0, "[%s] %s %s\n", Z_STRVAL_P(name), date, *string);
 	}
 
 	efree(date);
 
 	if(!zend_get_constant("pancake\\DAEMONIZED", strlen("pancake\\DAEMONIZED"), &daemonized)
-	|| Z_LVAL(daemonized) == 0)
-		printf(outputString);
+	|| Z_LVAL(daemonized) == 0) {
+		printf("%s", outputString);
+	}
 
 	if((flags & OUTPUT_LOG)) {
 		if((flags & OUTPUT_SYSTEM)) {
@@ -267,11 +267,12 @@ PHP_FUNCTION(setThread) {
 	/* Fetch allowHEAD */
 	MAKE_STD_ZVAL(array);
 	array_init(array);
-	add_next_index_string(array, "Pancake\\Config", 1);
-	add_next_index_string(array, "get", 1);
+	add_next_index_stringl(array, "Pancake\\Config", sizeof("Pancake\\Config") - 1, 1);
+	add_next_index_stringl(array, "get", 3, 1);
 
 	if(virtualHostArray != NULL) {
 		Z_ADDREF_P(virtualHostArray);
+		Z_ADDREF_P(PANCAKE_GLOBALS(defaultVirtualHost));
 		PANCAKE_GLOBALS(virtualHostArray) = virtualHostArray;
 
 		MAKE_STD_ZVAL(arg);
@@ -327,9 +328,9 @@ PHP_FUNCTION(setThread) {
 
 	/* Fetch exposePancake */
 	MAKE_STD_ZVAL(arg);
-	arg->type = IS_STRING;
-	arg->value.str.val = estrdup("main.exposepancake");
-	arg->value.str.len = strlen("main.exposepancake");
+	Z_TYPE_P(arg) = IS_STRING;
+	Z_STRLEN_P(arg) = sizeof("main.exposepancake") - 1;
+	Z_STRVAL_P(arg) = estrndup("main.exposepancake", sizeof("main.exposepancake") - 1);
 
 	if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
 		zval_ptr_dtor(&array);
@@ -340,17 +341,33 @@ PHP_FUNCTION(setThread) {
 	PANCAKE_GLOBALS(exposePancake) = Z_LVAL(retval);
 
 	zval_ptr_dtor(&arg);
+
+	/* Fetch tmpDir */
+	MAKE_STD_ZVAL(arg);
+	Z_TYPE_P(arg) = IS_STRING;
+	Z_STRLEN_P(arg) = sizeof("main.tmppath") - 1;
+	Z_STRVAL_P(arg) = estrndup("main.tmppath", sizeof("main.tmppath") - 1);
+
+	if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
+		zval_ptr_dtor(&array);
+		zval_ptr_dtor(&arg);
+		RETURN_FALSE;
+	}
+
+	PANCAKE_GLOBALS(tmpDir) = Z_STRVAL(retval);
+
+	zval_ptr_dtor(&arg);
 	zval_ptr_dtor(&array);
 
 	MAKE_STD_ZVAL(PANCAKE_GLOBALS(pancakeVersionString));
-	PANCAKE_GLOBALS(pancakeVersionString)->type = IS_STRING;
-	PANCAKE_GLOBALS(pancakeVersionString)->value.str.val = estrdup(PANCAKE_VERSION_STRING);
-	PANCAKE_GLOBALS(pancakeVersionString)->value.str.len = strlen(PANCAKE_VERSION_STRING);
+	Z_TYPE_P(PANCAKE_GLOBALS(pancakeVersionString)) = IS_STRING;
+	Z_STRLEN_P(PANCAKE_GLOBALS(pancakeVersionString)) = strlen(PANCAKE_VERSION_STRING);
+	Z_STRVAL_P(PANCAKE_GLOBALS(pancakeVersionString)) = estrndup(PANCAKE_VERSION_STRING, Z_STRLEN_P(PANCAKE_GLOBALS(pancakeVersionString)));
 
 	MAKE_STD_ZVAL(PANCAKE_GLOBALS(defaultContentType));
-	PANCAKE_GLOBALS(defaultContentType)->type = IS_STRING;
-	PANCAKE_GLOBALS(defaultContentType)->value.str.val = estrdup("text/html");
-	PANCAKE_GLOBALS(defaultContentType)->value.str.len = strlen("text/html");
+	Z_TYPE_P(PANCAKE_GLOBALS(defaultContentType)) = IS_STRING;
+	Z_STRVAL_P(PANCAKE_GLOBALS(defaultContentType)) = estrndup("text/html", sizeof("text/html") - 1);
+	Z_STRLEN_P(PANCAKE_GLOBALS(defaultContentType)) = sizeof("text/html") - 1;
 }
 
 zend_bool CodeCacheJITFetch(const char *name, uint name_len TSRMLS_DC) {
@@ -365,6 +382,8 @@ zend_bool CodeCacheJITFetch(const char *name, uint name_len TSRMLS_DC) {
 		PANCAKE_GLOBALS(JIT_REQUEST) = 0;
 	} else if(!strcmp(name, "_POST")) {
 		PANCAKE_GLOBALS(JIT_POST) = 0;
+	} else if(!strcmp(name, "_FILES")) {
+		PANCAKE_GLOBALS(JIT_FILES) = 0;
 	}
 
 	return 0;
@@ -380,6 +399,7 @@ PHP_FUNCTION(CodeCacheJITGlobals) {
 	zend_register_auto_global(ZEND_STRL("_SERVER"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_REQUEST"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_POST"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
+	zend_register_auto_global(ZEND_STRL("_FILES"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
 
 	zend_activate_auto_globals(TSRMLS_C);
 }
@@ -393,5 +413,6 @@ PHP_FUNCTION(ExecuteJITGlobals) {
 	zend_register_auto_global(ZEND_STRL("_GET"), PANCAKE_GLOBALS(JIT_GET), PancakeJITFetchGET TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_SERVER"), PANCAKE_GLOBALS(JIT_SERVER), PancakeCreateSERVER TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_REQUEST"), PANCAKE_GLOBALS(JIT_REQUEST), PancakeJITFetchREQUEST TSRMLS_CC);
-	zend_register_auto_global(ZEND_STRL("_POST"), PANCAKE_GLOBALS(JIT_POST), PancakeJITFetchREQUEST TSRMLS_CC);
+	zend_register_auto_global(ZEND_STRL("_POST"), PANCAKE_GLOBALS(JIT_POST), PancakeJITFetchPOST TSRMLS_CC);
+	zend_register_auto_global(ZEND_STRL("_FILES"), PANCAKE_GLOBALS(JIT_FILES), PancakeJITFetchFILES TSRMLS_CC);
 }
