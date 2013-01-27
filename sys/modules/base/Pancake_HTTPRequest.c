@@ -1602,8 +1602,11 @@ zend_bool PancakeCreateSERVER(const char *name, uint name_len TSRMLS_DC) {
 
 	zval *vHost = zend_read_property(HTTPRequest_ce, this_ptr, "vHost", sizeof("vHost") - 1, 1 TSRMLS_CC);
 	zval *documentRoot = zend_read_property(HTTPRequest_ce, vHost, "documentRoot", sizeof("documentRoot") -1, 1 TSRMLS_CC);
-	char *fullPath = estrndup(Z_STRVAL_P(documentRoot), Z_STRLEN_P(documentRoot) + Z_STRLEN_P(requestFilePath));
-	strcat(fullPath, Z_STRVAL_P(requestFilePath));
+
+	char *fullPath = emalloc(Z_STRLEN_P(documentRoot) + Z_STRLEN_P(requestFilePath) + 1);
+	memcpy(fullPath, Z_STRVAL_P(documentRoot), Z_STRLEN_P(documentRoot));
+	memcpy(fullPath + Z_STRLEN_P(documentRoot), Z_STRVAL_P(requestFilePath), Z_STRLEN_P(requestFilePath) + 1);
+
 	char *resolvedPath = realpath(fullPath, NULL);
 	efree(fullPath);
 	add_assoc_string_ex(server, "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"), resolvedPath, 1);
