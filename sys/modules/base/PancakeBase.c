@@ -234,9 +234,9 @@ PHP_RINIT_FUNCTION(PancakeBase)
 	zval *errorHandler;
 
 	MAKE_STD_ZVAL(errorHandler);
-	errorHandler->type = IS_STRING;
-	errorHandler->value.str.len = strlen("Pancake\\errorHandler");
-	errorHandler->value.str.val = estrdup("Pancake\\errorHandler");
+	Z_TYPE_P(errorHandler) = IS_STRING;
+	Z_STRLEN_P(errorHandler) = sizeof("Pancake\\errorHandler") - 1;
+	Z_STRVAL_P(errorHandler) = estrndup("Pancake\\errorHandler", sizeof("Pancake\\errorHandler") - 1);
 
 	/* Set error handler */
 	EG(user_error_handler) = errorHandler;

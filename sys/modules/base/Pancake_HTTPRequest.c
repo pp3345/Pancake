@@ -343,12 +343,14 @@ PHP_METHOD(HTTPRequest, init) {
 			array_init(acceptedCompressions);
 
 			while(acceptedCompression != NULL) {
-				php_strtolower(acceptedCompression, strlen(acceptedCompression));
+				int acceptedCompression_len = strlen(acceptedCompression);
+				php_strtolower(acceptedCompression, acceptedCompression_len);
 				LEFT_TRIM(acceptedCompression);
-				add_next_index_string(acceptedCompressions, acceptedCompression, 1);
+				add_next_index_stringl(acceptedCompressions, acceptedCompression, acceptedCompression_len, 1);
 
-				if(acceptedCompression == "gzip")
+				if(!strcmp(acceptedCompression, "gzip")) {
 					acceptGZIP = 1;
+				}
 
 				acceptedCompression = strtok_r(NULL, ",", &ptr4);
 			}
@@ -1777,40 +1779,42 @@ PHP_METHOD(HTTPRequest, __destruct) {
 	/* Free memory */
 
 	zval *requestHeaderArray = zend_read_property(HTTPRequest_ce, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, 1);
-	if(Z_TYPE_P(requestHeaderArray) == IS_ARRAY) {
-		zval_ptr_dtor(&requestHeaderArray);
+	if(Z_TYPE_P(requestHeaderArray) == IS_ARRAY && Z_REFCOUNT_P(requestHeaderArray) > 1) {
+		Z_DELREF_P(requestHeaderArray);
 	}
 
 	zval *answerHeaderArray = zend_read_property(HTTPRequest_ce, this_ptr, "answerHeaders", sizeof("answerHeaders") - 1, 1);
-	zval_ptr_dtor(&answerHeaderArray);
+	if(Z_REFCOUNT_P(answerHeaderArray) > 1) {
+		Z_DELREF_P(answerHeaderArray);
+	}
 
 	zval *acceptedCompressions = zend_read_property(HTTPRequest_ce, this_ptr, "acceptedCompressions", sizeof("acceptedCompressions") - 1, 1);
-	if(Z_TYPE_P(acceptedCompressions) == IS_ARRAY) {
-		zval_ptr_dtor(&acceptedCompressions);
+	if(Z_TYPE_P(acceptedCompressions) == IS_ARRAY && Z_REFCOUNT_P(acceptedCompressions) > 1) {
+		Z_DELREF_P(acceptedCompressions);
 	}
 
 	zval *GETParameters = zend_read_property(HTTPRequest_ce, this_ptr, "GETParameters", sizeof("GETParameters") - 1, 1);
-	if(Z_TYPE_P(GETParameters) == IS_ARRAY) {
-		zval_ptr_dtor(&GETParameters);
+	if(Z_TYPE_P(GETParameters) == IS_ARRAY && Z_REFCOUNT_P(GETParameters) > 1) {
+		Z_DELREF_P(GETParameters);
 	}
 
 	zval *cookies = zend_read_property(HTTPRequest_ce, this_ptr, "cookies", sizeof("cookies") - 1, 1);
-	if(Z_TYPE_P(cookies) == IS_ARRAY) {
-		zval_ptr_dtor(&cookies);
+	if(Z_TYPE_P(cookies) == IS_ARRAY && Z_REFCOUNT_P(cookies) > 1) {
+		Z_DELREF_P(cookies);
 	}
 
 	zval *POSTParameters = zend_read_property(HTTPRequest_ce, this_ptr, "POSTParameters", sizeof("POSTParameters") - 1, 1);
-	if(Z_TYPE_P(POSTParameters) == IS_ARRAY) {
-		zval_ptr_dtor(&POSTParameters);
+	if(Z_TYPE_P(POSTParameters) == IS_ARRAY && Z_REFCOUNT_P(POSTParameters) > 1) {
+		Z_DELREF_P(POSTParameters);
 	}
 
 	zval *files = zend_read_property(HTTPRequest_ce, this_ptr, "uploadedFiles", sizeof("uploadedFiles") - 1, 1);
-	if(Z_TYPE_P(files) == IS_ARRAY) {
-		zval_ptr_dtor(&files);
+	if(Z_TYPE_P(files) == IS_ARRAY && Z_REFCOUNT_P(files) > 1) {
+		Z_DELREF_P(files);
 	}
 
 	zval *tempNames = zend_read_property(HTTPRequest_ce, this_ptr, "uploadedFileTempNames", sizeof("uploadedFileTempNames") - 1, 1);
-	if(Z_TYPE_P(tempNames) == IS_ARRAY) {
-		zval_ptr_dtor(&tempNames);
+	if(Z_TYPE_P(tempNames) == IS_ARRAY && Z_REFCOUNT_P(tempNames) > 1) {
+		Z_DELREF_P(tempNames);
 	}
 }
