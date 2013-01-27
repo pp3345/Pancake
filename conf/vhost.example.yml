@@ -39,7 +39,6 @@ vhosts:
     PHPResetObjectsDestroyDestructors: true                     # Whether the SAPI should not execute object destructors when destroying objects (true = will not execute; false = will execute)
     compareObjects: false                                       # Whether the internal request object should be checked for possible manipulation after being returned from the PHP-SAPI (should be enabled in shared hosting environments or when untrusted scripts are executed)
     PHPMaxExecutionTime: 10                                     # Same function as PHP's max_execution_time-setting
-    PHPFixStaticMethodCalls: true                               # This setting does not have any effect if you don't use the CodeCache or have all classes cached - With this setting you can enable dt_fix_static_method_calls()
 #    PHPPredefinedConstants:                                    # A list of constants that should be predefined before script-execution in the SAPI
 #      myConst: 123
 #      iLovePancakes: true
@@ -57,7 +56,7 @@ vhosts:
 #      /index.html:
 #        type: basic
 #        realm: "Authorization required"
-#        authfiles: 
+#        authfiles:
 #          - /usr/local/Pancake/vhosts/passwords
 #    rewrite:                                                    # Rewrite URLs
 #      - location: /users/

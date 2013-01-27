@@ -23,10 +23,6 @@
     // \Pancake\STDOUT = \STDOUT
     const STDOUT = STDOUT;
 
-    // Deactivate static method cache fixing per default in order to improve performance
-    if(\PHP_MINOR_VERSION >= 4 && extension_loaded('DeepTrace'))
-    	dt_fix_static_method_calls(false);
-
     // Include files necessary to run Pancake
     require_once 'sfYamlParser.class.php';
     require_once 'configuration.class.php';
@@ -155,7 +151,7 @@
     }
     dt_remove_constant('PHP_SAPI');
 
-    dt_show_plain_info(false);
+    dt_phpinfo_mode(\DT_PHPINFO_HTML);
 
     // Set thread title
     dt_set_proctitle('Pancake HTTP Server ' . VERSION);
@@ -209,9 +205,6 @@
 
     // Load IPC
     IPC::create();
-
-    // Dirty workaround for error-logging (else may get permission denied)
-    trigger_error('Nothing', \E_USER_NOTICE);
 
     // Create sockets
     // IPv6

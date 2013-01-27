@@ -135,8 +135,7 @@
 	    dt_remove_function('Pancake\PHPFunctions\registerShutdownFunction');
 
 	    // Set exit handler so that Pancake won't die when a script calls exit() oder die()
-	    dt_set_exit_handler('Pancake\PHPExitHandler');
-	    dt_throw_exit_exception(true);
+		dt_exit_mode(/* .constant 'DT_EXIT_EXCEPTION' */, "Pancake\PHPExitHandler", 'Pancake\ExitException');
 
 	    #.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->phpDisabledFunctions;' false
 		    foreach(vars::$Pancake_currentThread->vHost->phpDisabledFunctions as $function) {
@@ -274,7 +273,7 @@
             }
 
             vars::$requestSocket = socket_accept(vars::$listenArray[0]);
-	    	socket_set_block(vars::$requestSocket);
+			socket_set_block(vars::$requestSocket);
 
 	    	// Get request object from RequestWorker
 	    	$packages = hexdec(socket_read(vars::$requestSocket, 8));
@@ -288,8 +287,7 @@
 
 	    		vars::$Pancake_request = unserialize($sockData);
 	    		unset($sockData);
-	    	}
-	    	else
+	    	} else
 	    		vars::$Pancake_request = unserialize(socket_read(vars::$requestSocket, $length));
 
 	    	unset($length);
@@ -311,7 +309,7 @@
 	        // Start output buffer
 	        ob_start();
 
-	        // Set error-handling
+	        // Set error handling
 	        error_reporting(/* .call 'ini_get' 'error_reporting' */);
 	        PHPFunctions\setErrorHandler('Pancake\PHPErrorHandler');
 
@@ -336,7 +334,8 @@
 	            	call_user_func_array($shutdownCall["callback"], $shutdownCall["args"]);
 
 	            goto postShutdown;
-	        } catch(\DeepTraceExitException $e) {
+	        } catch(ExitException $e) {
+	        	unset($e);
 	        } catch(\Exception $exception) {
 	        	$fatal = false;
 
@@ -484,7 +483,6 @@
 	            vars::$Pancake_request->answerBody = $contents;
 
 	        $data = serialize(vars::$Pancake_request);
-
 	        $packages = array();
 
 	      	if(strlen($data) > (socket_get_option(vars::$requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_SNDBUF' */) - 1024)
@@ -613,7 +611,7 @@
 
 			        					//gc_collect_cycles();
 
-			        					dt_set_method_variable($class, $method->getName(), $name, $value);
+			        					dt_set_static_method_variable($class, $method->getName(), $name, $value);
 			        				}
 			        				#.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetFunctionNonObjects;' false
 			        					else
@@ -621,7 +619,7 @@
 			        			#.endif
 			        			#.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetFunctionNonObjects;' false
 			        				if(!is_object($value)) {
-			        					dt_set_method_variable($class, $method->getName(), $name, null);
+			        					dt_set_static_method_variable($class, $method->getName(), $name, null);
 			        				}
 			        			#.endif
 
@@ -656,7 +654,7 @@
 
 		        				//gc_collect_cycles();
 
-		        				dt_set_function_variable($function, $name, $value);
+		        				dt_set_static_function_variable($function, $name, $value);
 		        			}
 		        			#.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetFunctionNonObjects;' false
 		        				else
@@ -664,7 +662,7 @@
 	        			#.endif
 		        		#.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetFunctionNonObjects;' false
 		        			if(!is_object($value)) {
-		        				dt_set_function_variable($function, $name, null);
+		        				dt_set_static_function_variable($function, $name, null);
 		        			}
 		        		#.endif
 
@@ -811,12 +809,6 @@
 	        	//gc_collect_cycles();
 	        }
 
-	        // Do not activate static method call fixing if it does not make sense
-	        #.if PHP_MINOR_VERSION >= 4 && #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->fixStaticMethodCalls;' false
-		        if($deleteClasses)
-		        	dt_fix_static_method_calls(true);
-		    #.endif
-
 		    #.ifdef 'SUPPORT_CODECACHE'
 	        cleanGlobals(vars::$Pancake_exclude, false, true);
 	        #.else
@@ -848,7 +840,6 @@
 	   			#.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_TRAITS'
 	        	vars::$Pancake_traitsPre = get_declared_traits();
 	        	#.endif
-	        	dt_clear_cache();
 	       	#.endif
 
 	        gc_collect_cycles();

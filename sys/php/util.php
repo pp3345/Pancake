@@ -1,49 +1,49 @@
 <?php
-  
+
     /****************************************************************/
     /* Pancake                                                      */
     /* util.php                                                     */
     /* 2012 Yussuf Khalil                                           */
     /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
-    
+
 	#.if 0
     namespace Pancake;
-    
+
     if(PANCAKE !== true)
         exit;
     #.endif
-    
+
     function PHPExitHandler($exitmsg = null) {
     	if(!is_int($exitmsg))
         	echo $exitmsg;
         return !defined('PANCAKE_PHP');
     }
-    
+
     function PHPErrorHandler($errtype, $errstr, $errfile = "Unknown", $errline = 0, $errcontext = array()) {
-    	if(vars::$errorHandler 
-    	&& vars::$errorHandler['for'] & $errtype 
-    	&& !($errtype & /* .eval 'return \E_ERROR | \E_PARSE | \E_CORE_ERROR | \E_CORE_WARNING | \E_COMPILE_ERROR | \E_COMPILE_WARNING;' */) 
-    	&& is_callable(vars::$errorHandler['call']) 
+    	if(vars::$errorHandler
+    	&& vars::$errorHandler['for'] & $errtype
+    	&& !($errtype & /* .eval 'return \E_ERROR | \E_PARSE | \E_CORE_ERROR | \E_CORE_WARNING | \E_COMPILE_ERROR | \E_COMPILE_WARNING;' */)
+    	&& is_callable(vars::$errorHandler['call'])
     	&& (vars::$executingErrorHandler = true)
     	&& call_user_func(vars::$errorHandler['call'], $errtype, $errstr, $errfile, $errline, $errcontext) !== false) {
     		vars::$executingErrorHandler = false;
     		vars::$lastError = array('type' => $errtype, 'message' => $errstr, 'file' => $errfile, 'line' => $errline);
     		return true;
     	}
-    	
+
     	vars::$executingErrorHandler = false;
-    	
+
     	vars::$lastError = array('type' => $errtype, 'message' => $errstr, 'file' => $errfile, 'line' => $errline);
-    	
+
         if(!(error_reporting() & $errtype) || !error_reporting() || !ini_get('display_errors'))
             return true;
-        
+
         $typeNames = array( /* .constant 'E_ERROR' */ => 'Fatal error',
                             /* .constant 'E_WARNING' */ => 'Warning',
                             /* .constant 'E_PARSE' */ => 'Parse error',
                             /* .constant 'E_NOTICE' */ => 'Notice',
-                            /* .constant 'E_CORE_ERROR' */ => 'PHP Fatal error', 
+                            /* .constant 'E_CORE_ERROR' */ => 'PHP Fatal error',
                             /* .constant 'E_CORE_WARNING' */ => 'PHP Warning',
                             /* .constant 'E_COMPILE_ERROR' */ => 'PHP Fatal error',
                             /* .constant 'E_COMPILE_WARNING' */ => 'PHP Warning',
@@ -54,37 +54,37 @@
                             /* .constant 'E_RECOVERABLE_ERROR' */ => 'Catchable fatal error',
                             /* .constant 'E_DEPRECATED' */ => 'Deprecated',
                             /* .constant 'E_USER_DEPRECATED' */ => 'Deprecated');
-        
+
         #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpHTMLErrors;' */
        		echo "<br />" . "\r\n" . "<b>" . $typeNames[$errtype] . "</b>:  " . $errstr . " in <b>" . $errfile . "</b> on line <b>" . $errline . "</b><br />" . "\r\n";
         #.else
         	echo $typeNames[$errtype].': '.$errstr.' in '.$errfile .' on line '.$errline."\n";
        	#.endif
-       	
+
        	// Abort script execution on E_USER_ERROR
        	if($errtype == /* .constant 'E_USER_ERROR' */)
             throw new \DeepTraceExitException('', 255);
-        
+
         return true;
     }
-    
+
     function PHPShutdownHandler() {
     	if(!defined('PANCAKE_PHP'))
     		return;
-    	
+
     	// Execute registered shutdown callbacks
     	foreach((array) vars::$Pancake_shutdownCalls as $shutdownCall)
     		call_user_func_array($shutdownCall["callback"], $shutdownCall["args"]);
-    	
+
     	while(PHPFunctions\OutputBuffering\getLevel() > 1)
     		PHPFunctions\OutputBuffering\endFlush();
     	vars::$Pancake_request->answerBody = ob_get_contents();
-    	
+
         #.ifdef 'HAVE_SESSION_EXTENSION'
     	if(session_id() || vars::$sessionID) {
     		vars::$Pancake_request->setCookie(session_name(), session_id() ? session_id() : vars::$sessionID, time() + ini_get('session.cookie_lifetime'), ini_get('session.cookie_path'), ini_get('session.cookie_domain'), ini_get('session.cookie_secure'), ini_get('session.cookie_httponly'));
     		session_write_close();
-    		 
+
     		switch(session_cache_limiter()) {
     			case 'nocache':
     				vars::$Pancake_request->setHeader('Expires', 'Thu, 19 Nov 1981 08:52:00 GMT');
@@ -108,30 +108,30 @@
     		}
     	}
     	#.endif
-    	
+
     	$data = serialize(vars::$Pancake_request);
-    	
+
     	$packages = array();
-        
+
       	if(strlen($data) > (socket_get_option(vars::$requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_SNDBUF' */) - 1024)
       	&& (socket_set_option(vars::$requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_SNDBUF' */, strlen($data) + 1024) + 1)
         && strlen($data) > (socket_get_option(vars::$requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_SNDBUF' */) - 1024)) {
       		$packageSize = socket_get_option(vars::$requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_SNDBUF' */) - 1024;
-      		
+
       		for($i = 0;$i < ceil($data / $packageSize);$i++)
       			$packages[] = substr($data, $i * $packageSize, $i * $packageSize + $packageSize);
       	} else
       		$packages[] = $data;
-        
+
         // First transmit the length of the serialized object, then the object itself
         socket_write(vars::$requestSocket, dechex(count($packages)));
         socket_write(vars::$requestSocket, dechex(strlen($packages[0])));
         foreach($packages as $data)
         	socket_write(vars::$requestSocket, $data);
-        
+
     	IPC::send(9999, 1);
     }
-    
+
     #.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->phpDisabledFunctions;' false
     function PHPDisabledFunction($functionName) {
     	#.if PHP_MINOR_VERSION == 3 && PHP_RELEASE_VERSION < 6
@@ -139,17 +139,17 @@
     	#.else
     		$backtrace = debug_backtrace(/* .DEBUG_BACKTRACE_PROVIDE_OBJECT */, 2);
     	#.endif
-    	
+
     	PHPErrorHandler(/* .E_WARNING */, $functionName . '() has been disabled for security reasons', $backtrace[1]["file"], $backtrace[1]["line"]);
-    	
+
     	return null;
     }
     #.endif
-    
+
     #.ifdef 'SUPPORT_CODECACHE'
     /**
     * Recursive CodeCache-build
-    * 
+    *
     * @param string $fileName Filename, relative to the vHosts document root
     */
     function cacheFile($fileName) {
@@ -172,10 +172,10 @@
         }
     }
     #.endif
-    
+
     /**
     * A function that does the work on debug_backtrace()
-    * 
+    *
     * @param array $backtrace Backtrace as returned by PHP's debug_backtrace()
     * @return array Modified Backtrace
     */
@@ -183,9 +183,9 @@
         unset($backtrace[count($backtrace)-1]);
         unset($backtrace[count($backtrace)-1]);
         unset($backtrace[0]);
-        
+
         $newBacktrace = array();
-        
+
         foreach($backtrace as $tracePart) {
 			if(vars::$executingErrorHandler && ((isset($tracePart['file']) && strpos($tracePart['file'], '/sys/threads/single/phpWorker.thread')) || (isset($tracePart['function']) && $tracePart['function'] == 'Pancake\PHPErrorHandler')))
 				continue;
@@ -193,10 +193,10 @@
         }
         return $newBacktrace;
     }
-    
+
     /**
      * Removes all objects stored in an array
-     * 
+     *
      * @param array $data
      * @return array
      */
@@ -204,17 +204,17 @@
     	if(is_object($data)) {
     		$reflect = new \ReflectionObject($data);
     		$objects[] = $data;
-    		
+
     		#.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetObjectsDestroyDestructor;'
     			if($reflect->hasMethod('__destruct')) {
 	    			global $destroyedDestructors;
-	
+
 	    			$name = 'Pancake_DestroyedDestructor' . mt_rand();
 	    			dt_rename_method($reflect->getName(), '__destruct', $name);
 	    			$destroyedDestructors[$reflect->getName()] = $name;
 	    		}
 	    	#.endif
-    		
+
     		foreach($reflect->getProperties() as $property) {
     			$property->setAccessible(true);
 
@@ -222,7 +222,7 @@
 			    	// Search for objects in the object's properties
 			    	$property->setValue($data, recursiveClearObjects($property->getValue($data), $objects));
     		}
-    		
+
     		// Destroy object
     		$data = null;
 
@@ -233,21 +233,21 @@
 	    			unset($data[$index]);
 	    	}
     	}
-    	
+
     	return $data;
     }
-    
+
     /**
     * All Pancake PHP executor variables are stored in this class
     */
     class vars {
     	/**
-    	 * 
+    	 *
     	 * @var HTTPRequest
     	 */
         public static $Pancake_request = null;
         /**
-         * 
+         *
          * @var PHPWorker
          */
         public static $Pancake_currentThread = null;
@@ -304,5 +304,5 @@
         public static $listenArray = array();
         public static $listenArrayOrig = array();
     }
-    
+
 ?>
