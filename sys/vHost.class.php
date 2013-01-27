@@ -1,19 +1,19 @@
 <?php
-  
+
     /****************************************************************/
     /* Pancake                                                      */
     /* vHost.class.php                                              */
     /* 2012 Yussuf Khalil                                           */
     /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
-    
+
     namespace Pancake;
-    
+
     if(PANCAKE !== true)
         exit;
-    
+
     /**
-    * Represents a single virtual host in Pancake    
+    * Represents a single virtual host in Pancake
     */
     class vHost {
         private static $vHosts = 0;
@@ -62,37 +62,37 @@
         public $directoryPageHandler = "";
         public $gzipStatic = false;
         public $gzipMimeTypes = array();
-        
+
         /**
         * Loads a vHost
-        * 
+        *
         * @param string $name Name of the vHost that should be loaded
         * @return vHost
         */
         public function __construct($name) {
             $this->name = $name;
-            
+
             // Set ID
             $this->id = self::$vHosts++;
-            
+
             // Get configured settings
             $config = Config::get('vhosts.'.$this->name);
-            
+
             if(!$config)
             	throw new \InvalidArgumentException('Unknown vHost specified');
-            
+
             if(isset($config['enabled']) && !$config['enabled']) {
                 $this->enabled = false;
                 return;
             }
-            
+
             $this->documentRoot = $config['docroot'];
             $this->AJP13 = (string) $config['ajp13'];
-            
+
             // Check if document root exists and is a directory
             if((!file_exists($this->documentRoot) || !is_dir($this->documentRoot)) && !$this->AJP13)
                 throw new \Exception('Document root does not exist or is not a directory: '.$this->documentRoot);
-                
+
             // Resolve exact path to docroot
             $this->documentRoot = realpath($this->documentRoot) . '/';
 
@@ -127,12 +127,12 @@
             $this->directoryPageHandler = $config['directorypagehandler'] && is_readable($config['directorypagehandler']) ? $config['directorypagehandler'] : getcwd() . '/php/directoryPageHandler.php';
             $this->gzipStatic = (bool) $config['gzipstatic'];
             $this->gzipMimeTypes = (array) $config['gzipmimetypes'];
-            
+
             // Check for Hosts to listen on
             $this->listen = (array) $config['listen'];
             if(count($this->listen) < 1 && !$this->isDefault)
                 throw new \Exception('You need to specify at least one address to listen on');
-            
+
             if($config['autodelete'])
                 $this->autoDelete = (array) $config['autodelete'];
             else
@@ -142,7 +142,7 @@
                 foreach((array) $deletes as $delete)
                     $this->forceDeletes[] = array('type' => $type, 'name' => $delete);
             }
-                
+
             // Load rewrite rules
             foreach((array) $config['rewrite'] as $rewriteRule) {
                 if(substr($rewriteRule['location'], 0, 1) != '/' && $rewriteRule['location'])
@@ -150,18 +150,18 @@
                 //$rewriteRule['location'] = strtolower($rewriteRule['location']);
                 $this->rewriteRules[] = $rewriteRule;
             }
-            
+
             // Load files and directories that need authentication
             if($config['auth']) {
                 foreach($config['auth'] as $authFile => $authFileConfig) {
-                    if(!is_array($authFileConfig['authfiles']) || ($authFileConfig['type'] != 'basic'/* && $authFileConfig['type'] != 'digest'*/)) {
+                    if(!is_array($authFileConfig['authfiles']) || ($authFileConfig['type'] != 'basic' && $authFileConfig['type'] != 'basic-crypted'/* && $authFileConfig['type'] != 'digest'*/)) {
                         trigger_error('Invalid authentication configuration for "'.$authFile.'"', \E_USER_WARNING);
                         continue;
                     }
                     if(is_dir($this->documentRoot . $authFile)) {
                     	if(substr($authFile, -1, 1) == '/' && strlen($authFile) > 1)
                     		$authFile = substr($authFile, 0, strlen($authFile) - 1);
-                    	
+
                         $this->authDirectories[$authFile] = array(
                                                                     'realm' => $authFileConfig['realm'],
                                                                     'type' => $authFileConfig['type'],
@@ -174,7 +174,7 @@
                     }
                 }
             }
-            
+
             // Check PHP-CodeCache
             if($this->phpCodeCache) {
                 foreach($this->phpCodeCache as $id => $codeFile)
@@ -185,15 +185,15 @@
                 if(!$this->phpWorkers)
                     throw new \Exception('The amount of PHPWorkers must be greater or equal 1 if you want to use the CodeCache.');
             }
-            
+
             // Spawn socket for PHPWorkers
             if($this->phpWorkers) {
                 $this->phpSocketName = Config::get('main.tmppath') . mt_rand() . '_' . $this->name . '_socket';
-                
+
                 $this->phpSocket = socket_create(\AF_UNIX, \SOCK_SEQPACKET, 0);
                 socket_bind($this->phpSocket, $this->phpSocketName);
                 socket_listen($this->phpSocket, (int) $config['phpsocketbacklog']);
-                
+
                 chown($this->phpSocketName, Config::get('main.user'));
                 chgrp($this->phpSocketName, Config::get('main.group'));
             }

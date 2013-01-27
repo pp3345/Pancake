@@ -6,14 +6,14 @@
 	/* 2012 Yussuf Khalil                                           */
 	/* License: http://pancakehttp.net/license/                     */
 	/****************************************************************/
-	
+
 	#.if 0
 	namespace Pancake;
-	
+
 	if(PANCAKE !== true)
 		exit;
 	#.endif
-	
+
 	class vHostInterface {
         public $id = 0;
         public $name = "";
@@ -79,19 +79,19 @@
 	        public $fixStaticMethodCalls = false;
 	    #.endif
         public $exceptionPageHandler = "";
-	        
+
 	   	public function __construct(vHost $vHost) {
 	   		foreach($vHost as $name => $value) {
 	   			if(isset($this->$name))
 	   				$this->$name = $value;
 	   		}
-	   		
+
 	   		#.ifndef 'PHPWORKER'
 		   		if($this->isDefault)
 		   			self::$defaultvHost = $this;
 	   		#.endif
 	   	}
-	   	
+
 	   	#.ifndef 'PHPWORKER'
 	   	#.ifdef 'SUPPORT_AUTHENTICATION'
 	   	/**
@@ -103,7 +103,7 @@
 	   	public function requiresAuthentication($filePath) {
 	   		if(substr($filePath, -1, 1) == '/' && strlen($filePath) > 1)
 	   			$filePath = substr($filePath, 0, strlen($filePath) - 1);
-	   		
+
 	   		if(isset($this->authFiles[$filePath]))
 	   			return $this->authFiles[$filePath];
 	   		else if(isset($this->authDirectories[$filePath]))
@@ -117,7 +117,7 @@
 	   		}
 	   		return false;
 	   	}
-	   	
+
 	   	/**
 	   	 * Checks if user and password for a file are correct
 	   	 *
@@ -131,12 +131,16 @@
 	   			return false;
 	   		if(substr($filePath, -1, 1) == '/' && strlen($filePath) > 1)
 	   			$filePath = substr($filePath, 0, strlen($filePath) - 1);
-	   		if($this->authFiles[$filePath]) {
+	   		if(isset($this->authFiles[$filePath])) {
+	   			if($this->authFiles[$filePath]['type'] == "basic-crypted")
+					$password = sha1($password);
 	   			foreach($this->authFiles[$filePath]['authfiles'] as $authfile) {
 	   				if(authenticationFile::get($authfile)->isValid($user, $password))
 	   					return true;
 	   			}
-	   		} else if($this->authDirectories[$filePath]) {
+	   		} else if(isset($this->authDirectories[$filePath])) {
+	   			if($this->authDirectories[$filePath]['type'] == "basic-crypted")
+					$password = sha1($password);
 	   			foreach($this->authDirectories[$filePath]['authfiles'] as $authfile) {
 	   				if(authenticationFile::get($authfile)->isValid($user, $password))
 	   					return true;
@@ -144,17 +148,19 @@
 	   		} else {
 	   			while($filePath != '/') {
 	   				$filePath = dirname($filePath);
-	   				if($this->authDirectories[$filePath])
-	   					foreach($this->authDirectories[$filePath]['authfiles'] as $authfile) {
-	   					if(authenticationFile::get($authfile)->isValid($user, $password))
-	   						return true;
-	   				}
+	   				if(isset($this->authDirectories[$filePath])) {
+	   					$lpassword = $this->authDirectories[$filePath]['type'] == "basic-crypted" ? sha1($password) : $password;
+		   				foreach($this->authDirectories[$filePath]['authfiles'] as $authfile) {
+		   					if(authenticationFile::get($authfile)->isValid($user, $lpassword))
+		   						return true;
+		   				}
+					}
 	   			}
 	   		}
 	   		return false;
 	   	}
 	   	#.endif
-	   	
+
 	   	#.ifdef 'SUPPORT_FASTCGI'
 	   	/**
 	   	 * Initializes the configured FastCGI upstream servers for this vHost
@@ -162,20 +168,20 @@
 	   	 */
 	   	public function initializeFastCGI() {
 	   		$fCGIs = array();
-	   		 
+
 	   		foreach($this->fastCGI as $fastCGI) {
 	   			$fCGIs[] = FastCGI::getInstance($fastCGI);
 	   		}
-	   		 
+
 	   		$this->fastCGI = array();
-	   		 
+
 	   		foreach($fCGIs as $fastCGI) {
 	   			foreach($fastCGI->getMimeTypes() as $mime)
 	   				$this->fastCGI[$mime] = $fastCGI;
 	   		}
 	   	}
 	   	#.endif
-	   	
+
 	   	#.ifdef 'SUPPORT_AJP13'
 	   	public function initializeAJP13() {
 	   		if($this->AJP13)
@@ -184,5 +190,5 @@
 	   	#.endif
 	   	#.endif
 	}
-	
+
 ?>
