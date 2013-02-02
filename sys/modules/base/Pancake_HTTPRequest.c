@@ -14,21 +14,26 @@ static void PancakeAutoglobalMerge(HashTable *dest, HashTable *src TSRMLS_DC)
 	zval **src_entry, **dest_entry;
 	char *string_key;
 	uint string_key_len;
-	ulong num_key;
+	ulong num_key, h;
 	HashPosition pos;
 	int key_type;
 
 	zend_hash_internal_pointer_reset_ex(src, &pos);
 	while (zend_hash_get_current_data_ex(src, (void **)&src_entry, &pos) == SUCCESS) {
 		key_type = zend_hash_get_current_key_ex(src, &string_key, &string_key_len, &num_key, 0, &pos);
+
+		if(key_type == HASH_KEY_IS_STRING) {
+			h = zend_inline_hash_func(string_key, string_key_len);
+		}
+
 		if (Z_TYPE_PP(src_entry) != IS_ARRAY
-			|| (key_type == HASH_KEY_IS_STRING && zend_hash_find(dest, string_key, string_key_len, (void **) &dest_entry) != SUCCESS)
+			|| (key_type == HASH_KEY_IS_STRING && zend_hash_quick_find(dest, string_key, string_key_len, h, (void **) &dest_entry) != SUCCESS)
 			|| (key_type == HASH_KEY_IS_LONG && zend_hash_index_find(dest, num_key, (void **)&dest_entry) != SUCCESS)
 			|| Z_TYPE_PP(dest_entry) != IS_ARRAY
 			) {
 			Z_ADDREF_PP(src_entry);
 			if (key_type == HASH_KEY_IS_STRING) {
-				zend_hash_update(dest, string_key, string_key_len, src_entry, sizeof(zval *), NULL);
+				zend_hash_quick_update(dest, string_key, string_key_len, h, src_entry, sizeof(zval *), NULL);
 			} else {
 				zend_hash_index_update(dest, num_key, src_entry, sizeof(zval *), NULL);
 			}
@@ -254,7 +259,7 @@ PHP_METHOD(HTTPRequest, init) {
 	for(i = 0;i < 3;i++) {
 		firstLine[i] = strtok_r(i ? NULL : requestLine, " ", &ptr2);
 		if(firstLine[i] == NULL) {
-			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("Bad request line", 400, requestHeader, requestHeader_len);
+			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("Bad request line", sizeof("Bad request line") - 1, 400, requestHeader, requestHeader_len);
 			efree(requestHeader_dupe);
 			efree(firstLine);
 			efree(requestLine);
@@ -265,7 +270,7 @@ PHP_METHOD(HTTPRequest, init) {
 	if(!strcmp(firstLine[2], "HTTP/1.1"))
 		zend_update_property_stringl(HTTPRequest_ce, this_ptr, "protocolVersion", sizeof("protocolVersion") - 1, "1.1", 3 TSRMLS_CC);
 	else if(strcmp(firstLine[2], "HTTP/1.0")) {
-		PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("Unsupported protocol", 400, requestHeader, requestHeader_len);
+		PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("Unsupported protocol", sizeof("Unsupported protocol") - 1, 400, requestHeader, requestHeader_len);
 		efree(requestHeader_dupe);
 		efree(firstLine);
 		efree(requestLine);
@@ -277,7 +282,7 @@ PHP_METHOD(HTTPRequest, init) {
 	&& strcmp(firstLine[0], "HEAD")
 	&& strcmp(firstLine[0], "TRACE")
 	&& strcmp(firstLine[0], "OPTIONS")) {
-		PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("Unknown request method", 501, requestHeader, requestHeader_len);
+		PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("Unknown request method", sizeof("Unknown request method") - 1, 501, requestHeader, requestHeader_len);
 		efree(requestHeader_dupe);
 		efree(firstLine);
 		efree(requestLine);
@@ -292,7 +297,7 @@ PHP_METHOD(HTTPRequest, init) {
 	if((!strcmp(firstLine[0], "HEAD") && PANCAKE_GLOBALS(allowHEAD) == 0)
 	|| (!strcmp(firstLine[0], "TRACE") && PANCAKE_GLOBALS(allowTRACE) == 0)
 	|| (!strcmp(firstLine[0], "OPTIONS") && PANCAKE_GLOBALS(allowOPTIONS) == 0)) {
-		PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("Disallowed request method", 405, requestHeader, requestHeader_len);
+		PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("Disallowed request method", sizeof("Disallowed request method") - 1, 405, requestHeader, requestHeader_len);
 		efree(requestHeader_dupe);
 		efree(firstLine);
 		efree(requestLine);
