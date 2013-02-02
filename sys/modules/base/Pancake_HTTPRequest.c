@@ -789,7 +789,6 @@ PHP_METHOD(HTTPRequest, init) {
 				if(authorizationBase64 != NULL) {
 					char *ptr2;
 					int ret_len;
-					ret_len = 0;
 
 					unsigned char *decoded = php_base64_decode_ex((unsigned char*) authorizationBase64, strlen(authorizationBase64), &ret_len, 0);
 
@@ -1748,7 +1747,7 @@ PHP_METHOD(HTTPRequest, setCookie) {
 	}
 
 	if(!raw) {
-		value = php_url_encode(value, value_len, &value_len);
+		value = php_url_encode(value, value_len, NULL);
 	}
 
 	char *expireString;
@@ -1769,6 +1768,10 @@ PHP_METHOD(HTTPRequest, setCookie) {
 														      domain_len ? domain : "",
 														    	secure ? "; Secure" : "",
 														    	  httpOnly ? "; HttpOnly" : "");
+
+	if(!raw) {
+		efree(value);
+	}
 
 	PancakeSetAnswerHeader(this_ptr, "set-cookie", sizeof("set-cookie"), cookie, 0, 13893642455224896184 TSRMLS_CC);
 
