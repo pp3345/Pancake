@@ -416,3 +416,8 @@ PHP_FUNCTION(ExecuteJITGlobals) {
 	zend_register_auto_global(ZEND_STRL("_POST"), PANCAKE_GLOBALS(JIT_POST), PancakeJITFetchPOST TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_FILES"), PANCAKE_GLOBALS(JIT_FILES), PancakeJITFetchFILES TSRMLS_CC);
 }
+
+PHP_FUNCTION(makeSID) {
+	efree(PS(id));
+	PS(id) = PS(mod)->s_create_sid(&PS(mod_data), NULL TSRMLS_CC);
+}
