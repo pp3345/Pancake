@@ -430,7 +430,7 @@ PHP_METHOD(HTTPRequest, init) {
 		Z_STRLEN_P(contentTypeZval) = 12;
 
 		zend_update_property_stringl(HTTPRequest_ce, this_ptr, "answerBody", sizeof("answerBody") - 1, requestHeader, requestHeader_len TSRMLS_CC);
-		PancakeSetAnswerHeader(this_ptr, "content-type", sizeof("content-type"), contentTypeZval, 1, 14553278787112811407 TSRMLS_CC);
+		PancakeSetAnswerHeader(this_ptr, "content-type", sizeof("content-type"), contentTypeZval, 1, 14553278787112811407U TSRMLS_CC);
 		efree(firstLine);
 		efree(host);
 		efree(requestLine);
@@ -482,9 +482,9 @@ PHP_METHOD(HTTPRequest, init) {
 				}
 			}
 
-			if(		(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "location", sizeof("location"), 249896952137776350, (void**) &value) == SUCCESS
+			if(		(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "location", sizeof("location"), 249896952137776350U, (void**) &value) == SUCCESS
 					&& strncmp(Z_STRVAL_PP(value), firstLine[1], Z_STRLEN_PP(value)) != 0)
-			||		(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "precondition", sizeof("precondition"), 17926165567001274195, (void**) &value) == SUCCESS
+			||		(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "precondition", sizeof("precondition"), 17926165567001274195U, (void**) &value) == SUCCESS
 					&& (	Z_TYPE_PP(value) != IS_LONG
 						||	(	Z_LVAL_PP(value) == 404
 							&&	virtual_access(path, F_OK TSRMLS_CC) == 0)
@@ -496,8 +496,8 @@ PHP_METHOD(HTTPRequest, init) {
 
 			zval **value2;
 
-			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "pattern", sizeof("pattern"), 7572787993791075, (void**) &value) == SUCCESS
-			&& zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "replace", sizeof("replace"), 7572878230359585, (void**) &value2) == SUCCESS) {
+			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "pattern", sizeof("pattern"), 7572787993791075U, (void**) &value) == SUCCESS
+			&& zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "replace", sizeof("replace"), 7572878230359585U, (void**) &value2) == SUCCESS) {
 				char *result = NULL;
 				int result_len = 0, replace_count = 0;
 
@@ -512,9 +512,9 @@ PHP_METHOD(HTTPRequest, init) {
 				}
 			}
 
-			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "exception", sizeof("exception"), 8246287202855534580, (void**) &value) == SUCCESS
+			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "exception", sizeof("exception"), 8246287202855534580U, (void**) &value) == SUCCESS
 			&& Z_TYPE_PP(value) == IS_LONG) {
-				if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "exceptionmessage", sizeof("exceptionmessage") - 1, 14507601710368331673, (void**) &value2) == SUCCESS) {
+				if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "exceptionmessage", sizeof("exceptionmessage") - 1, 14507601710368331673U, (void**) &value2) == SUCCESS) {
 					PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL(Z_STRVAL_PP(value2), Z_STRLEN_PP(value2), Z_LVAL_PP(value), requestHeader, requestHeader_len);
 				} else {
 					PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("The server was unable to process your request", Z_LVAL_PP(value), requestHeader, requestHeader_len);
@@ -529,8 +529,8 @@ PHP_METHOD(HTTPRequest, init) {
 				return;
 			}
 
-			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "destination", sizeof("destination"), 15010265353095908391, (void**) &value) == SUCCESS) {
-				PancakeSetAnswerHeader(this_ptr, "location", sizeof("location"), *value, 1, 249896952137776350);
+			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "destination", sizeof("destination"), 15010265353095908391U, (void**) &value) == SUCCESS) {
+				PancakeSetAnswerHeader(this_ptr, "location", sizeof("location"), *value, 1, 249896952137776350U TSRMLS_CC);
 				PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("Redirecting...", 301);
 				if(fL1isMalloced) efree(firstLine[1]);
 				efree(firstLine);
@@ -541,7 +541,7 @@ PHP_METHOD(HTTPRequest, init) {
 				return;
 			}
 
-			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "pathinfo", sizeof("pathinfo"), 249902003330075646, (void**) &value) == SUCCESS) {
+			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "pathinfo", sizeof("pathinfo"), 249902003330075646U, (void**) &value) == SUCCESS) {
 				pcre_cache_entry *pcre;
 				zval *pcre_retval, *matches;
 
@@ -870,7 +870,7 @@ PHP_METHOD(HTTPRequest, init) {
 			}
 
 			zval **realm;
-			zend_hash_quick_find(Z_ARRVAL(authData), "realm", sizeof("realm"), 6953973961110, (void**) &realm);
+			zend_hash_quick_find(Z_ARRVAL(authData), "realm", sizeof("realm"), 6953973961110U, (void**) &realm);
 
 			zval *authenticate;
 			MAKE_STD_ZVAL(authenticate);
@@ -880,7 +880,7 @@ PHP_METHOD(HTTPRequest, init) {
 			strcat(Z_STRVAL_P(authenticate), Z_STRVAL_PP(realm));
 			strcat(Z_STRVAL_P(authenticate), "\"");
 
-			PancakeSetAnswerHeader(this_ptr, "www-authenticate", sizeof("www-authenticate"), authenticate, 1, 10801095474844103286 TSRMLS_CC);
+			PancakeSetAnswerHeader(this_ptr, "www-authenticate", sizeof("www-authenticate"), authenticate, 1, 10801095474844103286U TSRMLS_CC);
 			efree(firstLine);
 			efree(requestLine);
 			efree(requestFilePath);
@@ -967,7 +967,7 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 		MAKE_STD_ZVAL(connectionAnswer);
 		Z_TYPE_P(connectionAnswer) = IS_STRING;
 
-		if(zend_hash_quick_find(Z_ARRVAL_P(requestHeaderArray), "connection", sizeof("connection"), 13869595640170944373, (void**) &connection) == SUCCESS
+		if(zend_hash_quick_find(Z_ARRVAL_P(requestHeaderArray), "connection", sizeof("connection"), 13869595640170944373U, (void**) &connection) == SUCCESS
 		&& !strcasecmp(Z_STRVAL_PP(connection), "keep-alive")) {
 			Z_STRLEN_P(connectionAnswer) = sizeof("keep-alive") - 1;
 			Z_STRVAL_P(connectionAnswer) = estrndup("keep-alive", sizeof("keep-alive") - 1);
@@ -976,21 +976,21 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 			Z_STRVAL_P(connectionAnswer) = estrndup("close", sizeof("close") - 1);
 		}
 
-		PancakeSetAnswerHeader(answerHeaderArray, "connection", sizeof("connection"), connectionAnswer, 1, 13869595640170944373 TSRMLS_CC);
+		PancakeSetAnswerHeader(answerHeaderArray, "connection", sizeof("connection"), connectionAnswer, 1, 13869595640170944373U TSRMLS_CC);
 	}
 
 	if(PANCAKE_GLOBALS(exposePancake)) {
 		Z_ADDREF_P(PANCAKE_GLOBALS(pancakeVersionString));
-		PancakeSetAnswerHeader(answerHeaderArray, "server", sizeof("server"), PANCAKE_GLOBALS(pancakeVersionString), 1, 229482452699676 TSRMLS_CC);
+		PancakeSetAnswerHeader(answerHeaderArray, "server", sizeof("server"), PANCAKE_GLOBALS(pancakeVersionString), 1, 229482452699676U TSRMLS_CC);
 	}
 
 	if(Z_LVAL_PP(contentLength)
-	&& !zend_hash_quick_exists(Z_ARRVAL_P(answerHeaderArray), "content-type", sizeof("content-type"), 14553278787112811407)) {
+	&& !zend_hash_quick_exists(Z_ARRVAL_P(answerHeaderArray), "content-type", sizeof("content-type"), 14553278787112811407U)) {
 		Z_ADDREF_P(PANCAKE_GLOBALS(defaultContentType));
-		PancakeSetAnswerHeader(answerHeaderArray, "content-type", sizeof("content-type"), PANCAKE_GLOBALS(defaultContentType), 1, 14553278787112811407 TSRMLS_CC);
+		PancakeSetAnswerHeader(answerHeaderArray, "content-type", sizeof("content-type"), PANCAKE_GLOBALS(defaultContentType), 1, 14553278787112811407U TSRMLS_CC);
 	}
 
-	if(!zend_hash_quick_exists(Z_ARRVAL_P(answerHeaderArray), "date", sizeof("date"), 210709757379)) {
+	if(!zend_hash_quick_exists(Z_ARRVAL_P(answerHeaderArray), "date", sizeof("date"), 210709757379U)) {
 		char *date = php_format_date("r", 1, time(NULL), 1 TSRMLS_CC);
 
 		zval *dateZval;
@@ -999,7 +999,7 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 		Z_STRVAL_P(dateZval) = date;
 		Z_STRLEN_P(dateZval) = strlen(date);
 
-		PancakeSetAnswerHeader(answerHeaderArray, "date", sizeof("date"), dateZval, 1, 210709757379 TSRMLS_CC);
+		PancakeSetAnswerHeader(answerHeaderArray, "date", sizeof("date"), dateZval, 1, 210709757379U TSRMLS_CC);
 	}
 
 	zend_update_property_long(HTTPRequest_ce, this_ptr, "answerCode", sizeof("answerCode") - 1, answerCode TSRMLS_CC);
@@ -1037,7 +1037,7 @@ PHP_METHOD(HTTPRequest, invalidRequest) {
 
 	mimeType = PancakeMIMEType(Z_STRVAL_P(exceptionPageHandler), Z_STRLEN_P(exceptionPageHandler) TSRMLS_CC);
 	Z_ADDREF_P(mimeType);
-	PancakeSetAnswerHeader(this_ptr, "content-type", sizeof("content-type"), mimeType, 1, 14553278787112811407 TSRMLS_CC);
+	PancakeSetAnswerHeader(this_ptr, "content-type", sizeof("content-type"), mimeType, 1, 14553278787112811407U TSRMLS_CC);
 
 	FILE *handle;
 	char *contents;
@@ -1260,7 +1260,7 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 			zval *requestHeaders = zend_read_property(HTTPRequest_ce, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, 1 TSRMLS_CC);
 			zval **contentType;
 
-			if(zend_hash_quick_find(Z_ARRVAL_P(requestHeaders), "content-type", sizeof("content-type"), 14553278787112811407, (void**) &contentType) == SUCCESS) {
+			if(zend_hash_quick_find(Z_ARRVAL_P(requestHeaders), "content-type", sizeof("content-type"), 14553278787112811407U, (void**) &contentType) == SUCCESS) {
 				if(!strncmp("application/x-www-form-urlencoded", Z_STRVAL_PP(contentType), sizeof("application/x-www-form-urlencoded") - 1)) {
 					POSTParameters = PancakeProcessQueryString(POSTParameters, rawPOSTData, "&");
 				} else if(!strncmp("multipart/form-data", Z_STRVAL_PP(contentType), sizeof("multipart/form-data") - 1)) {
@@ -1778,7 +1778,7 @@ PHP_METHOD(HTTPRequest, setCookie) {
 		efree(value);
 	}
 
-	PancakeSetAnswerHeader(this_ptr, "set-cookie", sizeof("set-cookie"), cookie, 0, 13893642455224896184 TSRMLS_CC);
+	PancakeSetAnswerHeader(this_ptr, "set-cookie", sizeof("set-cookie"), cookie, 0, 13893642455224896184U TSRMLS_CC);
 
 	RETURN_TRUE;
 }
