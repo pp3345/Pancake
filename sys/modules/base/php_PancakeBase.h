@@ -23,6 +23,8 @@
 #include "SAPI.h"
 #include "Zend/zend_extensions.h"
 #include "Zend/zend_exceptions.h"
+#include "ext/standard/base64.h"
+#include "ext/standard/url.h"
 
 extern zend_module_entry PancakeBase_module_entry;
 #define phpext_PancakeBase_ptr &PancakeBase_module_entry
