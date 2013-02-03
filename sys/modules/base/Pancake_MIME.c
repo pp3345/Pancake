@@ -50,13 +50,13 @@ PHP_METHOD(MIME, load) {
 	/* Fetch allowHEAD */
 	MAKE_STD_ZVAL(array);
 	array_init(array);
-	add_next_index_string(array, "Pancake\\Config", 1);
-	add_next_index_string(array, "get", 1);
+	add_next_index_stringl(array, "Pancake\\Config", sizeof("Pancake\\Config") - 1, 1);
+	add_next_index_stringl(array, "get", 3, 1);
 
 	MAKE_STD_ZVAL(arg);
-	arg->type = IS_STRING;
-	arg->value.str.val = estrdup("mime");
-	arg->value.str.len = strlen("mime");
+	Z_TYPE_P(arg) = IS_STRING;
+	Z_STRLEN_P(arg) = 4;
+	Z_STRVAL_P(arg) = estrndup("mime", 4);
 
 	call_user_function(CG(function_table), NULL, array, &retval, 1, &arg);
 
@@ -81,18 +81,18 @@ PHP_METHOD(MIME, load) {
 
 			zval *zkey;
 			MAKE_STD_ZVAL(zkey);
-			zkey->type = IS_STRING;
-			zkey->value.str.val = estrdup(key);
-			zkey->value.str.len = strlen(key);
+			Z_TYPE_P(zkey) = IS_STRING;
+			Z_STRLEN_P(zkey) = strlen(key);
+			Z_STRVAL_P(zkey) = estrndup(key, Z_STRLEN_P(zkey));
 
 			zend_hash_add(PANCAKE_GLOBALS(mimeTable), Z_STRVAL_PP(ext), Z_STRLEN_PP(ext), (void*) &zkey, sizeof(zval*), NULL);
 		}
 	}
 
 	MAKE_STD_ZVAL(PANCAKE_GLOBALS(defaultMimeType));
-	PANCAKE_GLOBALS(defaultMimeType)->type = IS_STRING;
-	PANCAKE_GLOBALS(defaultMimeType)->value.str.val = estrdup("application/octet-stream");
-	PANCAKE_GLOBALS(defaultMimeType)->value.str.len = strlen("application/octet-stream");
+	Z_TYPE_P(PANCAKE_GLOBALS(defaultMimeType)) = IS_STRING;
+	Z_STRLEN_P(PANCAKE_GLOBALS(defaultMimeType)) = sizeof("application/octet-stream") - 1;
+	Z_STRVAL_P(PANCAKE_GLOBALS(defaultMimeType)) = estrndup("application/octet-stream", sizeof("application/octet-stream") - 1);
 
 	free:
 	zval_dtor(&retval);
