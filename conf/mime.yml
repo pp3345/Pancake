@@ -4,6 +4,7 @@ mime:
     - log
     - sql
     - ini
+    - conf
   text/html:
     - html
     - htm
@@ -29,6 +30,7 @@ mime:
   image/jpeg:
     - jpeg
     - jpg
+    - jpe
   www/mime:
     - mime
   application/vnd.ms-powerpoint:
@@ -83,8 +85,15 @@ mime:
     - jar
   audio/mpeg:
     - mp3
+    - mp2
+    - mpga
+    - mp2a
+    - m2a
+    - m3a
   video/mp4:
     - mp4
+  audio/mp4:
+    - mp4a
   audio/x-flac:
     - flac
   application/x-xpinstall:
@@ -93,6 +102,7 @@ mime:
     - 7z
   application/x-msdownload:
     - dll
+    - com
   application/bat:
     - bat
   application/vnd.ms-excel:
@@ -110,6 +120,8 @@ mime:
   application/x-tar:
     - tar
   application/x-bzip:
+    - bz
+  application/x-bzip2:
     - bz2
   text/x-script.perl:
     - pl
@@ -120,10 +132,13 @@ mime:
     - ico
   application/xml:
     - xml
+    - xsl
   application/rss+xml:
     - rss
   text/mathml:
     - mml
+  application/mathml+xml:
+    - mathml
   application/xhtml+xml:
     - xhtml
     - xht
@@ -139,6 +154,8 @@ mime:
     - smil
   application/json:
     - json
+  application/jsonml+json:
+    - jsonml
   application/vnd.oasis.opendocument.text:
     - odt
     - fodt
@@ -158,3 +175,37 @@ mime:
   application/photoshop:
     - psd
     - psb
+  video/webm:
+    - webm
+  image/webp:
+    - webp
+  text/x-markdown:
+    - md
+    - markdown
+  application/vnd.ms-opentype:
+    - otf
+    - ttf
+  application/mathematica:
+    - ma
+    - nb
+    - mb
+  text/csv:
+    - csv
+  audio/x-wav:
+    - wav
+  audio/x-mpegurl:
+    - m3u
+  audio/webm:
+    - weba
+  application/x-sh:
+    - sh
+  application/x-latex:
+    - latex
+  application/x-debian-package:
+    - deb
+    - udeb
+  application/vnd.visio:
+    - vsd
+    - vst
+    - vss
+    - vsw
