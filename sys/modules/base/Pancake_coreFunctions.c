@@ -29,8 +29,8 @@ PANCAKE_API int PancakeLoadFilePointers(TSRMLS_D) {
 
 	MAKE_STD_ZVAL(array);
 	array_init(array);
-	add_next_index_string(array, "Pancake\\Config", 1);
-	add_next_index_string(array, "get", 1);
+	add_next_index_stringl(array, "Pancake\\Config", sizeof("Pancake\\Config") - 1, 1);
+	add_next_index_stringl(array, "get", 3, 1);
 
 	int i;
 	for(i = 0; i < 3; i++) {
@@ -60,7 +60,7 @@ PANCAKE_API int PancakeLoadFilePointers(TSRMLS_D) {
 		/* Get system log configuration value */
 		zval retval;
 
-		if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
+		if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg TSRMLS_CC) == FAILURE) {
 			zval_ptr_dtor(&array);
 			zval_ptr_dtor(&arg);
 			return 0;
@@ -126,7 +126,7 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 	if(flags & OUTPUT_DEBUG) {
 		zval constant;
 
-		if(!zend_get_constant("pancake\\DEBUG_MODE", strlen("pancake\\DEBUG_MODE"), &constant)
+		if(!zend_get_constant("pancake\\DEBUG_MODE", sizeof("pancake\\DEBUG_MODE") - 1, &constant TSRMLS_CC)
 		|| Z_LVAL(constant) == 0) {
 			return 0;
 		}
@@ -139,14 +139,14 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 		MAKE_STD_ZVAL(array);
 		array_init(array);
 		add_next_index_stringl(array, "Pancake\\Config", sizeof("Pancake\\Config") - 1, 1);
-		add_next_index_stringl(array, "get", sizeof("get") - 1, 1);
+		add_next_index_stringl(array, "get", 3, 1);
 
 		MAKE_STD_ZVAL(arg);
 		Z_TYPE_P(arg) = IS_STRING;
 		Z_STRLEN_P(arg) = sizeof("main.dateformat") - 1;
 		Z_STRVAL_P(arg) = estrndup("main.dateformat", sizeof("main.dateformat") - 1);
 
-		if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
+		if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg TSRMLS_CC) == FAILURE) {
 			zval_ptr_dtor(&array);
 			zval_ptr_dtor(&arg);
 			return 0;
@@ -173,7 +173,7 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 
 	efree(date);
 
-	if(!zend_get_constant("pancake\\DAEMONIZED", strlen("pancake\\DAEMONIZED"), &daemonized)
+	if(!zend_get_constant("pancake\\DAEMONIZED", sizeof("pancake\\DAEMONIZED") - 1, &daemonized TSRMLS_CC)
 	|| Z_LVAL(daemonized) == 0) {
 		printf("%s", outputString);
 	}
@@ -276,11 +276,11 @@ PHP_FUNCTION(setThread) {
 		PANCAKE_GLOBALS(virtualHostArray) = virtualHostArray;
 
 		MAKE_STD_ZVAL(arg);
-		arg->type = IS_STRING;
-		arg->value.str.val = estrdup("main.allowhead");
-		arg->value.str.len = strlen("main.allowhead");
+		Z_TYPE_P(arg) = IS_STRING;
+		Z_STRLEN_P(arg) = sizeof("main.allowhead") - 1;
+		Z_STRVAL_P(arg) = estrndup("main.allowhead", sizeof("main.allowhead") - 1);
 
-		if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
+		if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg TSRMLS_CC) == FAILURE) {
 			zval_ptr_dtor(&array);
 			zval_ptr_dtor(&arg);
 			RETURN_FALSE;
@@ -293,11 +293,11 @@ PHP_FUNCTION(setThread) {
 
 		/* Fetch allowTRACE */
 		MAKE_STD_ZVAL(arg);
-		arg->type = IS_STRING;
-		arg->value.str.val = estrdup("main.allowtrace");
-		arg->value.str.len = strlen("main.allowtrace");
+		Z_TYPE_P(arg) = IS_STRING;
+		Z_STRLEN_P(arg) = sizeof("main.allowtrace") - 1;
+		Z_STRVAL_P(arg) = estrndup("main.allowtrace", sizeof("main.allowtrace") - 1);
 
-		if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
+		if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg TSRMLS_CC) == FAILURE) {
 			zval_ptr_dtor(&array);
 			zval_ptr_dtor(&arg);
 			RETURN_FALSE;
@@ -310,11 +310,11 @@ PHP_FUNCTION(setThread) {
 
 		/* Fetch allowOPTIONS */
 		MAKE_STD_ZVAL(arg);
-		arg->type = IS_STRING;
-		arg->value.str.val = estrdup("main.allowoptions");
-		arg->value.str.len = strlen("main.allowoptions");
+		Z_TYPE_P(arg) = IS_STRING;
+		Z_STRLEN_P(arg) = sizeof("main.allowoptions") - 1;
+		Z_STRVAL_P(arg) = estrndup("main.allowoptions", sizeof("main.allowoptions") - 1);
 
-		if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
+		if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg TSRMLS_CC) == FAILURE) {
 			zval_ptr_dtor(&array);
 			zval_ptr_dtor(&arg);
 			RETURN_FALSE;
@@ -332,7 +332,7 @@ PHP_FUNCTION(setThread) {
 	Z_STRLEN_P(arg) = sizeof("main.exposepancake") - 1;
 	Z_STRVAL_P(arg) = estrndup("main.exposepancake", sizeof("main.exposepancake") - 1);
 
-	if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
+	if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg TSRMLS_CC) == FAILURE) {
 		zval_ptr_dtor(&array);
 		zval_ptr_dtor(&arg);
 		RETURN_FALSE;
@@ -348,7 +348,7 @@ PHP_FUNCTION(setThread) {
 	Z_STRLEN_P(arg) = sizeof("main.tmppath") - 1;
 	Z_STRVAL_P(arg) = estrndup("main.tmppath", sizeof("main.tmppath") - 1);
 
-	if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg) == FAILURE) {
+	if(call_user_function(CG(function_table), NULL, array, &retval, 1, &arg TSRMLS_CC) == FAILURE) {
 		zval_ptr_dtor(&array);
 		zval_ptr_dtor(&arg);
 		RETURN_FALSE;
@@ -392,7 +392,7 @@ zend_bool CodeCacheJITFetch(const char *name, uint name_len TSRMLS_DC) {
 PHP_FUNCTION(CodeCacheJITGlobals) {
 	// Kill Zend auto globals HashTable and rebuild it
 	zend_hash_destroy(CG(auto_globals));
-	zend_hash_init_ex(CG(auto_globals), 8, NULL, NULL, 1, 0);
+	zend_hash_init_ex(CG(auto_globals), 6, NULL, NULL, 1, 0);
 
 	zend_register_auto_global(ZEND_STRL("_GET"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_COOKIE"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
@@ -407,7 +407,7 @@ PHP_FUNCTION(CodeCacheJITGlobals) {
 PHP_FUNCTION(ExecuteJITGlobals) {
 	// Kill Zend auto globals HashTable and rebuild it
 	zend_hash_destroy(CG(auto_globals));
-	zend_hash_init_ex(CG(auto_globals), 8, NULL, NULL, 1, 0);
+	zend_hash_init_ex(CG(auto_globals), 6, NULL, NULL, 1, 0);
 
 	zend_register_auto_global(ZEND_STRL("_COOKIE"), PANCAKE_GLOBALS(JIT_COOKIE), PancakeJITFetchCookies TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_GET"), PANCAKE_GLOBALS(JIT_GET), PancakeJITFetchGET TSRMLS_CC);
