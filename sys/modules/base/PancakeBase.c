@@ -87,6 +87,7 @@ const zend_function_entry PancakeBase_functions[] = {
 	ZEND_NS_FE("Pancake", ExecuteJITGlobals, NULL)
 	ZEND_NS_FE("Pancake", loadFilePointers, NULL)
 	ZEND_NS_FE("Pancake", makeSID, NULL)
+	ZEND_NS_FE("Pancake", makeFastClass, NULL)
 	ZEND_FE_END
 };
 
@@ -173,6 +174,7 @@ PHP_MINIT_FUNCTION(PancakeBase)
 	REGISTER_NS_STRINGL_CONSTANT("Pancake", "VERSION", PANCAKE_VERSION, strlen(PANCAKE_VERSION), CONST_PERSISTENT);
 
 	INIT_NS_CLASS_ENTRY(http, "Pancake", "HTTPRequest", HTTPRequest_methods);
+	http.create_object = PancakeCreateObject;
 	HTTPRequest_ce = zend_register_internal_class(&http TSRMLS_CC);
 	zend_declare_property_stringl(HTTPRequest_ce, "answerBody", sizeof("answerBody") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_stringl(HTTPRequest_ce, "queryString", sizeof("queryString") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
@@ -200,15 +202,18 @@ PHP_MINIT_FUNCTION(PancakeBase)
 	zend_declare_property_null(HTTPRequest_ce, "POSTParameters", sizeof("POSTParameters") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_null(HTTPRequest_ce, "uploadedFiles", sizeof("uploadedFiles") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_null(HTTPRequest_ce, "uploadedFileTempNames", sizeof("uploadedFileTempNames") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_long(HTTPRequest_ce, "rangeFrom", sizeof("rangeFrom") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_long(HTTPRequest_ce, "rangeTo", sizeof("rangeTo") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
 
 	INIT_NS_CLASS_ENTRY(exception, "Pancake", "invalidHTTPRequestException", invalidHTTPRequestException_methods);
+	exception.create_object = PancakeCreateObject;
 	invalidHTTPRequestException_ce = zend_register_internal_class_ex(&exception, zend_exception_get_default(TSRMLS_C), "Exception" TSRMLS_CC);
 
 	INIT_NS_CLASS_ENTRY(mime, "Pancake", "MIME", MIME_methods);
 	MIME_ce = zend_register_internal_class(&mime TSRMLS_CC);
 
-	//char *getHash = "realm";
-	//printf("hash of %s: %lu\n", getHash, zend_inline_hash_func(getHash, strlen(getHash) + 1));
+	//char *getHash = "rewriteRules";
+	//printf("#define HASH_OF_%s %luU\n", getHash, zend_inline_hash_func(getHash, strlen(getHash) + 1));
 
 	return SUCCESS;
 }

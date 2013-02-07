@@ -23,6 +23,7 @@
 #include "SAPI.h"
 #include "Zend/zend_extensions.h"
 #include "Zend/zend_exceptions.h"
+#include "Zend/zend_object_handlers.h"
 #include "ext/standard/base64.h"
 #include "ext/standard/url.h"
 #include "ext/session/php_session.h"
@@ -56,6 +57,8 @@ PHP_FUNCTION(CodeCacheJITGlobals);
 PHP_FUNCTION(ExecuteJITGlobals);
 PHP_FUNCTION(loadFilePointers);
 PHP_FUNCTION(makeSID);
+
+PHP_FUNCTION(makeFastClass);
 
 PHP_METHOD(HTTPRequest, __construct);
 PHP_METHOD(HTTPRequest, __destruct);
@@ -216,5 +219,60 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 PANCAKE_API void PancakeSetAnswerHeader(zval *answerHeaderArray, char *name, uint name_len, zval *value, uint replace, ulong h TSRMLS_DC);
 PANCAKE_API zval *PancakeMIMEType(char *filePath, int filePath_len TSRMLS_DC);
 char *PancakeBuildAnswerHeaders(zval *object);
+zval *PancakeFastReadProperty(zval *object, zval *member, ulong hashValue, const zend_literal *key TSRMLS_DC);
+void PancakeFastWriteProperty(zval *object, zval *member, zval *value, const zend_literal *key TSRMLS_DC);
+
+#define Z_OBJ_P(zval_p) \
+	((zend_object*)(EG(objects_store).object_buckets[Z_OBJ_HANDLE_P(zval_p)].bucket.obj.object))
+
+zend_object_value PancakeCreateObject(zend_class_entry *classType TSRMLS_DC);
+zend_class_entry *PancakeObjectGetClass(const zval *object TSRMLS_DC);
+static union _zend_function *PancakeFastObjectGetMethod(zval **object_ptr, char *method_name, int method_len, const zend_literal *key TSRMLS_DC);
+static int PancakeFastHasProperty(zval *object, zval *member, int has_set_exists, const zend_literal *key TSRMLS_DC);
+
+#define FAST_READ_PROPERTY(destination, object, name, nameLen, hash) {\
+	zval *__property; \
+	MAKE_STD_ZVAL(__property); \
+	Z_TYPE_P(__property) = IS_STRING; \
+	Z_STRVAL_P(__property) = estrndup(name, nameLen); \
+	Z_STRLEN_P(__property) = nameLen; \
+	destination = PancakeFastReadProperty(object, __property, hash, NULL TSRMLS_CC); \
+	zval_ptr_dtor(&__property); \
+	}
+
+#define HASH_OF_answerHeaders 18278774163892064849U
+#define HASH_OF_listen 229473570079380U
+#define HASH_OF_requestHeaders 9954895853317176298U
+#define HASH_OF_acceptedCompressions 12705014063304977923U
+#define HASH_OF_GETParameters 11405648739312147641U
+#define HASH_OF_POSTParameters 6130107874256024511U
+#define HASH_OF_cookies 7572251828363442U
+#define HASH_OF_uploadedFiles 15250737160651435334U
+#define HASH_OF_uploadedFileTempNames 11448553736935094685U
+#define HASH_OF_documentRoot 16204378207404372328U
+#define HASH_OF_AJP13 6952023629892U
+#define HASH_OF_indexFiles 13878724278335976880U
+#define HASH_OF_allowDirectoryListings 2637217105949475782U
+#define HASH_OF_gzipStatic 13876225513030952551U
+#define HASH_OF_answerCode 13866493486854215632U
+#define HASH_OF_answerBody 13866493486853030371U
+#define HASH_OF_protocolVersion 3860956662933781277U
+#define HASH_OF_vHost 6954096621945U
+#define HASH_OF_onEmptyPage204 62850130289894436U
+#define HASH_OF_code 210709057152U
+#define HASH_OF_exceptionPageHandler 14133101413685728847U
+#define HASH_OF_queryString 15691166075706376146U
+#define HASH_OF_rawPOSTData 15711862400059257807U
+#define HASH_OF_requestTime 15717763264417086621U
+#define HASH_OF_requestMicrotime 12643050781665598615U
+#define HASH_OF_requestType 15717763264417664880U
+#define HASH_OF_requestFilePath 14916911278280748091U
+#define HASH_OF_originalRequestURI 13013963900158340691U
+#define HASH_OF_requestURI 13892109728286261886U
+#define HASH_OF_remoteIP 249904977867445098U
+#define HASH_OF_remotePort 13892103865723532566U
+#define HASH_OF_localIP 7572634912942473U
+#define HASH_OF_localPort 8246599420203896565U
+#define HASH_OF_rewriteRules 2186409550171618610U
 
 #endif	/* PHP_PANCAKEBASE_H */

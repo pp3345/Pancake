@@ -116,7 +116,7 @@ PANCAKE_API void PancakeSetAnswerHeader(zval *answerHeaderArray, char *name, uin
 	zval **answerHeader;
 
 	if(Z_TYPE_P(answerHeaderArray) == IS_OBJECT) {
-		answerHeaderArray = zend_read_property(HTTPRequest_ce, answerHeaderArray, "answerHeaders", sizeof("answerHeaders") - 1, 0 TSRMLS_CC);
+		FAST_READ_PROPERTY(answerHeaderArray, answerHeaderArray, "answerHeaders", sizeof("answerHeaders") - 1, HASH_OF_answerHeaders);
 	}
 
 	if(zend_hash_quick_find(Z_ARRVAL_P(answerHeaderArray), name, name_len, h, (void**) &answerHeader) == SUCCESS) {
@@ -386,8 +386,10 @@ PHP_METHOD(HTTPRequest, init) {
 			efree(requestLine);
 			return;
 		} else {
-			zval *listen = zend_read_property(HTTPRequest_ce, PANCAKE_GLOBALS(defaultVirtualHost), "listen", sizeof("listen") - 1, 1 TSRMLS_CC);
+			zval *listen;
 			zval **hostZval;
+
+			FAST_READ_PROPERTY(listen, PANCAKE_GLOBALS(defaultVirtualHost), "listen", sizeof("listen") - 1, HASH_OF_listen);
 			vHost = &PANCAKE_GLOBALS(defaultVirtualHost);
 			zend_hash_index_find(Z_ARRVAL_P(listen), 0, (void**) &hostZval);
 			host = estrndup(Z_STRVAL_PP(hostZval), Z_STRLEN_PP(hostZval));
@@ -439,12 +441,15 @@ PHP_METHOD(HTTPRequest, init) {
 		return;
 	}
 
-	char *documentRoot = Z_STRVAL_P(zend_read_property(HTTPRequest_ce, *vHost, "documentRoot", sizeof("documentRoot") - 1, 0 TSRMLS_CC));
+	zval *documentRootz;
+	FAST_READ_PROPERTY(documentRootz, *vHost, "documentRoot", sizeof("documentRoot") - 1, HASH_OF_documentRoot);
+	char *documentRoot = Z_STRVAL_P(documentRootz);
 
 	zend_update_property_string(HTTPRequest_ce, this_ptr, "originalRequestURI", sizeof("originalRequestURI") - 1, firstLine[1] TSRMLS_CC);
 
 	/* Apply rewrite rules */
-	zval *rewriteRules = zend_read_property(HTTPRequest_ce, *vHost, "rewriteRules", sizeof("rewriteRules") - 1, 0 TSRMLS_CC);
+	zval *rewriteRules;
+	FAST_READ_PROPERTY(rewriteRules, *vHost, "rewriteRules", sizeof("rewriteRules") - 1, HASH_OF_rewriteRules);
 
 	int fL1isMalloced = 0;
 
@@ -612,8 +617,10 @@ PHP_METHOD(HTTPRequest, init) {
 	zval *mimeType = NULL;
 	char *filePath;
 	int filePath_len;
+	zval *AJP13;
+	FAST_READ_PROPERTY(AJP13, *vHost, "AJP13", 5, HASH_OF_AJP13);
 
-	if(Z_TYPE_P(zend_read_property(HTTPRequest_ce, *vHost, "AJP13", sizeof("AJP13") - 1, 1 TSRMLS_CC)) != IS_OBJECT) {
+	if(Z_TYPE_P(AJP13) != IS_OBJECT) {
 		struct stat st;
 
 		spprintf(&filePath, 0, "%s%s", documentRoot, requestFilePath);
@@ -642,7 +649,8 @@ PHP_METHOD(HTTPRequest, init) {
 
 			efree(host);
 
-			zval *indexFiles = zend_read_property(HTTPRequest_ce, *vHost, "indexFiles", sizeof("indexFiles") - 1, 1 TSRMLS_CC);
+			zval *indexFiles;
+			FAST_READ_PROPERTY(indexFiles, *vHost, "indexFiles", sizeof("indexFiles") - 1, HASH_OF_indexFiles);
 
 			if(Z_TYPE_P(indexFiles) == IS_ARRAY) {
 				zval **indexFile;
@@ -663,7 +671,8 @@ PHP_METHOD(HTTPRequest, init) {
 				}
 			}
 
-			zval *allowDirectoryListings = zend_read_property(HTTPRequest_ce, *vHost, "allowDirectoryListings", sizeof("allowDirectoryListings") - 1, 1 TSRMLS_CC);
+			zval *allowDirectoryListings;
+			FAST_READ_PROPERTY(allowDirectoryListings, *vHost, "allowDirectoryListings", sizeof("allowDirectoryListings") - 1, HASH_OF_allowDirectoryListings);
 
 			if(Z_TYPE_P(allowDirectoryListings) > IS_BOOL || Z_LVAL_P(allowDirectoryListings) == 0) {
 				PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("You're not allowed to view the listing of the requested directory", 403, requestHeader, requestHeader_len);
@@ -680,7 +689,8 @@ PHP_METHOD(HTTPRequest, init) {
 		} else if(acceptGZIP == 1) {
 			efree(host);
 
-			zval *allowGZIPStatic = zend_read_property(HTTPRequest_ce, *vHost, "gzipStatic", sizeof("gzipStatic") - 1, 1 TSRMLS_CC);
+			zval *allowGZIPStatic;
+			FAST_READ_PROPERTY(allowGZIPStatic, *vHost, "gzipStatic", sizeof("gzipStatic") - 1, HASH_OF_gzipStatic);
 
 			if(Z_TYPE_P(allowGZIPStatic) <= IS_BOOL && Z_LVAL_P(allowGZIPStatic) > 0) {
 				efree(filePath);
@@ -922,13 +932,16 @@ PHP_METHOD(HTTPRequest, init) {
 }
 
 PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
-	zval *vHost;
-	zval *answerHeaderArray = zend_read_property(HTTPRequest_ce, this_ptr, "answerHeaders", sizeof("answerHeaders") - 1, 0 TSRMLS_CC);
-	long answerCode = Z_LVAL_P(zend_read_property(HTTPRequest_ce, this_ptr, "answerCode", sizeof("answerCode") - 1, 1 TSRMLS_CC));
-	zval **contentLength;
-	int answerBody_len = Z_STRLEN_P(zend_read_property(HTTPRequest_ce, this_ptr, "answerBody", sizeof("answerBody") - 1, 1 TSRMLS_CC));
-	int quickFindResult;
-	zval *protocolVersion = zend_read_property(HTTPRequest_ce, this_ptr, "protocolVersion", sizeof("protocolVersion") - 1, 0 TSRMLS_CC);
+	zval *vHost, *answerHeaderArray, *answerCodez, *answerBodyz, *protocolVersion, **contentLength;
+	long answerCode;
+	int answerBody_len, quickFindResult;
+
+	FAST_READ_PROPERTY(answerHeaderArray, this_ptr, "answerHeaders", sizeof("answerHeaders") - 1, HASH_OF_answerHeaders);
+	FAST_READ_PROPERTY(answerCodez, this_ptr, "answerCode", sizeof("answerCode") - 1, HASH_OF_answerCode);
+	FAST_READ_PROPERTY(answerBodyz, this_ptr, "answerBody", sizeof("answerBody") - 1, HASH_OF_answerBody);
+	FAST_READ_PROPERTY(protocolVersion, this_ptr, "protocolVersion", sizeof("protocolVersion") - 1, HASH_OF_protocolVersion);
+	answerCode = Z_LVAL_P(answerCodez);
+	answerBody_len = Z_STRLEN_P(answerBodyz);
 
 	if((quickFindResult = zend_hash_quick_find(Z_ARRVAL_P(answerHeaderArray), "content-length", sizeof("content-length"), 2767439838230162255, (void**) &contentLength)) == FAILURE
 	|| !Z_LVAL_PP(contentLength)) {
@@ -947,8 +960,11 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 
 	if(answerCode < 100 || answerCode > 599) {
 		if(Z_LVAL_PP(contentLength) == 0) {
-			zval *vHost = zend_read_property(HTTPRequest_ce, this_ptr, "vHost", sizeof("vHost") - 1, 1 TSRMLS_CC);
-			zval *onEmptyPage204 = zend_read_property(HTTPRequest_ce, vHost, "onEmptyPage204", sizeof("onEmptyPage204") - 1, 1 TSRMLS_CC);
+			zval *vHost, *onEmptyPage204;
+
+			FAST_READ_PROPERTY(vHost, this_ptr, "vHost", 5, HASH_OF_vHost);
+			FAST_READ_PROPERTY(onEmptyPage204, vHost, "onEmptyPage204", sizeof("onEmptyPage204") - 1, HASH_OF_onEmptyPage204);
+
 			if(Z_LVAL_P(onEmptyPage204)) {
 				answerCode = 204;
 			} else {
@@ -960,9 +976,9 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 	}
 
 	if(answerCode >= 200 && answerCode < 400) {
-		zval *requestHeaderArray = zend_read_property(HTTPRequest_ce, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, 1 TSRMLS_CC);
-		zval **connection;
-		zval *connectionAnswer;
+		zval *requestHeaderArray, *connectionAnswer, **connection;
+
+		FAST_READ_PROPERTY(requestHeaderArray, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, HASH_OF_requestHeaders);
 
 		MAKE_STD_ZVAL(connectionAnswer);
 		Z_TYPE_P(connectionAnswer) = IS_STRING;
@@ -1020,30 +1036,26 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 }
 
 PHP_METHOD(HTTPRequest, invalidRequest) {
-	zval *exception;
-	zval *vHost;
-	zval *exceptionPageHandler;
-	zval *mimeType;
+	zval *exception, *answerCode, *vHost, *exceptionPageHandler, *mimeType, *output;
+	FILE *handle;
+	char *contents;
+	long len;
+	int useDefaultHandler = 0;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &exception, invalidHTTPRequestException_ce) == FAILURE) {
 		RETURN_FALSE;
 	}
 
-	zval *answerCode = zend_read_property(invalidHTTPRequestException_ce, exception, "code", sizeof("code") - 1, 0 TSRMLS_CC);
-	zend_update_property(HTTPRequest_ce, this_ptr, "answerCode", sizeof("answerCode") - 1, answerCode TSRMLS_CC);
+	FAST_READ_PROPERTY(answerCode, exception, "code", 4, HASH_OF_code);
+	FAST_READ_PROPERTY(vHost, this_ptr, "vHost", 5, HASH_OF_vHost);
+	FAST_READ_PROPERTY(exceptionPageHandler, vHost, "exceptionPageHandler", sizeof("exceptionPageHandler") - 1, HASH_OF_exceptionPageHandler);
 
-	vHost = zend_read_property(HTTPRequest_ce, this_ptr, "vHost", sizeof("vHost") - 1, 0 TSRMLS_CC);
-	exceptionPageHandler = zend_read_property(HTTPRequest_ce, vHost, "exceptionPageHandler", sizeof("exceptionPageHandler") - 1, 0 TSRMLS_CC);
+	zend_update_property(HTTPRequest_ce, this_ptr, "answerCode", sizeof("answerCode") - 1, answerCode TSRMLS_CC);
 
 	mimeType = PancakeMIMEType(Z_STRVAL_P(exceptionPageHandler), Z_STRLEN_P(exceptionPageHandler) TSRMLS_CC);
 	Z_ADDREF_P(mimeType);
 	PancakeSetAnswerHeader(this_ptr, "content-type", sizeof("content-type"), mimeType, 1, 14553278787112811407U TSRMLS_CC);
 
-	FILE *handle;
-	char *contents;
-	long len;
-	int useDefaultHandler = 0;
-	zval *output;
 	MAKE_STD_ZVAL(output);
 
 	if(!virtual_access(Z_STRVAL_P(exceptionPageHandler), F_OK | R_OK TSRMLS_CC)) {
@@ -1202,11 +1214,13 @@ zval *PancakeProcessQueryString(zval *destination, zval *queryString, const char
 }
 
 zval *PancakeFetchGET(zval *this_ptr TSRMLS_DC) {
-	zval *queryString = zend_read_property(HTTPRequest_ce, this_ptr, "queryString", sizeof("queryString") - 1, 1 TSRMLS_CC);
+	zval *queryString;
+	FAST_READ_PROPERTY(queryString, this_ptr, "queryString", sizeof("queryString") - 1, HASH_OF_queryString);
 
 	if(Z_STRLEN_P(queryString)) {
-		zval *GETParameters = zend_read_property(HTTPRequest_ce, this_ptr, "GETParameters", sizeof("GETParameters") - 1, 1 TSRMLS_CC);
-		zval *return_value;
+		zval *GETParameters, *return_value;
+
+		FAST_READ_PROPERTY(GETParameters, this_ptr, "GETParameters", sizeof("GETParameters") - 1, HASH_OF_GETParameters);
 
 		if(Z_TYPE_P(GETParameters) != IS_ARRAY) {
 			MAKE_STD_ZVAL(GETParameters);
@@ -1241,11 +1255,13 @@ PHP_METHOD(HTTPRequest, getGETParams) {
 }
 
 zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
-	zval *POSTParameters = zend_read_property(HTTPRequest_ce, this_ptr, "POSTParameters", sizeof("POSTParameters") - 1, 1 TSRMLS_CC);
+	zval *POSTParameters;
+	FAST_READ_PROPERTY(POSTParameters, this_ptr, "POSTParameters", sizeof("POSTParameters") - 1, HASH_OF_POSTParameters);
 
 	if(Z_TYPE_P(POSTParameters) != IS_ARRAY) {
-		zval *rawPOSTData = zend_read_property(HTTPRequest_ce, this_ptr, "rawPOSTData", sizeof("rawPOSTData") - 1, 1 TSRMLS_CC);
-		zval *files, *tempNames;
+		zval *rawPOSTData, *files, *tempNames;
+
+		FAST_READ_PROPERTY(rawPOSTData, this_ptr, "rawPOSTData", sizeof("rawPOSTData") - 1, HASH_OF_rawPOSTData);
 
 		MAKE_STD_ZVAL(POSTParameters);
 		array_init(POSTParameters);
@@ -1257,8 +1273,9 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 		array_init(tempNames);
 
 		if(Z_STRLEN_P(rawPOSTData)) {
-			zval *requestHeaders = zend_read_property(HTTPRequest_ce, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, 1 TSRMLS_CC);
-			zval **contentType;
+			zval *requestHeaders, **contentType;
+
+			FAST_READ_PROPERTY(requestHeaders, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, HASH_OF_requestHeaders);
 
 			if(zend_hash_quick_find(Z_ARRVAL_P(requestHeaders), "content-type", sizeof("content-type"), 14553278787112811407U, (void**) &contentType) == SUCCESS) {
 				if(!strncmp("application/x-www-form-urlencoded", Z_STRVAL_PP(contentType), sizeof("application/x-www-form-urlencoded") - 1)) {
@@ -1515,8 +1532,10 @@ zend_bool PancakeJITFetchPOST(const char *name, uint name_len TSRMLS_DC) {
 }
 
 zend_bool PancakeJITFetchFILES(const char *name, uint name_len TSRMLS_DC) {
+	zval *files;
+
 	PancakeFetchPOST(PANCAKE_GLOBALS(JITGlobalsHTTPRequest) TSRMLS_CC);
-	zval *files = zend_read_property(HTTPRequest_ce, PANCAKE_GLOBALS(JITGlobalsHTTPRequest), "uploadedFiles", sizeof("uploadedFiles") - 1, 0 TSRMLS_CC);
+	FAST_READ_PROPERTY(files, PANCAKE_GLOBALS(JITGlobalsHTTPRequest), "uploadedFiles", sizeof("uploadedFiles") - 1, HASH_OF_uploadedFiles);
 	zend_hash_update(&EG(symbol_table), "_FILES", sizeof("_FILES"), &files, sizeof(zval*), NULL);
 
 	return 0;
@@ -1528,13 +1547,14 @@ PHP_METHOD(HTTPRequest, getPOSTParams) {
 }
 
 zval *PancakeFetchCookies(zval *this_ptr TSRMLS_DC) {
-	zval *cookies = zend_read_property(HTTPRequest_ce, this_ptr, "cookies", sizeof("cookies") - 1, 1 TSRMLS_CC);
+	zval *cookies;
+	FAST_READ_PROPERTY(cookies, this_ptr, "cookies", sizeof("cookies") - 1, HASH_OF_cookies);
 	//zval *return_value;
 	//MAKE_STD_ZVAL(return_value);
 
 	if(Z_TYPE_P(cookies) != IS_ARRAY) {
-		zval *requestHeaders = zend_read_property(HTTPRequest_ce, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, 1 TSRMLS_CC);
-		zval **cookie;
+		zval *requestHeaders, **cookie;
+		FAST_READ_PROPERTY(requestHeaders, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, HASH_OF_requestHeaders);
 
 		MAKE_STD_ZVAL(cookies);
 		array_init(cookies);
@@ -1564,26 +1584,28 @@ PHP_METHOD(HTTPRequest, getCookies) {
 
 zend_bool PancakeCreateSERVER(const char *name, uint name_len TSRMLS_DC) {
 	zval *this_ptr = PANCAKE_GLOBALS(JITGlobalsHTTPRequest);
-	zval *server;
+	zval *server, *requestTime, *requestMicrotime, *requestMethod, *protocolVersion, *requestFilePath,
+		*originalRequestURI, *requestURI, *vHost, *documentRoot, *remoteIP, *remotePort, *queryString,
+		*localIP, *localPort, *requestHeaderArray, **data;
 
 	MAKE_STD_ZVAL(server);
 	array_init_size(server, 20); // 17 basic elements + 3 overhead for headers (faster init; low overhead when not needed)
 
-	zval *requestTime = zend_read_property(HTTPRequest_ce, this_ptr, "requestTime", sizeof("requestTime") - 1, 1 TSRMLS_CC);
+	FAST_READ_PROPERTY(requestTime, this_ptr, "requestTime", sizeof("requestTime") - 1, HASH_OF_requestTime);
 	Z_ADDREF_P(requestTime);
 	add_assoc_zval_ex(server, "REQUEST_TIME", sizeof("REQUEST_TIME"), requestTime);
 
-	zval *requestMicrotime = zend_read_property(HTTPRequest_ce, this_ptr, "requestMicrotime", sizeof("requestMicrotime") - 1, 1 TSRMLS_CC);
+	FAST_READ_PROPERTY(requestMicrotime, this_ptr, "requestMicrotime", sizeof("requestMicrotime") - 1, HASH_OF_requestMicrotime);
 	Z_ADDREF_P(requestMicrotime);
 	add_assoc_zval_ex(server, "REQUEST_TIME_FLOAT", sizeof("REQUEST_TIME_FLOAT"), requestMicrotime);
 
 	// USER
 
-	zval *requestMethod = zend_read_property(HTTPRequest_ce, this_ptr, "requestType", sizeof("requestType") - 1, 1 TSRMLS_CC);
+	FAST_READ_PROPERTY(requestMethod, this_ptr, "requestType", sizeof("requestType") -1 , HASH_OF_requestType);
 	Z_ADDREF_P(requestMethod);
 	add_assoc_zval_ex(server, "REQUEST_METHOD", sizeof("REQUEST_METHOD"), requestMethod);
 
-	zval *protocolVersion = zend_read_property(HTTPRequest_ce, this_ptr, "protocolVersion", sizeof("protocolVersion") - 1, 1 TSRMLS_CC);
+	FAST_READ_PROPERTY(protocolVersion, this_ptr, "protocolVersion", sizeof("protocolVersion") - 1, HASH_OF_protocolVersion);
 	if(!strcmp(Z_STRVAL_P(protocolVersion), "1.1")) {
 		add_assoc_stringl_ex(server, "SERVER_PROTOCOL", sizeof("SERVER_PROTOCOL"), "HTTP/1.1", 8, 1);
 	} else {
@@ -1593,21 +1615,21 @@ zend_bool PancakeCreateSERVER(const char *name, uint name_len TSRMLS_DC) {
 	Z_ADDREF_P(PANCAKE_GLOBALS(pancakeVersionString));
 	add_assoc_zval_ex(server, "SERVER_SOFTWARE", sizeof("SERVER_SOFTWARE"), PANCAKE_GLOBALS(pancakeVersionString));
 
-	zval *requestFilePath = zend_read_property(HTTPRequest_ce, this_ptr, "requestFilePath", sizeof("requestFilePath") - 1, 1 TSRMLS_CC);
+	FAST_READ_PROPERTY(requestFilePath, this_ptr, "requestFilePath", sizeof("requestFilePath") - 1, HASH_OF_requestFilePath);
 	Z_SET_REFCOUNT_P(requestFilePath, Z_REFCOUNT_P(requestFilePath) + 2);
 	add_assoc_zval_ex(server, "PHP_SELF", sizeof("PHP_SELF"), requestFilePath);
 	add_assoc_zval_ex(server, "SCRIPT_NAME", sizeof("SCRIPT_NAME"), requestFilePath);
 
-	zval *originalRequestURI = zend_read_property(HTTPRequest_ce, this_ptr, "originalRequestURI", sizeof("originalRequestURI") - 1, 1 TSRMLS_CC);
+	FAST_READ_PROPERTY(originalRequestURI, this_ptr, "originalRequestURI", sizeof("originalRequestURI") - 1, HASH_OF_originalRequestURI);
 	Z_ADDREF_P(originalRequestURI);
 	add_assoc_zval_ex(server, "REQUEST_URI", sizeof("REQUEST_URI"), originalRequestURI);
 
-	zval *requestURI = zend_read_property(HTTPRequest_ce, this_ptr, "requestURI", sizeof("requestURI") - 1, 1 TSRMLS_CC);
+	FAST_READ_PROPERTY(requestURI, this_ptr, "requestURI", sizeof("requestURI") - 1, HASH_OF_requestURI);
 	Z_ADDREF_P(requestURI);
 	add_assoc_zval_ex(server, "DOCUMENT_URI", sizeof("DOCUMENT_URI"), requestURI);
 
-	zval *vHost = zend_read_property(HTTPRequest_ce, this_ptr, "vHost", sizeof("vHost") - 1, 1 TSRMLS_CC);
-	zval *documentRoot = zend_read_property(HTTPRequest_ce, vHost, "documentRoot", sizeof("documentRoot") -1, 1 TSRMLS_CC);
+	FAST_READ_PROPERTY(vHost, this_ptr, "vHost", 5, HASH_OF_vHost);
+	FAST_READ_PROPERTY(documentRoot, vHost, "documentRoot", sizeof("documentRoot") - 1, HASH_OF_documentRoot);
 
 	char *fullPath = emalloc(Z_STRLEN_P(documentRoot) + Z_STRLEN_P(requestFilePath) + 1);
 	memcpy(fullPath, Z_STRVAL_P(documentRoot), Z_STRLEN_P(documentRoot));
@@ -1618,31 +1640,30 @@ zend_bool PancakeCreateSERVER(const char *name, uint name_len TSRMLS_DC) {
 	add_assoc_string_ex(server, "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"), resolvedPath, 1);
 	free(resolvedPath); // resolvedPath is OS malloc()ated
 
-	zval *remoteIP = zend_read_property(HTTPRequest_ce, this_ptr, "remoteIP", sizeof("remoteIP") - 1, 1 TSRMLS_CC);
+	FAST_READ_PROPERTY(remoteIP, this_ptr, "remoteIP", sizeof("remoteIP") - 1, HASH_OF_remoteIP);
 	Z_ADDREF_P(remoteIP);
 	add_assoc_zval_ex(server, "REMOTE_ADDR", sizeof("REMOTE_ADDR"), remoteIP);
 
-	zval *remotePort = zend_read_property(HTTPRequest_ce, this_ptr, "remotePort", sizeof("remotePort") - 1, 1 TSRMLS_CC);
+	FAST_READ_PROPERTY(remotePort, this_ptr, "remotePort", sizeof("remotePort") - 1, HASH_OF_remotePort);
 	Z_ADDREF_P(remotePort);
 	add_assoc_zval_ex(server, "REMOTE_PORT", sizeof("REMOTE_PORT"), remotePort);
 
-	zval *queryString = zend_read_property(HTTPRequest_ce, this_ptr, "queryString", sizeof("queryString") - 1, 1 TSRMLS_CC);
+	FAST_READ_PROPERTY(queryString, this_ptr, "queryString", sizeof("queryString") - 1, HASH_OF_queryString);
 	Z_ADDREF_P(queryString);
 	add_assoc_zval_ex(server, "QUERY_STRING", sizeof("QUERY_STRING"), queryString);
 
 	Z_ADDREF_P(documentRoot);
 	add_assoc_zval_ex(server, "DOCUMENT_ROOT", sizeof("DOCUMENT_ROOT"), documentRoot);
 
-	zval *localIP = zend_read_property(HTTPRequest_ce, this_ptr, "localIP", sizeof("localIP") - 1, 1 TSRMLS_CC);
+	FAST_READ_PROPERTY(localIP, this_ptr, "localIP", sizeof("localIP") - 1, HASH_OF_localIP);
 	Z_ADDREF_P(localIP);
 	add_assoc_zval_ex(server, "SERVER_ADDR", sizeof("SERVER_ADDR"), localIP);
 
-	zval *localPort = zend_read_property(HTTPRequest_ce, this_ptr, "localPort", sizeof("localPort") - 1, 1 TSRMLS_CC);
+	FAST_READ_PROPERTY(localPort, this_ptr, "localPort", sizeof("localPort") - 1, HASH_OF_localPort);
 	Z_ADDREF_P(localPort);
 	add_assoc_zval_ex(server, "SERVER_PORT", sizeof("SERVER_PORT"), localPort);
 
-	zval *requestHeaderArray = zend_read_property(HTTPRequest_ce, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, 1 TSRMLS_CC);
-	zval **data;
+	FAST_READ_PROPERTY(requestHeaderArray, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, HASH_OF_requestHeaders);
 	char *index;
 	int index_len, haveServerName = 0;
 
@@ -1676,7 +1697,9 @@ zend_bool PancakeCreateSERVER(const char *name, uint name_len TSRMLS_DC) {
 	}
 
 	if(!haveServerName) {
-		zval *listen = zend_read_property(HTTPRequest_ce, vHost, "listen", sizeof("listen") - 1, 1 TSRMLS_CC);
+		zval *listen;
+
+		FAST_READ_PROPERTY(listen, vHost, "listen", sizeof("listen") - 1, HASH_OF_listen);
 		zend_hash_index_find(Z_ARRVAL_P(listen), 0, (void**) &data);
 		Z_ADDREF_PP(data);
 		add_assoc_zval_ex(server, "SERVER_NAME", sizeof("SERVER_NAME"), *data);
@@ -1786,42 +1809,50 @@ PHP_METHOD(HTTPRequest, setCookie) {
 PHP_METHOD(HTTPRequest, __destruct) {
 	/* Free memory */
 
-	zval *requestHeaderArray = zend_read_property(HTTPRequest_ce, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, 1);
+	zval *requestHeaderArray;
+	FAST_READ_PROPERTY(requestHeaderArray, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, HASH_OF_requestHeaders);
 	if(Z_TYPE_P(requestHeaderArray) == IS_ARRAY && Z_REFCOUNT_P(requestHeaderArray) > 1) {
 		Z_DELREF_P(requestHeaderArray);
 	}
 
-	zval *answerHeaderArray = zend_read_property(HTTPRequest_ce, this_ptr, "answerHeaders", sizeof("answerHeaders") - 1, 1);
+	zval *answerHeaderArray;
+	FAST_READ_PROPERTY(answerHeaderArray, this_ptr, "answerHeaders", sizeof("answerHeaders") - 1, HASH_OF_answerHeaders);
 	if(Z_REFCOUNT_P(answerHeaderArray) > 1) {
 		Z_DELREF_P(answerHeaderArray);
 	}
 
-	zval *acceptedCompressions = zend_read_property(HTTPRequest_ce, this_ptr, "acceptedCompressions", sizeof("acceptedCompressions") - 1, 1);
+	zval *acceptedCompressions;
+	FAST_READ_PROPERTY(acceptedCompressions, this_ptr, "acceptedCompressions", sizeof("acceptedCompressions") - 1, HASH_OF_acceptedCompressions);
 	if(Z_TYPE_P(acceptedCompressions) == IS_ARRAY && Z_REFCOUNT_P(acceptedCompressions) > 1) {
 		Z_DELREF_P(acceptedCompressions);
 	}
 
-	zval *GETParameters = zend_read_property(HTTPRequest_ce, this_ptr, "GETParameters", sizeof("GETParameters") - 1, 1);
+	zval *GETParameters;
+	FAST_READ_PROPERTY(GETParameters, this_ptr, "GETParameters", sizeof("GETParameters") - 1, HASH_OF_GETParameters);
 	if(Z_TYPE_P(GETParameters) == IS_ARRAY && Z_REFCOUNT_P(GETParameters) > 1) {
 		Z_DELREF_P(GETParameters);
 	}
 
-	zval *cookies = zend_read_property(HTTPRequest_ce, this_ptr, "cookies", sizeof("cookies") - 1, 1);
+	zval *cookies;
+	FAST_READ_PROPERTY(cookies, this_ptr, "cookies", sizeof("cookies") - 1, HASH_OF_cookies);
 	if(Z_TYPE_P(cookies) == IS_ARRAY && Z_REFCOUNT_P(cookies) > 1) {
 		Z_DELREF_P(cookies);
 	}
 
-	zval *POSTParameters = zend_read_property(HTTPRequest_ce, this_ptr, "POSTParameters", sizeof("POSTParameters") - 1, 1);
+	zval *POSTParameters;
+	FAST_READ_PROPERTY(POSTParameters, this_ptr, "POSTParameters", sizeof("POSTParameters") - 1, HASH_OF_POSTParameters);
 	if(Z_TYPE_P(POSTParameters) == IS_ARRAY && Z_REFCOUNT_P(POSTParameters) > 1) {
 		Z_DELREF_P(POSTParameters);
 	}
 
-	zval *files = zend_read_property(HTTPRequest_ce, this_ptr, "uploadedFiles", sizeof("uploadedFiles") - 1, 1);
+	zval *files;
+	FAST_READ_PROPERTY(files, this_ptr, "uploadedFiles", sizeof("uploadedFiles") - 1, HASH_OF_uploadedFiles);
 	if(Z_TYPE_P(files) == IS_ARRAY && Z_REFCOUNT_P(files) > 1) {
 		Z_DELREF_P(files);
 	}
 
-	zval *tempNames = zend_read_property(HTTPRequest_ce, this_ptr, "uploadedFileTempNames", sizeof("uploadedFileTempNames") - 1, 1);
+	zval *tempNames;
+	FAST_READ_PROPERTY(tempNames, this_ptr, "uploadedFileTempNames", sizeof("uploadedFileTempNames") - 1, HASH_OF_uploadedFileTempNames);
 	if(Z_TYPE_P(tempNames) == IS_ARRAY && Z_REFCOUNT_P(tempNames) > 1) {
 		Z_DELREF_P(tempNames);
 	}

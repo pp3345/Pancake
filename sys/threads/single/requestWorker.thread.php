@@ -169,6 +169,8 @@
     	#.include 'IOCache.class.php'
     #.endif
 
+    makeFastClass('Pancake\vHostInterface');
+
     /*var_dump($buffer = $ioCache->allocateBuffer(10, 'abcdefghijklmnopqrstuvwxyz1234567890'));
     var_dump($ioCache->getBytes($buffer, 36));
     var_dump($buffer2 = $ioCache->allocateBuffer(10, 'anti'));
