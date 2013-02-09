@@ -208,6 +208,7 @@ PHP_MINIT_FUNCTION(PancakeBase)
 	INIT_NS_CLASS_ENTRY(exception, "Pancake", "invalidHTTPRequestException", invalidHTTPRequestException_methods);
 	exception.create_object = PancakeCreateObject;
 	invalidHTTPRequestException_ce = zend_register_internal_class_ex(&exception, zend_exception_get_default(TSRMLS_C), "Exception" TSRMLS_CC);
+	zend_declare_property_stringl(invalidHTTPRequestException_ce, "header", sizeof("header") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
 
 	INIT_NS_CLASS_ENTRY(mime, "Pancake", "MIME", MIME_methods);
 	MIME_ce = zend_register_internal_class(&mime TSRMLS_CC);

@@ -118,6 +118,8 @@
      * @return array
      */
     function arrayIndicesToLower($array, $caseSensitivePaths = array()) {
+    	$newArray = array();
+
     	foreach($array as $index => $value) {
     		if(is_array($value) && !in_array(strToLower($index), $caseSensitivePaths))
     			$value = arrayIndicesToLower($value, $caseSensitivePaths);

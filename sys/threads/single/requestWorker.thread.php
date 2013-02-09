@@ -226,6 +226,7 @@
     #.ifdef 'SUPPORT_AJP13'
     $ajp13Sockets = array();
     #.endif
+    $liveWriteSockets = array();
     $liveWriteSocketsOrig = array();
     $liveReadSockets = array();
     $socketData = array();
@@ -281,7 +282,7 @@
 
     	#.ifdef 'SUPPORT_WAITSLOTS'
     	// Check if there are requests waiting for a PHPWorker
-    	foreach((array) $waitSlots as $socketID => $requestSocket) {
+    	foreach($waitSlots as $socketID => $requestSocket) {
 			unset($waitSlots[$socketID]);
 			$requestObject = $requests[$socketID];
     		goto load;
@@ -289,7 +290,7 @@
     	#.endif
 
     	// Upload to clients that are ready to receive
-        foreach((array) $liveWriteSockets as $index => $requestSocket) {
+        foreach($liveWriteSockets as $index => $requestSocket) {
         	unset($liveWriteSockets[$index]);
 
         	$socketID = (int) $requestSocket;
@@ -380,6 +381,9 @@
         	#.endif
 
             if(isset($liveReadSockets[(int) $socket]) || socket_get_option($socket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_KEEPALIVE' */)) {
+            	if(socket_get_option($socket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_KEEPALIVE' */)) {
+            		echo "IS_KEEPALIVE\n";
+				}
                 $socketID = (int) $socket;
                 $requestSocket = $socket;
                 $requestObject = $requests[$socketID];
@@ -939,15 +943,13 @@
         close:
 
         // Close socket
-        if(!isset($requests[$socketID]) || $requestObject->answerHeaders["connection"] != 'keep-alive') {
+        if(!isset($requestObject) || $requestObject->answerHeaders["connection"] != 'keep-alive') {
             @socket_shutdown($requestSocket);
             socket_close($requestSocket);
 
             if($key = array_search($requestSocket, $listenSocketsOrig))
                 unset($listenSocketsOrig[$key]);
-        }
-
-        if(isset($requests[$socketID])) {
+        } else {
             if(!in_array($requestSocket, $listenSocketsOrig, true) && $requestObject->answerHeaders["connection"] == 'keep-alive')
                 $listenSocketsOrig[] = $requestSocket;
 
@@ -959,6 +961,7 @@
             		$ioCache->deallocateBuffer(/* .RAW_POST_DATA */);
             #.endif
         }
+
 
         #.ifdef 'SUPPORT_WAITSLOTS'
         unset($waitSlotsOrig[$socketID]);

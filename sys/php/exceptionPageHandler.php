@@ -6,7 +6,7 @@
 	/* 2012 Yussuf Khalil                                           */
 	/* License: http://pancakehttp.net/license/                     */
 	/****************************************************************/
-	
+
 	namespace Pancake;
 
 	$requestObject->setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -27,8 +27,8 @@
 		<br />
 		<?=$exception->getMessage()?>
 		<br /><br />
-		<?php 
-		if($exception->getHeader()) {
+		<?php
+		if($exception->header) {
 		?>
 		<strong>Headers:</strong>
 		<br/>

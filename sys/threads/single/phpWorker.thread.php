@@ -674,13 +674,21 @@
 	        	}
 	        #.endif
 
+	        #.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetObjectsDestroyDestructor;'
 	        // Restore destroyed destructors
-	        foreach((array) $destroyedDestructors as $class => $name)
-	        	if(!@dt_rename_method($class, $name, '__destruct'))
-	        		dt_remove_method($class, $name);
+	        if(isset($destroyedDestructors)) {
+		        foreach($destroyedDestructors as $class => $name)
+		        	if(!@dt_rename_method($class, $name, '__destruct'))
+		        		dt_remove_method($class, $name);
+			}
+			#.endif
 
+			#.ifdef 'AUTODELETE_FUNCTIONS'
 	        $funcsPost = get_defined_functions();
+			#.endif
+			#.ifdef 'AUTODELETE_CONSTANTS'
 	        $constsPost = get_defined_constants(true);
+			#.endif
 
 	        gc_collect_cycles();
 
@@ -799,15 +807,19 @@
 		        }
 		    #.endif
 
-	        foreach((array) $deleteClasses as $class) {
-	        	dt_remove_class($class);
-	        	//gc_collect_cycles();
-	        }
+		    if(isset($deleteClasses)) {
+		        foreach($deleteClasses as $class) {
+		        	dt_remove_class($class);
+		        	//gc_collect_cycles();
+		        }
+			}
 
-	        foreach((array) $deleteFunctions as $function) {
-	        	dt_remove_function($function);
-	        	//gc_collect_cycles();
-	        }
+			if(isset($deleteFunctions)) {
+		        foreach($deleteFunctions as $function) {
+		        	dt_remove_function($function);
+		        	//gc_collect_cycles();
+		        }
+			}
 
 		    #.ifdef 'SUPPORT_CODECACHE'
 	        cleanGlobals(vars::$Pancake_exclude, false, true);
