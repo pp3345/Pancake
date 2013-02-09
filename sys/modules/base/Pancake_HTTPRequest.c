@@ -149,13 +149,12 @@ PHP_METHOD(HTTPRequest, setHeader) {
 	char *name;
 	int name_len;
 	long replace = 1;
-	zval *value;
+	zval *value, *nvalue;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sz|l", &name, &name_len, &value, &replace) == FAILURE) {
 		RETURN_FALSE;
 	}
 
-	zval *nvalue;
 	ALLOC_ZVAL(nvalue);
 	INIT_PZVAL_COPY(nvalue, value);
 	zval_copy_ctor(nvalue);
@@ -1214,37 +1213,34 @@ zval *PancakeProcessQueryString(zval *destination, zval *queryString, const char
 }
 
 zval *PancakeFetchGET(zval *this_ptr TSRMLS_DC) {
-	zval *queryString;
-	FAST_READ_PROPERTY(queryString, this_ptr, "queryString", sizeof("queryString") - 1, HASH_OF_queryString);
+	zval *GETParameters;
+	FAST_READ_PROPERTY(GETParameters, this_ptr, "GETParameters", sizeof("GETParameters") - 1, HASH_OF_GETParameters);
 
-	if(Z_STRLEN_P(queryString)) {
-		zval *GETParameters, *return_value;
+	if(Z_TYPE_P(GETParameters) != IS_ARRAY) {
+		zval *queryString;
+		FAST_READ_PROPERTY(queryString, this_ptr, "queryString", sizeof("queryString") - 1, HASH_OF_queryString);
 
-		FAST_READ_PROPERTY(GETParameters, this_ptr, "GETParameters", sizeof("GETParameters") - 1, HASH_OF_GETParameters);
+		MAKE_STD_ZVAL(GETParameters);
+		array_init(GETParameters);
 
-		if(Z_TYPE_P(GETParameters) != IS_ARRAY) {
-			MAKE_STD_ZVAL(GETParameters);
-			array_init(GETParameters);
-
+		if(Z_STRLEN_P(queryString)) {
 			GETParameters = PancakeProcessQueryString(GETParameters, queryString, "&");
-
-			zend_update_property(HTTPRequest_ce, this_ptr, "GETParameters", sizeof("GETParameters") - 1, GETParameters TSRMLS_CC);
 		}
 
-		MAKE_STD_ZVAL(return_value);
-		RETVAL_ZVAL(GETParameters, 1, 0);
-		return return_value;
+		zend_update_property(HTTPRequest_ce, this_ptr, "GETParameters", sizeof("GETParameters") - 1, GETParameters TSRMLS_CC);
 	}
 
-	zval *array;
-	MAKE_STD_ZVAL(array);
-	array_init(array);
-	return array;
+	return GETParameters;
 }
 
 zend_bool PancakeJITFetchGET(const char *name, uint name_len TSRMLS_DC) {
 	zval *retval = PancakeFetchGET(PANCAKE_GLOBALS(JITGlobalsHTTPRequest) TSRMLS_CC);
-	zend_hash_update(&EG(symbol_table), "_GET", sizeof("_GET"), &retval, sizeof(zval*), NULL);
+	zval *nvalue;
+
+	ALLOC_ZVAL(nvalue);
+	INIT_PZVAL_COPY(nvalue, retval);
+	zval_copy_ctor(nvalue);
+	zend_hash_update(&EG(symbol_table), "_GET", sizeof("_GET"), &nvalue, sizeof(zval*), NULL);
 
 	return 0;
 }
@@ -1549,8 +1545,6 @@ PHP_METHOD(HTTPRequest, getPOSTParams) {
 zval *PancakeFetchCookies(zval *this_ptr TSRMLS_DC) {
 	zval *cookies;
 	FAST_READ_PROPERTY(cookies, this_ptr, "cookies", sizeof("cookies") - 1, HASH_OF_cookies);
-	//zval *return_value;
-	//MAKE_STD_ZVAL(return_value);
 
 	if(Z_TYPE_P(cookies) != IS_ARRAY) {
 		zval *requestHeaders, **cookie;
