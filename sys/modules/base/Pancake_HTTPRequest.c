@@ -1097,6 +1097,7 @@ PHP_METHOD(HTTPRequest, invalidRequest) {
 
 		char *description = zend_make_compiled_string_description(useDefaultHandler ? "Pancake Exception Page Handler" : Z_STRVAL_P(exceptionPageHandler) TSRMLS_CC);
 
+		zend_rebuild_symbol_table(TSRMLS_C);
 		ZEND_SET_SYMBOL_WITH_LENGTH(EG(active_symbol_table), "exception", sizeof("exception"), exception, 3, 1); /// ! refcount?
 
 		if(zend_eval_stringl(eval, strlen(eval), NULL, description TSRMLS_CC) == FAILURE) {
