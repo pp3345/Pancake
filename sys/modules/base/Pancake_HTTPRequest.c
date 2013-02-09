@@ -179,6 +179,7 @@ char *PancakeBuildAnswerHeaders(zval *answerHeaderArray) {
 		zend_hash_move_forward(Z_ARRVAL_P(answerHeaderArray))) {
 		// Format index (x-powered-by => X-Powered-By)
 		int i;
+		index = estrndup(index, index_len);
 		*index = toupper(*index);
 		for(i = 1;i < index_len;i++) {
 			if(index[i] == '-')
@@ -931,7 +932,7 @@ PHP_METHOD(HTTPRequest, init) {
 }
 
 PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
-	zval *vHost, *answerHeaderArray, *answerCodez, *answerBodyz, *protocolVersion, **contentLength;
+	zval *vHost, *answerHeaderArray, *answerCodez, *answerBodyz, *protocolVersion, **contentLength, *requestHeaderArray, *connectionAnswer, **connection;
 	long answerCode;
 	int answerBody_len, quickFindResult;
 
@@ -974,25 +975,23 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 		}
 	}
 
-	if(answerCode >= 200 && answerCode < 400) {
-		zval *requestHeaderArray, *connectionAnswer, **connection;
+	FAST_READ_PROPERTY(requestHeaderArray, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, HASH_OF_requestHeaders);
 
-		FAST_READ_PROPERTY(requestHeaderArray, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, HASH_OF_requestHeaders);
+	MAKE_STD_ZVAL(connectionAnswer);
+	Z_TYPE_P(connectionAnswer) = IS_STRING;
 
-		MAKE_STD_ZVAL(connectionAnswer);
-		Z_TYPE_P(connectionAnswer) = IS_STRING;
-
-		if(zend_hash_quick_find(Z_ARRVAL_P(requestHeaderArray), "connection", sizeof("connection"), 13869595640170944373U, (void**) &connection) == SUCCESS
-		&& !strcasecmp(Z_STRVAL_PP(connection), "keep-alive")) {
-			Z_STRLEN_P(connectionAnswer) = sizeof("keep-alive") - 1;
-			Z_STRVAL_P(connectionAnswer) = estrndup("keep-alive", sizeof("keep-alive") - 1);
-		} else {
-			Z_STRLEN_P(connectionAnswer) = sizeof("close") - 1;
-			Z_STRVAL_P(connectionAnswer) = estrndup("close", sizeof("close") - 1);
-		}
-
-		PancakeSetAnswerHeader(answerHeaderArray, "connection", sizeof("connection"), connectionAnswer, 1, 13869595640170944373U TSRMLS_CC);
+	if(answerCode >= 200
+	&& answerCode < 400
+	&& zend_hash_quick_find(Z_ARRVAL_P(requestHeaderArray), "connection", sizeof("connection"), 13869595640170944373U, (void**) &connection) == SUCCESS
+	&& !strcasecmp(Z_STRVAL_PP(connection), "keep-alive")) {
+		Z_STRLEN_P(connectionAnswer) = sizeof("keep-alive") - 1;
+		Z_STRVAL_P(connectionAnswer) = estrndup("keep-alive", sizeof("keep-alive") - 1);
+	} else {
+		Z_STRLEN_P(connectionAnswer) = sizeof("close") - 1;
+		Z_STRVAL_P(connectionAnswer) = estrndup("close", sizeof("close") - 1);
 	}
+
+	PancakeSetAnswerHeader(answerHeaderArray, "connection", sizeof("connection"), connectionAnswer, 1, 13869595640170944373U TSRMLS_CC);
 
 	if(PANCAKE_GLOBALS(exposePancake)) {
 		Z_ADDREF_P(PANCAKE_GLOBALS(pancakeVersionString));
