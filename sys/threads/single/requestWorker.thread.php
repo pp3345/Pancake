@@ -879,7 +879,7 @@
         // Output request information
         out('REQ './* .ANSWER_CODE */.' './* .REMOTE_IP */.': './* .REQUEST_LINE */.' on vHost '.((/* .VHOST */) ? /* .VHOST_NAME */ : null).' (via './* .GET_REQUEST_HEADER '"host"' */.' from './* .GET_REQUEST_HEADER "'referer'" */.') - './* .GET_REQUEST_HEADER '"user-agent"' */, OUTPUT_REQUEST | OUTPUT_LOG);
 
-        // Check if user wants keep-alive connection
+	    // Check if user wants keep-alive connection
         if($requestObject->answerHeaders["connection"] == 'keep-alive')
             socket_set_option($requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_KEEPALIVE' */, 1);
 
@@ -907,7 +907,7 @@
 
         // Add data to buffer if not all data was sent yet
         if(strlen($writeBuffer[$socketID]) < #.call 'Pancake\Config::get' 'main.writebuffermin'
-        && is_resource($requestFileHandle[$socketID])
+        && isset($requestFileHandle[$socketID])
         && !feof($requestFileHandle[$socketID])
         #.if #.call 'Pancake\Config::get' 'main.writebufferhardmaxconcurrent'
         && count($writeBuffer) < #.call 'Pancake\Config::get' 'main.writebufferhardmaxconcurrent'
@@ -925,7 +925,7 @@
         			- strlen($writeBuffer[$socketID]));
 
         // Check if more data is available
-        if(strlen($writeBuffer[$socketID]) || (is_resource($requestFileHandle[$socketID]) && !feof($requestFileHandle[$socketID])
+        if(strlen($writeBuffer[$socketID]) || (isset($requestFileHandle[$socketID]) && !feof($requestFileHandle[$socketID])
 		#.if #.call 'Pancake\Config::get' 'main.allowhead'
         && /* .REQUEST_TYPE */ != 'HEAD'
         #.endif
@@ -989,7 +989,7 @@
         if(($key = array_search($requestSocket, $liveWriteSocketsOrig)) !== false)
             unset($liveWriteSocketsOrig[$key]);
 
-        if(is_resource($requestFileHandle[$socketID])) {
+        if(isset($requestFileHandle[$socketID])) {
             fclose($requestFileHandle[$socketID]);
             unset($requestFileHandle[$socketID]);
         }
