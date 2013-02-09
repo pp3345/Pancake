@@ -761,8 +761,11 @@ PHP_METHOD(HTTPRequest, init) {
 
 			efree(if_unmodified_since);
 		}
-	} else if(if_unmodified_since != NULL) {
-		efree(if_unmodified_since);
+	} else {
+		efree(host);
+		if(if_unmodified_since != NULL) {
+			efree(if_unmodified_since);
+		}
 	}
 
 	if(PANCAKE_GLOBALS(enableAuthentication)) {
