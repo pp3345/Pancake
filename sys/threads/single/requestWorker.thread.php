@@ -400,8 +400,6 @@
                 $socketID = (int) $requestSocket;
                 $requestObject = $requests[$socketID];
 
-                socket_set_block($socket);
-
                 $packages = hexdec(socket_read($socket, 8));
                 $length = hexdec(socket_read($socket, 8));
 
@@ -751,6 +749,8 @@
             #.endif
 
             $data = serialize($requestObject);
+
+			socket_set_block($socket);
 
             $packages = array();
 
