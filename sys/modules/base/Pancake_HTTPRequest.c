@@ -1449,8 +1449,6 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 									char *begin_dupe = estrdup(begin);
 									*resolveZval = PancakeRecursiveResolveParameter(begin_dupe, *resolveZval);
 									efree(begin_dupe);
-
-									php_var_dump(resolveZval, 1);
 								}
 							} else {
 								baseName = estrdup(name);
@@ -1469,8 +1467,6 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 							add_assoc_zval(zvalue, baseName, dataArray);
 
 							efree(baseName);
-
-							php_var_dump(&zvalue, 1);
 
 							Pancake_array_merge(Z_ARRVAL_P(files), Z_ARRVAL_P(zvalue), 1 TSRMLS_CC);
 							zval_ptr_dtor(&zvalue);
