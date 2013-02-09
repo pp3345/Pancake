@@ -161,28 +161,30 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 	}
 
 	char *date = php_format_date(PANCAKE_GLOBALS(dateFormat), strlen(PANCAKE_GLOBALS(dateFormat)), time(NULL), 1 TSRMLS_CC);
+	int outputString_len;
 
 	if(PANCAKE_GLOBALS(currentThread) == NULL) {
 		char *pstring = estrndup(*string, string_len);
-		spprintf(&outputString, 0, "[Master] %s %s\n", date, pstring);
+		outputString_len = spprintf(&outputString, 0, "[Master] %s %s\n", date, pstring);
 		efree(pstring);
 	} else {
 		zval *name = zend_read_property(NULL, PANCAKE_GLOBALS(currentThread), "friendlyName", sizeof("friendlyName") - 1, 0 TSRMLS_CC);
-		spprintf(&outputString, 0, "[%s] %s %s\n", Z_STRVAL_P(name), date, *string);
+		outputString_len = spprintf(&outputString, 0, "[%s] %s %s\n", Z_STRVAL_P(name), date, *string);
 	}
 
 	efree(date);
 
 	if(!zend_get_constant("pancake\\DAEMONIZED", sizeof("pancake\\DAEMONIZED") - 1, &daemonized TSRMLS_CC)
 	|| Z_LVAL(daemonized) == 0) {
-		printf("%s", outputString);
+		fwrite(outputString, outputString_len, 1, stdout);
+		fflush(stdout);
 	}
 
 	if((flags & OUTPUT_LOG)) {
 		if((flags & OUTPUT_SYSTEM)) {
 			if((!PANCAKE_GLOBALS(systemLogStream) && PancakeLoadFilePointers(TSRMLS_C))
 			|| PANCAKE_GLOBALS(systemLogStream)) {
-				fprintf(PANCAKE_GLOBALS(systemLogStream), outputString);
+				fwrite(outputString, outputString_len, 1, PANCAKE_GLOBALS(systemLogStream));
 				fflush(PANCAKE_GLOBALS(systemLogStream));
 			}
 		}
@@ -190,7 +192,7 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 		if((flags & OUTPUT_REQUEST)) {
 			if((!PANCAKE_GLOBALS(requestLogStream) && PancakeLoadFilePointers(TSRMLS_C))
 			|| PANCAKE_GLOBALS(requestLogStream)) {
-				fprintf(PANCAKE_GLOBALS(requestLogStream), outputString);
+				fwrite(outputString, outputString_len, 1, PANCAKE_GLOBALS(requestLogStream));
 				fflush(PANCAKE_GLOBALS(requestLogStream));
 			}
 		}
@@ -243,7 +245,7 @@ PHP_FUNCTION(errorHandler)
 
 		if((!PANCAKE_GLOBALS(errorLogStream) && PancakeLoadFilePointers(TSRMLS_C))
 		|| PANCAKE_GLOBALS(errorLogStream)) {
-			fprintf(PANCAKE_GLOBALS(errorLogStream), errorMessage);
+			fwrite(errorMessage, strlen(errorMessage), 1, PANCAKE_GLOBALS(errorLogStream));
 			fflush(PANCAKE_GLOBALS(errorLogStream));
 		}
 
