@@ -1240,7 +1240,7 @@ zend_bool PancakeJITFetchGET(const char *name, uint name_len TSRMLS_DC) {
 	ALLOC_ZVAL(nvalue);
 	INIT_PZVAL_COPY(nvalue, retval);
 	zval_copy_ctor(nvalue);
-	zend_hash_update(&EG(symbol_table), "_GET", sizeof("_GET"), &nvalue, sizeof(zval*), NULL);
+	zend_hash_quick_update(&EG(symbol_table), "_GET", sizeof("_GET"), HASH_OF__GET, &nvalue, sizeof(zval*), NULL);
 
 	return 0;
 }
@@ -1522,7 +1522,7 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 
 zend_bool PancakeJITFetchPOST(const char *name, uint name_len TSRMLS_DC) {
 	zval *retval = PancakeFetchPOST(PANCAKE_GLOBALS(JITGlobalsHTTPRequest) TSRMLS_CC);
-	zend_hash_update(&EG(symbol_table), "_POST", sizeof("_POST"), &retval, sizeof(zval*), NULL);
+	zend_hash_quick_update(&EG(symbol_table), "_POST", sizeof("_POST"), HASH_OF__POST, &retval, sizeof(zval*), NULL);
 
 	return 0;
 }
@@ -1532,7 +1532,7 @@ zend_bool PancakeJITFetchFILES(const char *name, uint name_len TSRMLS_DC) {
 
 	PancakeFetchPOST(PANCAKE_GLOBALS(JITGlobalsHTTPRequest) TSRMLS_CC);
 	FAST_READ_PROPERTY(files, PANCAKE_GLOBALS(JITGlobalsHTTPRequest), "uploadedFiles", sizeof("uploadedFiles") - 1, HASH_OF_uploadedFiles);
-	zend_hash_update(&EG(symbol_table), "_FILES", sizeof("_FILES"), &files, sizeof(zval*), NULL);
+	zend_hash_quick_update(&EG(symbol_table), "_FILES", sizeof("_FILES"), HASH_OF__FILES, &files, sizeof(zval*), NULL);
 
 	return 0;
 }
@@ -1566,7 +1566,7 @@ zval *PancakeFetchCookies(zval *this_ptr TSRMLS_DC) {
 zend_bool PancakeJITFetchCookies(const char *name, uint name_len TSRMLS_DC) {
 	zval *retval = PancakeFetchCookies(PANCAKE_GLOBALS(JITGlobalsHTTPRequest) TSRMLS_CC);
 
-	zend_hash_update(&EG(symbol_table), name, name_len + 1, &retval, sizeof(zval*), NULL);
+	zend_hash_quick_update(&EG(symbol_table), "_COOKIE", sizeof("_COOKIE"), HASH_OF__COOKIE, &retval, sizeof(zval*), NULL);
 
 	return 0;
 }
@@ -1699,7 +1699,7 @@ zend_bool PancakeCreateSERVER(const char *name, uint name_len TSRMLS_DC) {
 		add_assoc_zval_ex(server, "SERVER_NAME", sizeof("SERVER_NAME"), *data);
 	}
 
-	zend_hash_update(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), &server, sizeof(zval*), NULL);
+	zend_hash_quick_update(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), HASH_OF__SERVER, &server, sizeof(zval*), NULL);
 
 	return 0;
 }
@@ -1747,7 +1747,7 @@ zend_bool PancakeJITFetchREQUEST(const char *name, uint name_len TSRMLS_DC) {
 		}
 	}
 
-	zend_hash_update(&EG(symbol_table), "_REQUEST", sizeof("_REQUEST"), &REQUEST, sizeof(zval*), NULL);
+	zend_hash_quick_update(&EG(symbol_table), "_REQUEST", sizeof("_REQUEST"), HASH_OF__REQUEST, &REQUEST, sizeof(zval*), NULL);
 
 	return 0;
 }
