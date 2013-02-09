@@ -211,6 +211,8 @@ char *PancakeBuildAnswerHeaders(zval *answerHeaderArray) {
 			sprintf((char*) (retval + offset), "%s: %s\r\n", index, Z_STRVAL_PP(data));
 			offset += elementLength;
 		}
+
+		efree(index);
 	}
 
 	return retval;
