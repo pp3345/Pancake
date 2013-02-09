@@ -381,9 +381,6 @@
         	#.endif
 
             if(isset($liveReadSockets[(int) $socket]) || socket_get_option($socket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_KEEPALIVE' */)) {
-            	if(socket_get_option($socket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_KEEPALIVE' */)) {
-            		echo "IS_KEEPALIVE\n";
-				}
                 $socketID = (int) $socket;
                 $requestSocket = $socket;
                 $requestObject = $requests[$socketID];
