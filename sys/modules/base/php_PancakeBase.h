@@ -309,6 +309,15 @@ extern ZEND_DECLARE_MODULE_GLOBALS(PancakeBase);
 		case 424: \
 			dest = "Failed Dependency"; \
 			break; \
+		case 428: /* RFC 6585 */ \
+			dest = "Precondition Required"; \
+			break; \
+		case 429: /* RFC 6585 */ \
+			dest = "Too Many Requests"; \
+			break; \
+		case 431: /* RFC 6585 */ \
+			dest = "Request Header Fields Too Large"; \
+			break; \
 		case 502: \
 			dest = "Bad Gateway"; \
 			break; \
@@ -332,6 +341,9 @@ extern ZEND_DECLARE_MODULE_GLOBALS(PancakeBase);
 			break; \
 		case 510: \
 			dest = "Not Extended"; \
+			break; \
+		case 511: /* RFC 6585 */ \
+			dest = "Network Authentication Required"; \
 			break; \
 		default: \
 			dest = ""; \
