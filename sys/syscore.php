@@ -35,7 +35,7 @@
     error_reporting(ERROR_REPORTING);
 
     // Get start options
-    $startOptions = getopt('-h', array('benchmark::', 'debug', 'daemon', 'live', 'help'));
+    $startOptions = getopt('-h', array('benchmark::', 'debug', 'daemon', 'live', 'help', 'config:'));
 
     // Display help if requested
     if(isset($startOptions['h']) || isset($startOptions['help'])) {
@@ -95,7 +95,7 @@
     }
 
     // Load configuration
-    Config::load();
+    Config::load(isset($startOptions['config']) ? $startOptions['config'] : null);
 
     // Open log files
     loadFilePointers();
