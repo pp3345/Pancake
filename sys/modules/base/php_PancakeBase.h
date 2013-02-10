@@ -237,6 +237,9 @@ extern ZEND_DECLARE_MODULE_GLOBALS(PancakeBase);
 		case 208: \
 			dest = "Already Reported"; \
 			break; \
+		case 226: \
+			dest = "IM Used"; \
+			break; \
 		case 300: \
 			dest = "Multiple Choices"; \
 			break; \
