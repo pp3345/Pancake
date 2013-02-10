@@ -210,6 +210,129 @@ extern ZEND_DECLARE_MODULE_GLOBALS(PancakeBase);
 		case 101: \
 			dest = "Switching Protocols"; \
 			break; \
+		case 102: \
+			dest = "Processing"; \
+			break; \
+		case 118: \
+			dest = "Connection timed out"; \
+			break; \
+		case 201: \
+			dest = "Created"; \
+			break; \
+		case 202: \
+			dest = "Accepted"; \
+			break; \
+		case 203: \
+			dest = "Non-Authoritative Information"; \
+			break; \
+		case 205: \
+			dest = "Reset Content"; \
+			break; \
+		case 206: \
+			dest = "Partial Content"; \
+			break; \
+		case 207: \
+			dest = "Multi-Status"; \
+			break; \
+		case 300: \
+			dest = "Multiple Choices"; \
+			break; \
+		case 302: \
+			dest = "Found"; \
+			break; \
+		case 303: \
+			dest = "See Other"; \
+			break; \
+		case 304: \
+			dest = "Not Modified"; \
+			break; \
+		case 305: \
+			dest = "Use Proxy"; \
+			break; \
+		case 307: \
+			dest = "Temporary Redirect"; \
+			break; \
+		case 401: \
+			dest = "Unauthorized"; \
+			break; \
+		case 402: \
+			dest = "Payment Required"; \
+			break; \
+		case 405: \
+			dest = "Method Not Allowed"; \
+			break; \
+		case 406: \
+			dest = "Not Acceptable"; \
+			break; \
+		case 407: \
+			dest = "Proxy Authentication Required"; \
+			break; \
+		case 408: \
+			dest = "Request Timeout"; \
+			break; \
+		case 409: \
+			dest = "Conflict"; \
+			break; \
+		case 410: \
+			dest = "Gone"; \
+			break; \
+		case 411: \
+			dest = "Length Required"; \
+			break; \
+		case 412: \
+			dest = "Precondition Failed"; \
+			break; \
+		case 414: \
+			dest = "Request-URI Too Long"; \
+			break; \
+		case 415: \
+			dest = "Unsupported Media Type"; \
+			break; \
+		case 416: \
+			dest = "Requested Range Not Satisfiable"; \
+			break; \
+		case 417: \
+			dest = "Expectation Failed"; \
+			break; \
+		case 418: \
+			dest = "I'm a Pancake"; \
+			break; \
+		case 421: \
+			dest = "There are too many connections from your internet address"; \
+			break; \
+		case 422: \
+			dest = "Unprocessable Entity"; \
+			break; \
+		case 423: \
+			dest = "Locked"; \
+			break; \
+		case 424: \
+			dest = "Failed Dependency"; \
+			break; \
+		case 502: \
+			dest = "Bad Gateway"; \
+			break; \
+		case 503: \
+			dest = "Service Unavailable"; \
+			break; \
+		case 504: \
+			dest = "Gateway Timeout"; \
+			break; \
+		case 505: \
+			dest = "HTTP Version not supported"; \
+			break; \
+		case 506: \
+			dest = "Variant Also Negotiates"; \
+			break; \
+		case 507: \
+			dest = "Insufficient Storage"; \
+			break; \
+		case 509: \
+			dest = "Bandwith Limit Exceeded"; \
+			break; \
+		case 510: \
+			dest = "Not Extended"; \
+			break; \
 		default: \
 			dest = ""; \
 			break; \
