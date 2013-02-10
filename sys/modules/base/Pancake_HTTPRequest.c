@@ -1205,7 +1205,7 @@ zval *PancakeProcessQueryString(zval *destination, zval *queryString, const char
 			array_init(array);
 
 			add_assoc_zval(array, part, zvalue);
-			php_array_merge(Z_ARRVAL_P(destination), Z_ARRVAL_P(array), 1 TSRMLS_CC);
+			Pancake_array_merge(Z_ARRVAL_P(destination), Z_ARRVAL_P(array), 1 TSRMLS_CC);
 			zval_ptr_dtor(&array);
 		} else {
 			add_assoc_zval(destination, part, zvalue);
