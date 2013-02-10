@@ -342,7 +342,7 @@
 	            if(($oldHandler = set_exception_handler('Pancake\dummy')) !== null) {
 	            	try {
 	                	call_user_func($oldHandler, $exception);
-	            	} catch(\DeepTraceExitException $e) {
+	            	} catch(ExitException $e) {
 	            	} catch(\Exception $e) {
 	            		$fatal = true;
 	            	}
