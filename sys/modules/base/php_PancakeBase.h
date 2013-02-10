@@ -309,6 +309,9 @@ extern ZEND_DECLARE_MODULE_GLOBALS(PancakeBase);
 		case 424: \
 			dest = "Failed Dependency"; \
 			break; \
+		case 426: \
+			dest = "Upgrade Required"; \
+			break; \
 		case 428: /* RFC 6585 */ \
 			dest = "Precondition Required"; \
 			break; \
