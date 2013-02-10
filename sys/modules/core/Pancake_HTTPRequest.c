@@ -334,6 +334,8 @@ PHP_METHOD(HTTPRequest, init) {
 		php_strtolower(headerName, strlen(headerName));
 		LEFT_TRIM(headerValue);
 
+		add_assoc_string_ex(headerArray, headerName, strlen(headerName) + 1, headerValue, 1);
+
 		if(!strcmp(headerName, "content-length")) {
 			haveContentLength = 1;
 			contentLength = atol(headerValue);
@@ -367,9 +369,34 @@ PHP_METHOD(HTTPRequest, init) {
 			authorization = estrdup(headerValue);
 		} else if(!strcmp(headerName, "if-unmodified-since")) {
 			if_unmodified_since = estrdup(headerValue);
-		}
+		} else if(!strcmp(headerName, "range")) {
+			char *to = strchr(headerValue, '-');
+			if(to != NULL && !strncmp(headerValue, "bytes=", 6)) {
+				zval *rangeFrom, *rangeTo;
+				*to = '\0';
+				to++;
 
-		add_assoc_string_ex(headerArray, headerName, strlen(headerName) + 1, headerValue, 1);
+				headerValue += 6;
+
+				MAKE_STD_ZVAL(rangeFrom);
+				Z_TYPE_P(rangeFrom) = IS_STRING;
+				Z_STRLEN_P(rangeFrom) = strlen(headerValue);
+				Z_STRVAL_P(rangeFrom) = estrndup(headerValue, Z_STRLEN_P(rangeFrom));
+				convert_to_long_base(rangeFrom, 10);
+
+				MAKE_STD_ZVAL(rangeTo);
+				Z_TYPE_P(rangeTo) = IS_STRING;
+				Z_STRLEN_P(rangeTo) = strlen(to);
+				Z_STRVAL_P(rangeTo) = estrndup(to, Z_STRLEN_P(rangeTo));
+				convert_to_long_base(rangeTo, 10);
+
+				zend_update_property(HTTPRequest_ce, this_ptr, "rangeFrom", sizeof("rangeFrom") - 1, rangeFrom TSRMLS_CC);
+				zend_update_property(HTTPRequest_ce, this_ptr, "rangeTo", sizeof("rangeTo") - 1, rangeTo TSRMLS_CC);
+
+				zval_ptr_dtor(&rangeFrom);
+				zval_ptr_dtor(&rangeTo);
+			}
+		}
 	}
 
 	zend_update_property(HTTPRequest_ce, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, headerArray TSRMLS_CC);
