@@ -63,7 +63,7 @@
 
        	// Abort script execution on E_USER_ERROR
        	if($errtype == /* .constant 'E_USER_ERROR' */)
-            throw new \DeepTraceExitException('', 255);
+            throw new ExitException('', 255);
 
         return true;
     }
