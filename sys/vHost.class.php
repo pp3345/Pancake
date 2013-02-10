@@ -154,6 +154,8 @@
             // Load files and directories that need authentication
             if($config['auth']) {
                 foreach($config['auth'] as $authFile => $authFileConfig) {
+                	$authFileConfig = arrayIndicesToLower($authFileConfig);
+
                     if(!is_array($authFileConfig['authfiles']) || ($authFileConfig['type'] != 'basic' && $authFileConfig['type'] != 'basic-crypted'/* && $authFileConfig['type'] != 'digest'*/)) {
                         trigger_error('Invalid authentication configuration for "'.$authFile.'"', \E_USER_WARNING);
                         continue;
