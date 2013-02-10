@@ -35,7 +35,7 @@
     error_reporting(ERROR_REPORTING);
 
     // Get start options
-    $startOptions = getopt('-h', array('benchmark::', 'debug', 'daemon', 'live', 'help', 'config:'));
+    $startOptions = getopt('-h', array('benchmark::', 'debug', 'daemon', 'live', 'help', 'config:', 'use-malloc'));
 
     // Display help if requested
     if(isset($startOptions['h']) || isset($startOptions['help'])) {
@@ -93,6 +93,10 @@
         out('You need to run Pancake as root.', OUTPUT_SYSTEM);
         abort();
     }
+
+	if(isset($startOptions['use-malloc'])) {
+		out('Zend Memory Manager disabled', OUTPUT_SYSTEM);
+	}
 
     // Load configuration
     Config::load(isset($startOptions['config']) ? $startOptions['config'] : null);
