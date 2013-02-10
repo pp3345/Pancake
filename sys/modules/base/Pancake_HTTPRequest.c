@@ -1104,12 +1104,14 @@ PHP_METHOD(HTTPRequest, invalidRequest) {
 			if(useDefaultHandler) {
 				zend_error(E_WARNING, "Pancake Default Exception Page Handler execution failed");
 			} else {
+				Z_DELREF_P(exception);
 				efree(description);
 				efree(contents);
 				goto defaultHandler;
 			}
 		}
 
+		Z_DELREF_P(exception);
 		efree(description);
 
 		php_output_get_contents(output TSRMLS_CC);
