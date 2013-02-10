@@ -234,6 +234,9 @@ extern ZEND_DECLARE_MODULE_GLOBALS(PancakeBase);
 		case 207: \
 			dest = "Multi-Status"; \
 			break; \
+		case 208: \
+			dest = "Already Reported"; \
+			break; \
 		case 300: \
 			dest = "Multiple Choices"; \
 			break; \
@@ -338,6 +341,9 @@ extern ZEND_DECLARE_MODULE_GLOBALS(PancakeBase);
 			break; \
 		case 507: \
 			dest = "Insufficient Storage"; \
+			break; \
+		case 508: \
+			dest = "Loop Detected"; \
 			break; \
 		case 509: \
 			dest = "Bandwith Limit Exceeded"; \
