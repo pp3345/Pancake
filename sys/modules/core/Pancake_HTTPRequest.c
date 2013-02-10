@@ -6,7 +6,7 @@
     /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
 
-#include "php_PancakeBase.h"
+#include "Pancake.h"
 
 /* Copy of php_autoglobal_merge() with small changes since it is not available as a PHP_API */
 static void PancakeAutoglobalMerge(HashTable *dest, HashTable *src TSRMLS_DC)

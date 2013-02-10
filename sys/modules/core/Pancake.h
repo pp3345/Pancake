@@ -1,13 +1,13 @@
 
 	/****************************************************************/
     /* Pancake                                                      */
-    /* php_PancakeBase.h                                            */
+    /* Pancake.h                                            		*/
     /* 2012 Yussuf Khalil                                           */
     /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
 
-#ifndef PHP_PANCAKEBASE_H
-#define PHP_PANCAKEBASE_H
+#ifndef PANCAKE_H
+#define PANCAKE_H
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -16,7 +16,6 @@
 #define PANCAKE_DEBUG 1
 
 #include "php.h"
-#include "php_ini.h"
 #include "ext/standard/info.h"
 #include "ext/date/php_date.h"
 #include "ext/pcre/php_pcre.h"
@@ -28,11 +27,11 @@
 #include "ext/standard/url.h"
 #include "ext/session/php_session.h"
 
-extern zend_module_entry PancakeBase_module_entry;
-#define phpext_PancakeBase_ptr &PancakeBase_module_entry
+extern zend_module_entry Pancake_module_entry;
+#define phpext_Pancake_ptr &Pancake_module_entry
 
 #ifdef PHP_WIN32
-#	error "Windows is not supported by Pancake"
+#	error "Microsoft Windows is not supported by Pancake"
 #endif
 
 #if defined(__GNUC__) && __GNUC__ >= 4
@@ -45,10 +44,10 @@ extern zend_module_entry PancakeBase_module_entry;
 #include "TSRM.h"
 #endif
 
-PHP_MINIT_FUNCTION(PancakeBase);
-PHP_MSHUTDOWN_FUNCTION(PancakeBase);
-PHP_RINIT_FUNCTION(PancakeBase);
-PHP_RSHUTDOWN_FUNCTION(PancakeBase);
+PHP_MINIT_FUNCTION(Pancake);
+PHP_MSHUTDOWN_FUNCTION(Pancake);
+PHP_RINIT_FUNCTION(Pancake);
+PHP_RSHUTDOWN_FUNCTION(Pancake);
 
 PHP_FUNCTION(out);
 PHP_FUNCTION(errorHandler);
@@ -132,12 +131,12 @@ extern zend_class_entry *MIME_ce;
 #define LEFT_TRIM(str) while(isspace(*str)) str++
 
 #ifdef ZTS
-#define PANCAKE_GLOBALS(v) TSRMG(PancakeBase_globals_id, zend_PancakeBase_globals *, v)
+#define PANCAKE_GLOBALS(v) TSRMG(Pancake_globals_id, zend_Pancake_globals *, v)
 #else
-#define PANCAKE_GLOBALS(v) (PancakeBase_globals.v)
+#define PANCAKE_GLOBALS(v) (Pancake_globals.v)
 #endif
 
-ZEND_BEGIN_MODULE_GLOBALS(PancakeBase)
+ZEND_BEGIN_MODULE_GLOBALS(Pancake)
 	FILE *systemLogStream;
 	FILE *requestLogStream;
 	FILE *errorLogStream;
@@ -163,8 +162,8 @@ ZEND_BEGIN_MODULE_GLOBALS(PancakeBase)
 	int JIT_FILES;
 	int enableAuthentication;
 	char *tmpDir;
-ZEND_END_MODULE_GLOBALS(PancakeBase)
-extern ZEND_DECLARE_MODULE_GLOBALS(PancakeBase);
+ZEND_END_MODULE_GLOBALS(Pancake)
+extern ZEND_DECLARE_MODULE_GLOBALS(Pancake);
 
 #define OUTPUT_SYSTEM 1
 #define OUTPUT_REQUEST 2
@@ -428,4 +427,4 @@ static int PancakeFastHasProperty(zval *object, zval *member, int has_set_exists
 #define HASH_OF__SERVER 7572043519435131U
 #define HASH_OF__COOKIE 7572023243352414U
 
-#endif	/* PHP_PANCAKEBASE_H */
+#endif	/* PANCAKE_H */

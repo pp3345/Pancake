@@ -6,7 +6,7 @@
     /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
 
-#include "php_PancakeBase.h"
+#include "Pancake.h"
 
 zend_object_handlers PancakeFastObjectHandlers = {
 	zend_objects_store_add_ref,				/* add_ref */

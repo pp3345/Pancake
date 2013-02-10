@@ -6,7 +6,7 @@
     /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
 
-#include "php_PancakeBase.h"
+#include "Pancake.h"
 
 PANCAKE_API zval *PancakeMIMEType(char *filePath, int filePath_len TSRMLS_DC) {
 	zval **mimeType;

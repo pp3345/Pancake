@@ -6,7 +6,7 @@
     /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
 
-#include "php_PancakeBase.h"
+#include "Pancake.h"
 
 PHP_METHOD(invalidHTTPRequestException, __construct) {
 	zval *message, *code, *header = NULL;

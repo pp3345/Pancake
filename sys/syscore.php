@@ -12,7 +12,7 @@
     if(defined('Pancake\PANCAKE'))
         exit;
 
-    if(!extension_loaded('PancakeBase')) {
+    if(!extension_loaded('Pancake')) {
     	echo "Pancake natives not loaded. Please run pancake.sh\n";
     	exit;
     }

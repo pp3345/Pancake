@@ -1,7 +1,7 @@
 
 	/****************************************************************/
     /* Pancake                                                      */
-    /* PancakeBase.c                                            	*/
+    /* Pancake.c                                            		*/
     /* 2012 Yussuf Khalil                                           */
     /* License: http://pancakehttp.net/license/                     */
     /****************************************************************/
@@ -13,9 +13,9 @@
 #include "config.h"
 #endif
 
-#include "php_PancakeBase.h"
+#include "Pancake.h"
 
-ZEND_DECLARE_MODULE_GLOBALS(PancakeBase)
+ZEND_DECLARE_MODULE_GLOBALS(Pancake)
 
 ZEND_BEGIN_ARG_INFO(arginfo_pancake_out, 0)
 	ZEND_ARG_INFO(0, "text")
@@ -79,7 +79,7 @@ ZEND_BEGIN_ARG_INFO(arginfo_pancake_MIME_typeOf, 0)
 	ZEND_ARG_INFO(0, "filePath")
 ZEND_END_ARG_INFO()
 
-const zend_function_entry PancakeBase_functions[] = {
+const zend_function_entry Pancake_functions[] = {
 	ZEND_NS_FE("Pancake", out,	arginfo_pancake_out)
 	ZEND_NS_FE("Pancake", errorHandler, arginfo_pancake_errorHandler)
 	ZEND_NS_FE("Pancake", setThread, arginfo_pancake_setThread)
@@ -119,14 +119,14 @@ const zend_function_entry MIME_methods[] = {
 	ZEND_FE_END
 };
 
-zend_module_entry PancakeBase_module_entry = {
+zend_module_entry Pancake_module_entry = {
 	STANDARD_MODULE_HEADER,
-	"PancakeBase",
-	PancakeBase_functions,
-	PHP_MINIT(PancakeBase),
-	PHP_MSHUTDOWN(PancakeBase),
-	PHP_RINIT(PancakeBase),
-	PHP_RSHUTDOWN(PancakeBase),
+	"Pancake",
+	Pancake_functions,
+	PHP_MINIT(Pancake),
+	PHP_MSHUTDOWN(Pancake),
+	PHP_RINIT(Pancake),
+	PHP_RSHUTDOWN(Pancake),
 	NULL,
 	PANCAKE_VERSION,
 	STANDARD_MODULE_PROPERTIES
@@ -136,35 +136,35 @@ zend_class_entry *HTTPRequest_ce;
 zend_class_entry *invalidHTTPRequestException_ce;
 zend_class_entry *MIME_ce;
 
-#ifdef COMPILE_DL_PANCAKEBASE
-ZEND_GET_MODULE(PancakeBase)
+#ifdef COMPILE_DL_PANCAKE
+ZEND_GET_MODULE(Pancake)
 #endif
 
-void php_PancakeBase_init_globals(zend_PancakeBase_globals *PancakeBase_globals)
+void php_Pancake_init_globals(zend_Pancake_globals *Pancake_globals)
 {
-	PancakeBase_globals->systemLogStream = NULL;
-	PancakeBase_globals->requestLogStream = NULL;
-	PancakeBase_globals->errorLogStream = NULL;
-	PancakeBase_globals->currentThread = NULL;
-	PancakeBase_globals->dateFormat = "";
-	PancakeBase_globals->allowHEAD = 0;
-	PancakeBase_globals->allowTRACE = 0;
-	PancakeBase_globals->allowOPTIONS = 0;
-	PancakeBase_globals->exposePancake = 0;
-	PancakeBase_globals->JIT_COOKIE = 1;
-	PancakeBase_globals->JIT_GET = 1;
-	PancakeBase_globals->JIT_SERVER = 1;
-	PancakeBase_globals->JIT_REQUEST = 1;
-	PancakeBase_globals->JIT_POST = 1;
-	PancakeBase_globals->JIT_FILES = 1;
+	Pancake_globals->systemLogStream = NULL;
+	Pancake_globals->requestLogStream = NULL;
+	Pancake_globals->errorLogStream = NULL;
+	Pancake_globals->currentThread = NULL;
+	Pancake_globals->dateFormat = "";
+	Pancake_globals->allowHEAD = 0;
+	Pancake_globals->allowTRACE = 0;
+	Pancake_globals->allowOPTIONS = 0;
+	Pancake_globals->exposePancake = 0;
+	Pancake_globals->JIT_COOKIE = 1;
+	Pancake_globals->JIT_GET = 1;
+	Pancake_globals->JIT_SERVER = 1;
+	Pancake_globals->JIT_REQUEST = 1;
+	Pancake_globals->JIT_POST = 1;
+	Pancake_globals->JIT_FILES = 1;
 }
 
-PHP_MINIT_FUNCTION(PancakeBase)
+PHP_MINIT_FUNCTION(Pancake)
 {
 	zend_class_entry http, exception, mime;
 
 	/* Init module globals */
-	ZEND_INIT_MODULE_GLOBALS(PancakeBase, php_PancakeBase_init_globals, NULL);
+	ZEND_INIT_MODULE_GLOBALS(Pancake, php_Pancake_init_globals, NULL);
 
 	REGISTER_NS_LONG_CONSTANT("Pancake", "OUTPUT_SYSTEM", 1, 0);
 	REGISTER_NS_LONG_CONSTANT("Pancake", "OUTPUT_REQUEST", 2, 0);
@@ -219,7 +219,7 @@ PHP_MINIT_FUNCTION(PancakeBase)
 	return SUCCESS;
 }
 
-PHP_MSHUTDOWN_FUNCTION(PancakeBase)
+PHP_MSHUTDOWN_FUNCTION(Pancake)
 {
 	if(PANCAKE_GLOBALS(requestLogStream)) {
 		fclose(PANCAKE_GLOBALS(requestLogStream));
@@ -236,7 +236,7 @@ PHP_MSHUTDOWN_FUNCTION(PancakeBase)
 	return SUCCESS;
 }
 
-PHP_RINIT_FUNCTION(PancakeBase)
+PHP_RINIT_FUNCTION(Pancake)
 {
 	zval *errorHandler;
 
@@ -252,7 +252,7 @@ PHP_RINIT_FUNCTION(PancakeBase)
 	return SUCCESS;
 }
 
-PHP_RSHUTDOWN_FUNCTION(PancakeBase)
+PHP_RSHUTDOWN_FUNCTION(Pancake)
 {
 	if(PANCAKE_GLOBALS(mimeTable)) {
 		zend_hash_destroy(PANCAKE_GLOBALS(mimeTable));
