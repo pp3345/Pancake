@@ -142,6 +142,8 @@ ZEND_GET_MODULE(Pancake)
 
 void php_Pancake_init_globals(zend_Pancake_globals *Pancake_globals)
 {
+	TSRMLS_FETCH();
+
 	Pancake_globals->systemLogStream = NULL;
 	Pancake_globals->requestLogStream = NULL;
 	Pancake_globals->errorLogStream = NULL;
@@ -151,12 +153,12 @@ void php_Pancake_init_globals(zend_Pancake_globals *Pancake_globals)
 	Pancake_globals->allowTRACE = 0;
 	Pancake_globals->allowOPTIONS = 0;
 	Pancake_globals->exposePancake = 0;
-	Pancake_globals->JIT_COOKIE = 1;
-	Pancake_globals->JIT_GET = 1;
-	Pancake_globals->JIT_SERVER = 1;
-	Pancake_globals->JIT_REQUEST = 1;
-	Pancake_globals->JIT_POST = 1;
-	Pancake_globals->JIT_FILES = 1;
+	Pancake_globals->JIT_COOKIE = PG(auto_globals_jit);
+	Pancake_globals->JIT_GET = PG(auto_globals_jit);
+	Pancake_globals->JIT_SERVER = PG(auto_globals_jit);
+	Pancake_globals->JIT_REQUEST = PG(auto_globals_jit);
+	Pancake_globals->JIT_POST = PG(auto_globals_jit);
+	Pancake_globals->JIT_FILES = PG(auto_globals_jit);
 }
 
 PHP_MINIT_FUNCTION(Pancake)
