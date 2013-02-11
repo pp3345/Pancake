@@ -50,7 +50,7 @@
 
     function header_remove($name = null) {
         if($name)
-            unset(Pancake\vars::$Pancake_request->answerHeaders[$name]);
+            unset(Pancake\vars::$Pancake_request->answerHeaders[strtolower($name)]);
         else
             Pancake\vars::$Pancake_request->answerHeaders = array();
     }
