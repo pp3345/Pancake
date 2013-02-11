@@ -497,9 +497,9 @@ PHP_METHOD(HTTPRequest, init) {
 			if(path != NULL) {
 				efree(path);
 			}
-			spprintf(&path, ((queryStringStart = strchr(firstLine[1], '?')) != NULL)
-									? strlen(documentRoot) + (firstLine[1] - queryStringStart)
-									: 0, "%s%s", documentRoot, firstLine[1]);
+			spprintf(&path, (((queryStringStart = strchr(firstLine[1], '?')) != NULL)
+									? strlen(documentRoot) + (queryStringStart - firstLine[1])
+									: 0), "%s%s", documentRoot, firstLine[1]);
 
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "if", sizeof("if"), 193494708, (void**) &value) == SUCCESS) {
 				pcre_cache_entry *pcre;
