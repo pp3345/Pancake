@@ -6,29 +6,29 @@
 	/* 2012 Yussuf Khalil                                           */
 	/* License: http://pancakehttp.net/license/                     */
 	/****************************************************************/
-	
+
 	#.if 0
 	namespace Pancake;
-	
+
 	if(PANCAKE !== true)
 		exit;
 	#.endif
-	
+
 	#.AJP13_HTTP_OPTIONS = "\x1"
 	#.AJP13_HTTP_GET = "\x2"
 	#.AJP13_HTTP_HEAD = "\x3"
 	#.AJP13_HTTP_POST = "\x4"
-	
+
 	#.AJP13_FORWARD_REQUEST = "\x2"
-	
+
 	#.AJP13_SEND_BODY_CHUNK = "\x3"
 	#.AJP13_SEND_HEADERS = "\x4"
 	#.AJP13_END_RESPONSE = "\x5"
 	#.AJP13_GET_BODY_CHUNK = "\x6"
 	#.AJP13_CPONG = "\x9"
-	
+
 	#.AJP13_APPEND_DATA = 1048576
-	
+
 	class AJP13 {
 		private static $instances = array();
 		private $sockets = array();
@@ -39,30 +39,30 @@
 		private $maxConcurrent = null;
 		private $requests = array();
 		private $requestSockets = array();
-		
+
 		public static function getInstance($name) {
 			if(!isset(self::$instances[$name]))
 				self::$instances[$name] = new self($name);
 			return self::$instances[$name];
 		}
-		
+
 		private function __construct($name) {
 			$config = Config::get('ajp13.' . $name);
-				
+
 			if(!$config)
 				throw new \Exception('Undefined AJP13 configuration: ' . $name);
-			
+
 			$this->address = $config['address'];
 			$this->port = $config['port'];
 			$this->type = strtolower($config['type']);
 			if($config['maxconcurrent'])
 				$this->maxConcurrent = (int) $config['maxconcurrent'];
 		}
-		
+
 		private function connect() {
 			if($this->maxConcurrent && count($this->sockets) >= $this->maxConcurrent)
 				return false;
-			
+
 			switch($this->type) {
 				case 'ipv6':
 					$socket = socket_create(/* .constant 'AF_INET6' */, /* .constant 'SOCK_STREAM' */, /* .constant 'SOL_TCP' */);
@@ -85,12 +85,12 @@
 						return false;
 					}
 			}
-		
+
 			socket_set_option($socket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_KEEPALIVE' */, 1);
 			$this->sockets[(int) $socket] = $socket;
 			return $socket;
 		}
-		
+
 		public function makeRequest(HTTPRequest $requestObject, $requestSocket) {
 			if($this->freeSockets) {
 				foreach($this->freeSockets as $id => $socket) {
@@ -101,7 +101,7 @@
 				$requestObject->invalidRequest(new invalidHTTPRequestException('Failed to connect to AJP13 upstream server', 502));
 				return false;
 			}
-			
+
 			switch($requestObject->requestType) {
 				case 'GET':
 					$method = /* .AJP13_HTTP_GET */;
@@ -119,13 +119,13 @@
 					$method = /* .AJP13_HTTP_OPTIONS */;
 				#.endif
 			}
-			
+
 			$strlenURI = strlen($requestObject->requestURI);
 			$strlenAddr = strlen($requestObject->remoteIP);
 			$strlenServerName = strlen($requestObject->vHost->listen[0]);
 			$headers = "";
 			$headerCount = 0;
-			
+
 			foreach($requestObject->requestHeaders as $headerName => $headerValue) {
 				$strlenValue = strlen($headerValue);
 				switch(strtolower($headerName)) {
@@ -178,7 +178,7 @@
 				$strlenValue = strlen($headerValue);
 				$headers .= chr($strlenValue >> 8) . chr($strlenValue) . $headerValue . "\x0";
 			}
-			
+
 			$body = $method 																// method byte
 			. "\x0\x8HTTP/" . $requestObject->protocolVersion . "\x0" 						// protocol string + terminating \0
 			. chr($strlenURI >> 8) . chr($strlenURI) . $requestObject->requestURI . "\x0"	// URI string + terminating \0
@@ -189,52 +189,65 @@
 			. "\x0"																			// Is SSL? boolean
 			. chr($headerCount >> 8) . chr($headerCount)									// Header count integer
 			. $headers;
-			
+
 			$strlenBody = strlen($body) + 2;
 
-			socket_write($socket, "\x12\x34" . chr($strlenBody >> 8) . chr($strlenBody) . "\x02" . $body . "\xff");
-			
+			doWrite:
+			if(socket_write($socket, "\x12\x34" . chr($strlenBody >> 8) . chr($strlenBody) . "\x02" . $body . "\xff") === false) {
+				unset($this->sockets[(int) $socket]);
+				if($this->freeSockets) {
+					foreach($this->freeSockets as $id => $socket) {
+						unset($this->freeSockets[$id]);
+						break;
+					}
+					goto doWrite;
+				} else if(!($socket = $this->connect())) {
+					$requestObject->invalidRequest(new invalidHTTPRequestException('Failed to connect to AJP13 upstream server', 502));
+					return false;
+				}
+			}
+
 			if($requestObject->rawPOSTData) {
 				$string = substr($requestObject->rawPOSTData, 0, 8186);
 				$strlen = strlen($string);
 				socket_write($socket, "\x12\x34" . chr(($strlen + 2) >> 8) . chr($strlen + 2) . chr($strlen >> 8) . chr($strlen) . $string);
 				$requestObject->rawPOSTData = substr($requestObject->rawPOSTData, $strlen);
 			}
-			
+
 			$this->requests[(int) $socket] = $requestObject;
 			$this->requestSockets[(int) $socket] = $requestSocket;
-			
+
 			return $socket;
 		}
-		
+
 		public function upstreamRecord($data, $socket) {
 			$socketID = (int) $socket;
 			$requestObject = $this->requests[$socketID];
-			
+
 			if($data === "") {
 				/* Upstream server closed connection */
-				
+
 				if($requestObject) {
 					$requestObject->invalidRequest(new invalidHTTPRequestException("The AJP13 upstream server unexpectedly closed the network connection.", 502));
-					
+
 					$retval = array($this->requestSockets[$socketID], $requestObject);
 					unset($this->requestSockets[$socketID], $this->requests[$socketID]);
 					unset($this->sockets[$socketID], $this->freeSockets[$socketID]);
 					return $retval;
 				}
-			
+
 				$this->connect();
 				return 0;
 			}
-			
+
 			if(strlen($data) < 5)
 				return /* .AJP13_APPEND_DATA */ | (5 - strlen($data));
-			
+
 			$contentLength = (ord($data[2]) << 8) + ord($data[3]);
-			
+
 			if(strlen($data) < $contentLength + 4)
 				return /* .AJP13_APPEND_DATA */ | ($contentLength + 4 - strlen($data));
-			
+
 			switch($data[4]) {
 				case /* .AJP13_GET_BODY_CHUNK */:
 					$length = (ord($data[5]) << 8) + ord($data[6]);
@@ -267,7 +280,7 @@
 				case /* .AJP13_SEND_HEADERS */:
 					// Get HTTP status code
 					$requestObject->answerCode = (ord($data[5]) << 8) + ord($data[6]);
-					
+
 					// Read headers
 					$pos = 12 + (ord($data[7]) << 8) + ord($data[8]);
 					$totalLength = $contentLength + 4;
@@ -310,7 +323,7 @@
 									$requestObject->setHeader('WWW-Authenticate', $value);
 									break;
 							}
-							
+
 							$pos += $valueLength + 5;
 						} else {
 							$headerLength = (ord($data[$pos]) << 8) + ord($data[$pos + 1]);
