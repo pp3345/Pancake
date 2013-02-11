@@ -1211,7 +1211,9 @@ zval *PancakeProcessQueryString(zval *destination, zval *queryString, const char
 			Z_STRLEN_P(zvalue) = strlen(value);
 			Z_STRVAL_P(zvalue) = estrndup(value, Z_STRLEN_P(zvalue));
 		} else {
-			Z_TYPE_P(zvalue) = IS_NULL;
+			Z_TYPE_P(zvalue) = IS_STRING;
+			Z_STRLEN_P(zvalue) = 0;
+			Z_STRVAL_P(zvalue) = estrndup("", 0);
 		}
 
 		if(!strlen(part) && !Z_STRLEN_P(zvalue)) {
