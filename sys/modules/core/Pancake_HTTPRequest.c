@@ -509,11 +509,16 @@ PHP_METHOD(HTTPRequest, init) {
 					continue;
 				}
 
+				MAKE_STD_ZVAL(pcre_retval);
+
 				php_pcre_match_impl(pcre, firstLine[1], strlen(firstLine[1]),  pcre_retval, NULL, 0, 0, 0, 0 TSRMLS_CC);
 
 				if(Z_LVAL_P(pcre_retval) == 0) {
+					zval_ptr_dtor(&pcre_retval);
 					continue;
 				}
+
+				zval_ptr_dtor(&pcre_retval);
 			}
 
 			if(		(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "location", sizeof("location"), 249896952137776350U, (void**) &value) == SUCCESS
@@ -613,12 +618,12 @@ PHP_METHOD(HTTPRequest, init) {
 						zend_update_property(HTTPRequest_ce, this_ptr, "pathInfo", sizeof("pathInfo") - 1, *match TSRMLS_CC);
 					}
 
-					zend_hash_index_find(Z_ARRVAL_P(matches), 1, (void**) &match);
+					if(zend_hash_index_find(Z_ARRVAL_P(matches), 1, (void**) &match) == SUCCESS) {
+						if(fL1isMalloced) { efree(firstLine[1]); }
+						else { fL1isMalloced = 1; }
 
-					if(fL1isMalloced) { efree(firstLine[1]); }
-					else { fL1isMalloced = 1; }
-
-					firstLine[1] = estrndup(Z_STRVAL_PP(match), Z_STRLEN_PP(match));
+						firstLine[1] = estrndup(Z_STRVAL_PP(match), Z_STRLEN_PP(match));
+					}
 				}
 
 				zval_ptr_dtor(&matches);
@@ -1715,7 +1720,7 @@ zend_bool PancakeCreateSERVER(const char *name, uint name_len TSRMLS_DC) {
 	add_assoc_zval_ex(server, "SERVER_PORT", sizeof("SERVER_PORT"), localPort);
 
 	FAST_READ_PROPERTY(pathInfo, this_ptr, "pathInfo", sizeof("pathInfo") - 1, HASH_OF_pathInfo);
-	if(Z_TYPE_P(pathInfo) != IS_NULL) {
+	if(Z_TYPE_P(pathInfo) == IS_STRING && Z_STRLEN_P(pathInfo)) {
 		Z_ADDREF_P(pathInfo);
 		add_assoc_zval_ex(server, "PATH_INFO", sizeof("PATH_INFO"), pathInfo);
 
