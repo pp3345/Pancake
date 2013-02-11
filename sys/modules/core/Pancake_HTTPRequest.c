@@ -548,7 +548,7 @@ PHP_METHOD(HTTPRequest, init) {
 
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "exception", sizeof("exception"), 8246287202855534580U, (void**) &value) == SUCCESS
 			&& Z_TYPE_PP(value) == IS_LONG) {
-				if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "exceptionmessage", sizeof("exceptionmessage") - 1, 14507601710368331673U, (void**) &value2) == SUCCESS) {
+				if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "exceptionmessage", sizeof("exceptionmessage"), 14507601710368331673U, (void**) &value2) == SUCCESS) {
 					PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL(Z_STRVAL_PP(value2), Z_STRLEN_PP(value2), Z_LVAL_PP(value), requestHeader, requestHeader_len);
 				} else {
 					PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("The server was unable to process your request", Z_LVAL_PP(value), requestHeader, requestHeader_len);
