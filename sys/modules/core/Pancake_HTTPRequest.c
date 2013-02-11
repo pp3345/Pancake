@@ -1869,6 +1869,10 @@ PHP_METHOD(HTTPRequest, setCookie) {
 		efree(value);
 	}
 
+	if(expire) {
+		efree(expireString);
+	}
+
 	PancakeSetAnswerHeader(this_ptr, "set-cookie", sizeof("set-cookie"), cookie, 0, 13893642455224896184U TSRMLS_CC);
 
 	RETURN_TRUE;
