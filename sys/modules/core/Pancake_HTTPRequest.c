@@ -565,6 +565,7 @@ PHP_METHOD(HTTPRequest, init) {
 			}
 
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "destination", sizeof("destination"), 15010265353095908391U, (void**) &value) == SUCCESS) {
+				Z_ADDREF_PP(value);
 				PancakeSetAnswerHeader(this_ptr, "location", sizeof("location"), *value, 1, 249896952137776350U TSRMLS_CC);
 				PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("Redirecting...", 301);
 				if(fL1isMalloced) efree(firstLine[1]);
