@@ -218,7 +218,7 @@ PHP_MINIT_FUNCTION(Pancake)
 	INIT_NS_CLASS_ENTRY(mime, "Pancake", "MIME", MIME_methods);
 	MIME_ce = zend_register_internal_class(&mime TSRMLS_CC);
 
-	//char *getHash = "rewriteRules";
+	//char *getHash = "headers";
 	//printf("#define HASH_OF_%s %luU\n", getHash, zend_inline_hash_func(getHash, strlen(getHash) + 1));
 
 	return SUCCESS;

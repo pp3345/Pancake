@@ -546,6 +546,21 @@ PHP_METHOD(HTTPRequest, init) {
 				}
 			}
 
+			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "headers", sizeof("headers"), HASH_OF_headers, (void**) &value) == SUCCESS
+			&& Z_TYPE_PP(value) == IS_ARRAY) {
+				zval **headerValue;
+				char *headerName;
+				int headerName_len;
+
+				for(zend_hash_internal_pointer_reset(Z_ARRVAL_PP(value));
+							zend_hash_get_current_data(Z_ARRVAL_PP(value), (void**) &headerValue) == SUCCESS,
+							zend_hash_get_current_key_ex(Z_ARRVAL_PP(value), &headerName, &headerName_len, NULL, 0, NULL) == HASH_KEY_IS_STRING;
+							zend_hash_move_forward(Z_ARRVAL_PP(value))) {
+					Z_ADDREF_PP(headerValue);
+					PancakeSetAnswerHeader(this_ptr, headerName, headerName_len + 1, *headerValue, 1, zend_inline_hash_func(headerName, headerName_len + 1) TSRMLS_CC);
+				}
+			}
+
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "exception", sizeof("exception"), 8246287202855534580U, (void**) &value) == SUCCESS
 			&& Z_TYPE_PP(value) == IS_LONG) {
 				if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "exceptionmessage", sizeof("exceptionmessage"), 14507601710368331673U, (void**) &value2) == SUCCESS) {
