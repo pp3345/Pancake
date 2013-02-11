@@ -588,7 +588,7 @@ PHP_METHOD(HTTPRequest, init) {
 
 				MAKE_STD_ZVAL(matches);
 
-				php_pcre_match_impl(pcre, firstLine[1], sizeof(firstLine[1]) - 1,  pcre_retval, matches, 0, 0, 0, 0 TSRMLS_CC);
+				php_pcre_match_impl(pcre, firstLine[1], strlen(firstLine[1]),  pcre_retval, matches, 0, 0, 0, 0 TSRMLS_CC);
 
 				if(Z_TYPE_P(matches) == IS_ARRAY) {
 					zval **match;
