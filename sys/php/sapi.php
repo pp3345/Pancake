@@ -487,16 +487,17 @@
 
         foreach(explode("\n", $backtrace) as $index => $tracePart) {
             if(!$index
-            || (strpos($tracePart, '/sys/threads/single/phpWorker.thread') && strpos($tracePart, 'call_user_func') && Pancake\vars::$executingErrorHandler)
+            || (strpos($tracePart, '/sys/compilecache/phpWorker.thread') && strpos($tracePart, 'call_user_func') && Pancake\vars::$executingErrorHandler)
             || (strpos($tracePart, 'Pancake\PHPErrorHandler') && Pancake\vars::$executingErrorHandler))
                 continue;
-            if(strpos($tracePart, '/sys/threads/single/phpWorker.thread'))
+            if(strpos($tracePart, '/sys/compilecache/phpWorker.thread'))
                 break;
             if($index-1)
                 $trace .= "\n";
             $tracePart = explode(" ", $tracePart, 2);
 
             $trace .= "#" . $i . " " . $tracePart[1];
+
             $i++;
         }
         echo $trace;

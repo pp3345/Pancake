@@ -187,7 +187,7 @@
         $newBacktrace = array();
 
         foreach($backtrace as $tracePart) {
-			if(vars::$executingErrorHandler && ((isset($tracePart['file']) && strpos($tracePart['file'], '/sys/threads/single/phpWorker.thread')) || (isset($tracePart['function']) && $tracePart['function'] == 'Pancake\PHPErrorHandler')))
+			if(vars::$executingErrorHandler && ((isset($tracePart['file']) && strpos($tracePart['file'], '/sys/compilecache/phpWorker.thread')) || (isset($tracePart['function']) && $tracePart['function'] == 'Pancake\PHPErrorHandler')))
 				continue;
         	$newBacktrace[] = $tracePart;
         }
