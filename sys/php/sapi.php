@@ -59,8 +59,18 @@
         return false;
     }
 
-    function headers_list() {
-        return Pancake\vars::$Pancake_request->getAnswerHeadersArray();
+	function headers_list() {
+		$headers = array();
+
+        foreach(Pancake\vars::$Pancake_request->answerHeaders as $headerName => $headerValue) {
+            if(is_array($headerValue)) {
+                foreach($headerValue as $value)
+                    $headers[] = $headerName . ': ' . $value;
+            } else
+                $headers[] = $headerName . ': ' . $headerValue;
+        }
+
+        return $headers;
     }
 
     #.if PHP_MINOR_VERSION >= 4
