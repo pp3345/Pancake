@@ -558,6 +558,7 @@ PHP_METHOD(HTTPRequest, init) {
 				efree(firstLine);
 				efree(host);
 				efree(requestLine);
+				efree(path);
 				if(authorization != NULL) efree(authorization);
 				if(if_unmodified_since != NULL) efree(if_unmodified_since);
 				return;
@@ -570,6 +571,7 @@ PHP_METHOD(HTTPRequest, init) {
 				efree(firstLine);
 				efree(host);
 				efree(requestLine);
+				efree(path);
 				if(authorization != NULL) efree(authorization);
 				if(if_unmodified_since != NULL) efree(if_unmodified_since);
 				return;
