@@ -427,5 +427,6 @@ static int PancakeFastHasProperty(zval *object, zval *member, int has_set_exists
 #define HASH_OF__SERVER 7572043519435131U
 #define HASH_OF__COOKIE 7572023243352414U
 #define HASH_OF_headers 7572451449572097U
+#define HASH_OF_pathInfo 249902003292126174U
 
 #endif	/* PANCAKE_H */

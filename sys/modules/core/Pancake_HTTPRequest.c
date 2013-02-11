@@ -595,13 +595,14 @@ PHP_METHOD(HTTPRequest, init) {
 
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "pathinfo", sizeof("pathinfo"), 249902003330075646U, (void**) &value) == SUCCESS) {
 				pcre_cache_entry *pcre;
-				zval *pcre_retval, *matches;
+				zval *pcre_retval, *matches = NULL;
 
 				if((pcre = pcre_get_compiled_regex_cache(Z_STRVAL_PP(value), Z_STRLEN_PP(value) TSRMLS_CC)) == NULL) {
 					continue;
 				}
 
 				MAKE_STD_ZVAL(matches);
+				MAKE_STD_ZVAL(pcre_retval);
 
 				php_pcre_match_impl(pcre, firstLine[1], strlen(firstLine[1]),  pcre_retval, matches, 0, 0, 0, 0 TSRMLS_CC);
 
@@ -613,9 +614,15 @@ PHP_METHOD(HTTPRequest, init) {
 					}
 
 					zend_hash_index_find(Z_ARRVAL_P(matches), 1, (void**) &match);
-					if(fL1isMalloced) efree(firstLine[1]);
-					firstLine[1] = Z_STRVAL_PP(match);
+
+					if(fL1isMalloced) { efree(firstLine[1]); }
+					else { fL1isMalloced = 1; }
+
+					firstLine[1] = estrndup(Z_STRVAL_PP(match), Z_STRLEN_PP(match));
 				}
+
+				zval_ptr_dtor(&matches);
+				zval_ptr_dtor(&pcre_retval);
 			}
 		}
 
@@ -1630,7 +1637,7 @@ zend_bool PancakeCreateSERVER(const char *name, uint name_len TSRMLS_DC) {
 	zval *this_ptr = PANCAKE_GLOBALS(JITGlobalsHTTPRequest);
 	zval *server, *requestTime, *requestMicrotime, *requestMethod, *protocolVersion, *requestFilePath,
 		*originalRequestURI, *requestURI, *vHost, *documentRoot, *remoteIP, *remotePort, *queryString,
-		*localIP, *localPort, *requestHeaderArray, **data;
+		*localIP, *localPort, *requestHeaderArray, **data, *pathInfo;
 
 	MAKE_STD_ZVAL(server);
 	array_init_size(server, 20); // 17 basic elements + 3 overhead for headers (faster init; low overhead when not needed)
@@ -1706,6 +1713,18 @@ zend_bool PancakeCreateSERVER(const char *name, uint name_len TSRMLS_DC) {
 	FAST_READ_PROPERTY(localPort, this_ptr, "localPort", sizeof("localPort") - 1, HASH_OF_localPort);
 	Z_ADDREF_P(localPort);
 	add_assoc_zval_ex(server, "SERVER_PORT", sizeof("SERVER_PORT"), localPort);
+
+	FAST_READ_PROPERTY(pathInfo, this_ptr, "pathInfo", sizeof("pathInfo") - 1, HASH_OF_pathInfo);
+	if(Z_TYPE_P(pathInfo) != IS_NULL) {
+		Z_ADDREF_P(pathInfo);
+		add_assoc_zval_ex(server, "PATH_INFO", sizeof("PATH_INFO"), pathInfo);
+
+		char *pathTranslated = emalloc(Z_STRLEN_P(documentRoot) + Z_STRLEN_P(pathInfo) + 1);
+		memcpy(pathTranslated, Z_STRVAL_P(documentRoot), Z_STRLEN_P(documentRoot));
+		memcpy(pathTranslated + Z_STRLEN_P(documentRoot), Z_STRVAL_P(pathInfo), Z_STRLEN_P(pathInfo) + 1);
+
+		add_assoc_stringl_ex(server, "PATH_TRANSLATED", sizeof("PATH_TRANSLATED"), pathTranslated, Z_STRLEN_P(documentRoot) + Z_STRLEN_P(pathInfo), 0);
+	}
 
 	FAST_READ_PROPERTY(requestHeaderArray, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, HASH_OF_requestHeaders);
 	char *index;
