@@ -536,6 +536,10 @@
 	        	vars::$resetSessionSaveHandler = false;
 	        }
 
+			#.ifdef 'HAVE_SESSION_EXTENSION'
+			session_name(/* .ini_get('session.name') */);
+			#.endif
+
 	        if(
 	        #.ifdef 'HAVE_LIMIT'
 	        (vars::$Pancake_processedRequests >= /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpWorkerLimit;' false */) ||
