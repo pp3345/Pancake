@@ -838,6 +838,7 @@
 		        	//gc_collect_cycles();
 		        }
 
+				unset($class);
 				unset($deleteClasses);
 			}
 
@@ -847,6 +848,7 @@
 		        	//gc_collect_cycles();
 		        }
 
+				unset($function);
 				unset($deleteFunctions);
 			}
 
