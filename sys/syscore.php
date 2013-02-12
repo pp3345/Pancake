@@ -18,8 +18,6 @@
     }
 
     const PANCAKE = true;
-    // \Pancake\STDOUT = \STDOUT
-    const STDOUT = STDOUT;
 
     // Include files necessary to run Pancake
     require_once 'sfYamlParser.class.php';
