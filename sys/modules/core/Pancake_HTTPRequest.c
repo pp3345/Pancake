@@ -151,7 +151,7 @@ PHP_METHOD(HTTPRequest, setHeader) {
 	long replace = 1;
 	zval *value, *nvalue;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sz|l", &name, &name_len, &value, &replace) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sz|l", &name, &name_len, &value, &replace) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
@@ -221,7 +221,7 @@ char *PancakeBuildAnswerHeaders(zval *answerHeaderArray) {
 PHP_METHOD(HTTPRequest, __construct) {
 	zval *remoteIP, *localIP, *remotePort, *localPort;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzzz", &remoteIP, &remotePort, &localIP, &localPort) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzzz", &remoteIP, &remotePort, &localIP, &localPort) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
@@ -245,7 +245,7 @@ PHP_METHOD(HTTPRequest, init) {
 	char *requestHeader;
 	int requestHeader_len;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &requestHeader, &requestHeader_len) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &requestHeader, &requestHeader_len) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
@@ -260,7 +260,7 @@ PHP_METHOD(HTTPRequest, init) {
 
 	for(i = 0;i < 3;i++) {
 		firstLine[i] = strtok_r(i ? NULL : requestLine, " ", &ptr2);
-		if(firstLine[i] == NULL) {
+		if(UNEXPECTED(firstLine[i] == NULL)) {
 			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("Bad request line", sizeof("Bad request line") - 1, 400, requestHeader, requestHeader_len);
 			efree(requestHeader_dupe);
 			efree(firstLine);
@@ -269,9 +269,9 @@ PHP_METHOD(HTTPRequest, init) {
 		}
 	}
 
-	if(!strcmp(firstLine[2], "HTTP/1.1"))
+	if(EXPECTED(!strcmp(firstLine[2], "HTTP/1.1")))
 		zend_update_property_stringl(HTTPRequest_ce, this_ptr, "protocolVersion", sizeof("protocolVersion") - 1, "1.1", 3 TSRMLS_CC);
-	else if(strcmp(firstLine[2], "HTTP/1.0")) {
+	else if(UNEXPECTED(strcmp(firstLine[2], "HTTP/1.0"))) {
 		PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("Unsupported protocol", sizeof("Unsupported protocol") - 1, 400, requestHeader, requestHeader_len);
 		efree(requestHeader_dupe);
 		efree(firstLine);
@@ -279,11 +279,11 @@ PHP_METHOD(HTTPRequest, init) {
 		return;
 	}
 
-	if(strcmp(firstLine[0], "GET")
+	if(UNEXPECTED(strcmp(firstLine[0], "GET")
 	&& strcmp(firstLine[0], "POST")
 	&& strcmp(firstLine[0], "HEAD")
 	&& strcmp(firstLine[0], "TRACE")
-	&& strcmp(firstLine[0], "OPTIONS")) {
+	&& strcmp(firstLine[0], "OPTIONS"))) {
 		PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("Unknown request method", sizeof("Unknown request method") - 1, 501, requestHeader, requestHeader_len);
 		efree(requestHeader_dupe);
 		efree(firstLine);
@@ -296,9 +296,9 @@ PHP_METHOD(HTTPRequest, init) {
 		zend_update_property_string(HTTPRequest_ce, this_ptr, "requestType", sizeof("requestType") - 1, firstLine[0] TSRMLS_CC);
 	}
 
-	if((!strcmp(firstLine[0], "HEAD") && PANCAKE_GLOBALS(allowHEAD) == 0)
+	if(UNEXPECTED((!strcmp(firstLine[0], "HEAD") && PANCAKE_GLOBALS(allowHEAD) == 0)
 	|| (!strcmp(firstLine[0], "TRACE") && PANCAKE_GLOBALS(allowTRACE) == 0)
-	|| (!strcmp(firstLine[0], "OPTIONS") && PANCAKE_GLOBALS(allowOPTIONS) == 0)) {
+	|| (!strcmp(firstLine[0], "OPTIONS") && PANCAKE_GLOBALS(allowOPTIONS) == 0))) {
 		PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("Disallowed request method", sizeof("Disallowed request method") - 1, 405, requestHeader, requestHeader_len);
 		efree(requestHeader_dupe);
 		efree(firstLine);
@@ -324,7 +324,7 @@ PHP_METHOD(HTTPRequest, init) {
 
 		headerValue = strchr(header, ':');
 
-		if(headerValue == NULL)
+		if(UNEXPECTED(headerValue == NULL))
 			continue;
 
 		headerName = header;
@@ -371,7 +371,7 @@ PHP_METHOD(HTTPRequest, init) {
 			if_unmodified_since = estrdup(headerValue);
 		} else if(!strcmp(headerName, "range")) {
 			char *to = strchr(headerValue, '-');
-			if(to != NULL && !strncmp(headerValue, "bytes=", 6)) {
+			if(EXPECTED(to != NULL && !strncmp(headerValue, "bytes=", 6))) {
 				zval *rangeFrom, *rangeTo;
 				*to = '\0';
 				to++;
@@ -406,8 +406,8 @@ PHP_METHOD(HTTPRequest, init) {
 	zval **vHost;
 	zval **newvHost;
 
-	if(host == NULL) {
-		if(!strcmp(firstLine[2], "HTTP/1.1")) {
+	if(UNEXPECTED(host == NULL)) {
+		if(UNEXPECTED(!strcmp(firstLine[2], "HTTP/1.1"))) {
 			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("Missing required header: Host", 400, requestHeader, requestHeader_len);
 			if(authorization != NULL) efree(authorization);
 			if(if_unmodified_since != NULL) efree(if_unmodified_since);
@@ -431,7 +431,7 @@ PHP_METHOD(HTTPRequest, init) {
 	}
 
 	if(!strcmp(firstLine[0], "POST")) {
-		if(!haveContentLength) {
+		if(UNEXPECTED(!haveContentLength)) {
 			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("Your request can't be processed without a given Content-Length", 411, requestHeader, requestHeader_len);
 			efree(firstLine);
 			efree(host);
@@ -453,7 +453,7 @@ PHP_METHOD(HTTPRequest, init) {
 	}
 
 	/* Enough information for TRACE gathered */
-	if(!strcmp(firstLine[0], "TRACE")) {
+	if(UNEXPECTED(!strcmp(firstLine[0], "TRACE"))) {
 		zval *contentTypeZval;
 		MAKE_STD_ZVAL(contentTypeZval);
 		Z_TYPE_P(contentTypeZval) = IS_STRING;
@@ -505,7 +505,7 @@ PHP_METHOD(HTTPRequest, init) {
 				pcre_cache_entry *pcre;
 				zval *pcre_retval;
 
-				if((pcre = pcre_get_compiled_regex_cache(Z_STRVAL_PP(value), Z_STRLEN_PP(value) TSRMLS_CC)) == NULL) {
+				if(UNEXPECTED((pcre = pcre_get_compiled_regex_cache(Z_STRVAL_PP(value), Z_STRLEN_PP(value) TSRMLS_CC)) == NULL)) {
 					continue;
 				}
 
@@ -552,7 +552,7 @@ PHP_METHOD(HTTPRequest, init) {
 			}
 
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "headers", sizeof("headers"), HASH_OF_headers, (void**) &value) == SUCCESS
-			&& Z_TYPE_PP(value) == IS_ARRAY) {
+			&& EXPECTED(Z_TYPE_PP(value) == IS_ARRAY)) {
 				zval **headerValue;
 				char *headerName;
 				int headerName_len;
@@ -567,7 +567,7 @@ PHP_METHOD(HTTPRequest, init) {
 			}
 
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "exception", sizeof("exception"), 8246287202855534580U, (void**) &value) == SUCCESS
-			&& Z_TYPE_PP(value) == IS_LONG) {
+			&& EXPECTED(Z_TYPE_PP(value) == IS_LONG)) {
 				if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "exceptionmessage", sizeof("exceptionmessage"), 14507601710368331673U, (void**) &value2) == SUCCESS) {
 					PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL(Z_STRVAL_PP(value2), Z_STRLEN_PP(value2), Z_LVAL_PP(value), requestHeader, requestHeader_len);
 				} else {
@@ -602,7 +602,7 @@ PHP_METHOD(HTTPRequest, init) {
 				pcre_cache_entry *pcre;
 				zval *pcre_retval, *matches, **match;
 
-				if((pcre = pcre_get_compiled_regex_cache(Z_STRVAL_PP(value), Z_STRLEN_PP(value) TSRMLS_CC)) == NULL) {
+				if(UNEXPECTED((pcre = pcre_get_compiled_regex_cache(Z_STRVAL_PP(value), Z_STRLEN_PP(value) TSRMLS_CC)) == NULL)) {
 					continue;
 				}
 
@@ -612,11 +612,11 @@ PHP_METHOD(HTTPRequest, init) {
 
 				php_pcre_match_impl(pcre, firstLine[1], strlen(firstLine[1]),  pcre_retval, matches, 0, 0, 0, 0 TSRMLS_CC);
 
-				if(zend_hash_index_find(Z_ARRVAL_P(matches), 2, (void**) &match) == SUCCESS) {
+				if(EXPECTED(zend_hash_index_find(Z_ARRVAL_P(matches), 2, (void**) &match) == SUCCESS)) {
 					zend_update_property(HTTPRequest_ce, this_ptr, "pathInfo", sizeof("pathInfo") - 1, *match TSRMLS_CC);
 				}
 
-				if(zend_hash_index_find(Z_ARRVAL_P(matches), 1, (void**) &match) == SUCCESS) {
+				if(EXPECTED(zend_hash_index_find(Z_ARRVAL_P(matches), 1, (void**) &match) == SUCCESS)) {
 					if(fL1isMalloced) { efree(firstLine[1]); }
 					else { fL1isMalloced = 1; }
 
@@ -644,7 +644,7 @@ PHP_METHOD(HTTPRequest, init) {
 	else
 		queryString = estrndup("", 0);
 
-	if(!strncasecmp("http://", requestFilePath, 7)) {
+	if(UNEXPECTED(!strncasecmp("http://", requestFilePath, 7))) {
 		requestFilePath = &requestFilePath[7];
 		requestFilePath =  strchr(requestFilePath, '/');
 	}
@@ -652,14 +652,14 @@ PHP_METHOD(HTTPRequest, init) {
 	requestFilePath = estrdup(requestFilePath);
 	if(fL1isMalloced) efree(firstLine[1]);
 
-	if(requestFilePath[0] != '/') {
+	if(UNEXPECTED(requestFilePath[0] != '/')) {
 		char *requestFilePath_c = estrdup(requestFilePath);
 		efree(requestFilePath);
 		spprintf(&requestFilePath, 0, "/%s", requestFilePath_c);
 		efree(requestFilePath_c);
 	}
 
-	if(strstr(requestFilePath, "../") != NULL) {
+	if(UNEXPECTED(strstr(requestFilePath, "../") != NULL)) {
 		PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("You are not allowed to access the requested file", 403, requestHeader, requestHeader_len);
 		efree(host);
 		efree(firstLine);
@@ -676,7 +676,7 @@ PHP_METHOD(HTTPRequest, init) {
 	zval *AJP13;
 	FAST_READ_PROPERTY(AJP13, *vHost, "AJP13", 5, HASH_OF_AJP13);
 
-	if(Z_TYPE_P(AJP13) != IS_OBJECT) {
+	if(EXPECTED(Z_TYPE_P(AJP13) != IS_OBJECT)) {
 		struct stat st;
 
 		spprintf(&filePath, 0, "%s%s", documentRoot, requestFilePath);
@@ -708,13 +708,13 @@ PHP_METHOD(HTTPRequest, init) {
 			zval *indexFiles;
 			FAST_READ_PROPERTY(indexFiles, *vHost, "indexFiles", sizeof("indexFiles") - 1, HASH_OF_indexFiles);
 
-			if(Z_TYPE_P(indexFiles) == IS_ARRAY) {
+			if(EXPECTED(Z_TYPE_P(indexFiles) == IS_ARRAY)) {
 				zval **indexFile;
 
 				for(zend_hash_internal_pointer_reset(Z_ARRVAL_P(indexFiles));
 					zend_hash_get_current_data(Z_ARRVAL_P(indexFiles), (void**) &indexFile) == SUCCESS;
 					zend_hash_move_forward(Z_ARRVAL_P(indexFiles))) {
-					if(Z_TYPE_PP(indexFile) != IS_STRING)
+					if(UNEXPECTED(Z_TYPE_PP(indexFile) != IS_STRING))
 						continue;
 
 					efree(filePath);
@@ -775,7 +775,7 @@ PHP_METHOD(HTTPRequest, init) {
 
 		spprintf(&filePath, 0, "%s%s", documentRoot, requestFilePath);
 
-		if(virtual_access(filePath, F_OK TSRMLS_CC)) {
+		if(UNEXPECTED(virtual_access(filePath, F_OK TSRMLS_CC))) {
 			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("File does not exist", 404, requestHeader, requestHeader_len);
 			efree(filePath);
 			efree(firstLine);
@@ -787,7 +787,7 @@ PHP_METHOD(HTTPRequest, init) {
 			return;
 		}
 
-		if(virtual_access(filePath, R_OK TSRMLS_CC)) {
+		if(UNEXPECTED(virtual_access(filePath, R_OK TSRMLS_CC))) {
 			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("You're not allowed to access the requested file", 403, requestHeader, requestHeader_len);
 			efree(filePath);
 			efree(firstLine);
@@ -836,7 +836,7 @@ PHP_METHOD(HTTPRequest, init) {
 		Z_STRLEN_P(arg) = strlen(requestFilePath);
 		Z_STRVAL_P(arg) = estrndup(requestFilePath, Z_STRLEN_P(arg));
 
-		if(call_user_function(CG(function_table), NULL, callArray, &authData, 1, &arg TSRMLS_CC) == FAILURE) {
+		if(UNEXPECTED(call_user_function(CG(function_table), NULL, callArray, &authData, 1, &arg TSRMLS_CC) == FAILURE)) {
 			zval_ptr_dtor(&callArray);
 			zval_ptr_dtor(&arg);
 			efree(firstLine);
@@ -860,7 +860,7 @@ PHP_METHOD(HTTPRequest, init) {
 				strtok_r(authorization, " ", &ptr1);
 				char *authorizationBase64 = strtok_r(NULL, " ", &ptr1);
 
-				if(authorizationBase64 != NULL) {
+				if(EXPECTED(authorizationBase64 != NULL)) {
 					char *ptr2;
 					int ret_len;
 
@@ -870,7 +870,7 @@ PHP_METHOD(HTTPRequest, init) {
 					userPassword[0] = strtok_r((char*) decoded, ":", &ptr2);
 					userPassword[1] = strtok_r(NULL, ":", &ptr2);
 
-					if(userPassword[0] != NULL && userPassword[1] != NULL) {
+					if(EXPECTED(userPassword[0] != NULL && userPassword[1] != NULL)) {
 						MAKE_STD_ZVAL(callArray);
 						Z_TYPE_P(callArray) = IS_STRING;
 						Z_STRLEN_P(callArray) = sizeof("isValidAuthentication") - 1;
@@ -899,7 +899,7 @@ PHP_METHOD(HTTPRequest, init) {
 						efree(userPassword);
 						efree(decoded);
 
-						if(call_user_function(CG(function_table), vHost, callArray, &retval, 3, args TSRMLS_CC) == FAILURE) {
+						if(UNEXPECTED(call_user_function(CG(function_table), vHost, callArray, &retval, 3, args TSRMLS_CC) == FAILURE)) {
 							zval_ptr_dtor(&callArray);
 							zval_ptr_dtor(&arg);
 							zval_ptr_dtor(&arg2);
@@ -1063,7 +1063,7 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 		PancakeSetAnswerHeader(answerHeaderArray, "content-type", sizeof("content-type"), PANCAKE_GLOBALS(defaultContentType), 1, 14553278787112811407U TSRMLS_CC);
 	}
 
-	if(!zend_hash_quick_exists(Z_ARRVAL_P(answerHeaderArray), "date", sizeof("date"), 210709757379U)) {
+	if(EXPECTED(!zend_hash_quick_exists(Z_ARRVAL_P(answerHeaderArray), "date", sizeof("date"), 210709757379U))) {
 		char *date = php_format_date("r", 1, time(NULL), 1 TSRMLS_CC);
 
 		zval *dateZval;
@@ -1099,7 +1099,7 @@ PHP_METHOD(HTTPRequest, invalidRequest) {
 	long len;
 	int useDefaultHandler = 0;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &exception, invalidHTTPRequestException_ce) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &exception, invalidHTTPRequestException_ce) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
@@ -1115,7 +1115,7 @@ PHP_METHOD(HTTPRequest, invalidRequest) {
 
 	MAKE_STD_ZVAL(output);
 
-	if(!virtual_access(Z_STRVAL_P(exceptionPageHandler), F_OK | R_OK TSRMLS_CC)) {
+	if(EXPECTED(!virtual_access(Z_STRVAL_P(exceptionPageHandler), F_OK | R_OK TSRMLS_CC))) {
 		handle = fopen(Z_STRVAL_P(exceptionPageHandler), "r");
 	} else {
 		defaultHandler:
@@ -1137,7 +1137,7 @@ PHP_METHOD(HTTPRequest, invalidRequest) {
 		Z_STRVAL_P(output) = contents;
 		Z_STRLEN_P(output) = len;
 	} else {
-		if(php_output_start_user(NULL, 0, PHP_OUTPUT_HANDLER_STDFLAGS TSRMLS_CC) == FAILURE) {
+		if(UNEXPECTED(php_output_start_user(NULL, 0, PHP_OUTPUT_HANDLER_STDFLAGS TSRMLS_CC) == FAILURE)) {
 			RETURN_FALSE;
 		}
 
@@ -1162,8 +1162,8 @@ PHP_METHOD(HTTPRequest, invalidRequest) {
 			zend_hash_quick_update(EG(active_symbol_table), "exception", sizeof("exception"), HASH_OF_exception, &runException, sizeof(zval*), NULL);
 		}
 
-		if(zend_eval_stringl(eval, strlen(eval), NULL, description TSRMLS_CC) == FAILURE) {
-			if(useDefaultHandler) {
+		if(UNEXPECTED(zend_eval_stringl(eval, strlen(eval), NULL, description TSRMLS_CC) == FAILURE)) {
+			if(UNEXPECTED(useDefaultHandler)) {
 				zend_error(E_WARNING, "Pancake Default Exception Page Handler execution failed");
 			} else {
 				efree(description);
@@ -1188,7 +1188,7 @@ PHP_METHOD(HTTPRequest, getAnswerCodeString) {
 	long answerCode;
 	char *answerCodeString;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &answerCode) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &answerCode) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
@@ -1348,7 +1348,7 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 				} else if(!strncmp("multipart/form-data", Z_STRVAL_PP(contentType), sizeof("multipart/form-data") - 1)) {
 					// Fetch boundary string
 					char *boundary = strstr(Z_STRVAL_PP(contentType), "boundary=");
-					if(boundary == NULL) {
+					if(UNEXPECTED(boundary == NULL)) {
 						goto save;
 					} else {
 						boundary += sizeof("boundary=") - 1;
@@ -1359,7 +1359,7 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 						*delimiter = '\0';
 					}
 
-					if(!strlen(boundary)) {
+					if(UNEXPECTED(!strlen(boundary))) {
 						goto save;
 					}
 
@@ -1435,7 +1435,7 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 							line = lineEnd + 2;
 						}
 
-						if(name == NULL) {
+						if(UNEXPECTED(name == NULL)) {
 							if(fileName != NULL) efree(fileName);
 							if(type != NULL) efree(type);
 							goto free;
@@ -1445,7 +1445,7 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 						MAKE_STD_ZVAL(zvalue);
 
 						if(fileName != NULL) {
-							if(type == NULL) {
+							if(UNEXPECTED(type == NULL)) {
 								efree(name);
 								efree(fileName);
 								goto free;
@@ -1463,7 +1463,7 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 							// Get temporary file name
 							char *tempNam = tempnam(PANCAKE_GLOBALS(tmpDir), "UPL");
 
-							if(tempNam == NULL) {
+							if(UNEXPECTED(tempNam == NULL)) {
 								Z_LVAL_P(zError) = 6; // UPLOAD_ERR_NO_TMP_DIR
 							} else {
 								// Write contents to file
@@ -1485,8 +1485,13 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 							Z_STRLEN_P(zType) = strlen(type);
 
 							Z_TYPE_P(zTmpName) = IS_STRING;
-							Z_STRLEN_P(zTmpName) = strlen(tempNam);
-							Z_STRVAL_P(zTmpName) = estrndup(tempNam, Z_STRLEN_P(zTmpName));
+							if(EXPECTED(zTmpName != NULL)) {
+								Z_STRLEN_P(zTmpName) = strlen(tempNam);
+								Z_STRVAL_P(zTmpName) = estrndup(tempNam, Z_STRLEN_P(zTmpName));
+							} else {
+								Z_STRLEN_P(zTmpName) = 0;
+								Z_STRVAL_P(zTmpName) = estrndup("", 0);
+							}
 
 							Z_TYPE_P(zSize) = IS_LONG;
 							Z_LVAL_P(zSize) = rawDataLength;
@@ -1665,7 +1670,7 @@ zend_bool PancakeCreateSERVER(const char *name, uint name_len TSRMLS_DC) {
 	add_assoc_zval_ex(server, "REQUEST_METHOD", sizeof("REQUEST_METHOD"), requestMethod);
 
 	FAST_READ_PROPERTY(protocolVersion, this_ptr, "protocolVersion", sizeof("protocolVersion") - 1, HASH_OF_protocolVersion);
-	if(!strcmp(Z_STRVAL_P(protocolVersion), "1.1")) {
+	if(EXPECTED(!strcmp(Z_STRVAL_P(protocolVersion), "1.1"))) {
 		add_assoc_stringl_ex(server, "SERVER_PROTOCOL", sizeof("SERVER_PROTOCOL"), "HTTP/1.1", 8, 1);
 	} else {
 		add_assoc_stringl_ex(server, "SERVER_PROTOCOL", sizeof("SERVER_PROTOCOL"), "HTTP/1.0", 8, 1);
@@ -1767,7 +1772,7 @@ zend_bool PancakeCreateSERVER(const char *name, uint name_len TSRMLS_DC) {
 		efree(CGIIndex);
 	}
 
-	if(!haveServerName) {
+	if(UNEXPECTED(!haveServerName)) {
 		zval *listen;
 
 		FAST_READ_PROPERTY(listen, vHost, "listen", sizeof("listen") - 1, HASH_OF_listen);
@@ -1799,7 +1804,7 @@ zend_bool PancakeJITFetchREQUEST(const char *name, uint name_len TSRMLS_DC) {
 		switch (*p) {
 			case 'g':
 			case 'G':
-				if (!_gpc_flags[0]) {
+				if (EXPECTED(!_gpc_flags[0])) {
 					zval *GET = PancakeFetchGET(PANCAKE_GLOBALS(JITGlobalsHTTPRequest) TSRMLS_CC);
 					PancakeAutoglobalMerge(Z_ARRVAL_P(REQUEST), Z_ARRVAL_P(GET) TSRMLS_CC);
 					_gpc_flags[0] = 1;
@@ -1807,7 +1812,7 @@ zend_bool PancakeJITFetchREQUEST(const char *name, uint name_len TSRMLS_DC) {
 				break;
 			case 'p':
 			case 'P':
-				if (!_gpc_flags[1]) {
+				if (EXPECTED(!_gpc_flags[1])) {
 					zval *POST = PancakeFetchPOST(PANCAKE_GLOBALS(JITGlobalsHTTPRequest) TSRMLS_CC);
 					PancakeAutoglobalMerge(Z_ARRVAL_P(REQUEST), Z_ARRVAL_P(POST) TSRMLS_CC);
 					_gpc_flags[1] = 1;
@@ -1815,7 +1820,7 @@ zend_bool PancakeJITFetchREQUEST(const char *name, uint name_len TSRMLS_DC) {
 				break;
 			case 'c':
 			case 'C':
-				if (!_gpc_flags[2]) {
+				if (EXPECTED(!_gpc_flags[2])) {
 					zval *COOKIE = PancakeFetchCookies(PANCAKE_GLOBALS(JITGlobalsHTTPRequest) TSRMLS_CC);
 					PancakeAutoglobalMerge(Z_ARRVAL_P(REQUEST), Z_ARRVAL_P(COOKIE) TSRMLS_CC);
 					_gpc_flags[2] = 1;
@@ -1851,7 +1856,7 @@ PHP_METHOD(HTTPRequest, setCookie) {
 	long expire = 0, secure = 0, httpOnly = 0, raw = 0;
 
 	// ($name, $value = null, $expire = 0, $path = null, $domain = null, $secure = false, $httpOnly = false, $raw = false)
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|slsslll", &name, &name_len, &value, &value_len, &expire, &path, &path_len, &domain, &domain_len, &secure, &httpOnly, &raw) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|slsslll", &name, &name_len, &value, &value_len, &expire, &path, &path_len, &domain, &domain_len, &secure, &httpOnly, &raw) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
