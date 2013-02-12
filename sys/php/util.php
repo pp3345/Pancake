@@ -129,7 +129,7 @@
         foreach($packages as $data)
         	socket_write(vars::$requestSocket, $data);
 
-    	IPC::send(9999, 1);
+		socket_write(vars::$Pancake_currentThread->socket, "EXPECTED_SHUTDOWN");
     }
 
     #.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->phpDisabledFunctions;' false

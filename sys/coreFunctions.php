@@ -48,7 +48,6 @@
             $worker->waitForExit();
         }
 
-        @IPC::destroy();
         if($return)
         	return;
         else

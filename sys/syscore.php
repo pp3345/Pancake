@@ -18,8 +18,6 @@
     }
 
     const PANCAKE = true;
-    const REQUEST_WORKER_TYPE = 1;
-    const PHP_WORKER_TYPE = 2;
     // \Pancake\STDOUT = \STDOUT
     const STDOUT = STDOUT;
 
@@ -28,7 +26,6 @@
     require_once 'configuration.class.php';
     require_once 'coreFunctions.php';
     require_once 'thread.class.php';
-    require_once 'IPC.class.php';
     require_once 'vHost.class.php';
 
     // Set error reporting
@@ -57,7 +54,7 @@
     	abort();
     }
 
-    foreach(array("posix", "pcntl", "sysvmsg", "sockets", "tokenizer", "ctype") as $extension) {
+    foreach(array("posix", "pcntl", "sockets", "tokenizer", "ctype") as $extension) {
         if(!extension_loaded($extension)) {
             $missingExtensions++;
             if($missingExtensions > 1) {
@@ -206,9 +203,6 @@
         out('You need to define at least one virtual host.');
         abort();
     }
-
-    // Load IPC
-    IPC::create();
 
     // Create sockets
     // IPv6
@@ -382,7 +376,7 @@
                 pcntl_wait($x, \WNOHANG);
 
                 $thread = Thread::get($info['pid']);
-                if(IPC::get(\MSG_IPC_NOWAIT, 9999)) {
+                if(socket_read($thread->localSocket, 17) == "EXPECTED_SHUTDOWN") {
                     out($thread->friendlyName . ' requested reboot', OUTPUT_DEBUG | OUTPUT_SYSTEM | OUTPUT_LOG);
                 } else
                     out('Detected crash of ' . $thread->friendlyName . ' - Rebooting worker');

@@ -32,19 +32,18 @@
 			$this->friendlyName = 'CodeProcessor';
 			$this->processFile = $processFile;
 			$this->outputFile = $outputFile;
-			$this->returnThread = $Pancake_currentThread && isset($Pancake_currentThread->IPCid) ? $Pancake_currentThread->IPCid : 9999;
 		}
 
 		public function run() {
 			$this->start();
 
 			pcntl_sigprocmask(\SIG_BLOCK, array(\SIGCHLD));
-			pcntl_sigwaitinfo(array(\SIGCHLD));
+			pcntl_sigwaitinfo(array(\SIGCHLD), $info);
 			pcntl_wait($x, \WNOHANG);
 
 			$this->running = false;
 
-			if(IPC::get(0, $this->returnThread) !== 1)
+			if($info["status"] !== 1)
 				abort();
 		}
 	}

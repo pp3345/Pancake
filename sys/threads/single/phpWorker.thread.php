@@ -545,7 +545,7 @@
 	        (vars::$Pancake_processedRequests >= /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpWorkerLimit;' false */) ||
 	        #.endif
 	        vars::$workerExit) {
-	        	IPC::send(9999, 1);
+	        	socket_write(vars::$Pancake_currentThread->socket, "EXPECTED_SHUTDOWN");
 	        	exit;
 	        }
 

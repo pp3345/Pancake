@@ -19,7 +19,6 @@
         static private $instances = array();
         static private $codeProcessed = false;
         public $id = 0;
-        public $IPCid = 0;
         public $socket = null;
         public $socketName = "";
         public $localSocket = null;
@@ -67,9 +66,8 @@
             // Add instance
             self::$instances[] = $this;
 
-            // Set id and address for IPC
+            // Set id
             $this->id = max(array_keys(self::$instances));
-            $this->IPCid = REQUEST_WORKER_TYPE . $this->id;
 
             $this->doGracefulExit = true;
 
@@ -79,6 +77,7 @@
             socket_listen($this->socket);
             $this->localSocket = socket_create(AF_UNIX, SOCK_STREAM, 0);
             socket_connect($this->localSocket, $this->socketName);
+			socket_set_nonblock($this->localSocket);
             $this->socket = socket_accept($this->socket);
 
             $this->codeFile = 'compilecache/requestWorker.thread.cphp';

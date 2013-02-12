@@ -19,7 +19,6 @@
         static private $instances = array();
         static private $codeProcessed = array();
         public $id = 0;
-        public $IPCid = 0;
         public $socket = null;
         public $socketName = "";
         public $localSocket = null;
@@ -71,12 +70,11 @@
             // Save instance
             self::$instances[] = $this;
 
-            // Set address for IPC based on vHost-ID
+            // Set id
             $this->id = max(array_keys(self::$instances));
-            $this->IPCid = PHP_WORKER_TYPE.$this->vHost->id;
 
             $this->codeFile = 'compilecache/phpWorker.thread.' . $vHost->name . '.cphp';
-            $this->friendlyName = 'PHPWorker #'.($this->id+1).' ("'.$this->vHost->name.'")';
+            $this->friendlyName = 'PHPWorker #' . ($this->id + 1) . ' ("' . $this->vHost->name . '")';
 
             $this->socketName = Config::get('main.tmppath') . mt_rand() . "_phpworker_local";
             $this->socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
@@ -84,6 +82,7 @@
             socket_listen($this->socket);
             $this->localSocket = socket_create(AF_UNIX, SOCK_STREAM, 0);
             socket_connect($this->localSocket, $this->socketName);
+			socket_set_nonblock($this->localSocket);
             $this->socket = socket_accept($this->socket);
 
             // Start worker

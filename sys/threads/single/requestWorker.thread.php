@@ -14,7 +14,7 @@
         exit;
    	#.endif
 
-    #.if 0 && #.bool #.call 'Pancake\Config::get' 'main.secureports'
+   	#.if 0 && #.bool #.call 'Pancake\Config::get' 'main.secureports'
     	#.define 'SUPPORT_TLS' true
     #.endif
 
@@ -1013,7 +1013,7 @@
         // Check if request-limit is reached
         #.if 0 < #.call 'Pancake\Config::get' 'main.requestworkerlimit'
         if($processedRequests >= /* .call 'Pancake\Config::get' 'main.requestworkerlimit' */ && !$socketData && !$postData && !$requests) {
-            IPC::send(9999, 1);
+            socket_write($Pancake_currentThread->socket, "EXPECTED_SHUTDOWN");
             exit;
         }
         #.endif
