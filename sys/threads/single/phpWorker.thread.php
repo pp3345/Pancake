@@ -33,7 +33,7 @@
 		#.AUTODELETE_CLASSES = true
 	#.endif
 
-	#.if PHP_MINOR_VERSION >= 4 && #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["traits"]) ? $Pancake_currentThread->vHost->autoDelete["traits"] : true);' false
+	#.if #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["traits"]) ? $Pancake_currentThread->vHost->autoDelete["traits"] : true);' false
 		#.AUTODELETE_TRAITS = true
 	#.endif
 
@@ -83,11 +83,7 @@
 	#.endif
 
 	#.longDefine 'MACRO_CODE'
-	#.if PHP_MINOR_VERSION == 3 && PHP_RELEASE_VERSION < 6
-	$backtrace = debug_backtrace();
-	#.else
 	$backtrace = debug_backtrace(/* .DEBUG_BACKTRACE_PROVIDE_OBJECT */, 2);
-	#.endif
 
 	\Pancake\PHPErrorHandler($errorType, $errorMessage, $backtrace[0]["file"], $backtrace[0]["line"]);
 	#.endLongDefine
@@ -248,11 +244,9 @@
 	    #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_INTERFACES'
 	    vars::$Pancake_interfacesPre = get_declared_interfaces();
 	    #.endif
-	    #.if PHP_MINOR_VERSION >= 4
-		    #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_TRAITS'
-		    	vars::$Pancake_traitsPre = get_declared_traits();
-		    #.endif
-		#.endif
+	    #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_TRAITS'
+	    	vars::$Pancake_traitsPre = get_declared_traits();
+	    #.endif
 
 	    // Seed random number generators
 	    mt_srand();
@@ -479,13 +473,11 @@
 		                if(!in_array($func, vars::$Pancake_funcsPre['user']))
 		                    $body .= $func . "\r\n";
 		            $body .= "\r\n";
-		            #.if PHP_MINOR_VERSION >= 4
-		                $body .= 'New traits:' . "\r\n";
-		                foreach(get_declared_traits() as $trait)
-		                    if(!in_array($trait, vars::$Pancake_traitsPre))
-		                        $body .= $trait . "\r\n";
-		                $body .= "\r\n";
-		            #.endif
+	                $body .= 'New traits:' . "\r\n";
+	                foreach(get_declared_traits() as $trait)
+	                    if(!in_array($trait, vars::$Pancake_traitsPre))
+	                        $body .= $trait . "\r\n";
+	                $body .= "\r\n";
 		            $body .= 'New includes:' . "\r\n";
 		            foreach(get_included_files() as $include)
 		                if(!in_array($include, vars::$Pancake_includesPre))
@@ -808,9 +800,7 @@
 		            switch($delete['type']) {
 		                case 'classes':
 		                case 'interfaces':
-		                #.if PHP_MINOR_VERSION >= 4
 		                case 'traits':
-		                #.endif
 		                    dt_destroy_class_data($delete['name']);
 		                    //gc_collect_cycles();
 		                    $deleteClasses[] = $delete['name'];
@@ -873,11 +863,9 @@
 	        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_INTERFACES'
 	        vars::$Pancake_interfacesPre = get_declared_interfaces();
 	        #.endif
-	        #.if PHP_MINOR_VERSION >= 4
-	   			#.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_TRAITS'
-	        	vars::$Pancake_traitsPre = get_declared_traits();
-	        	#.endif
-	       	#.endif
+   			#.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_TRAITS'
+        	vars::$Pancake_traitsPre = get_declared_traits();
+        	#.endif
 
 	        gc_collect_cycles();
 

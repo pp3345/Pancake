@@ -19,9 +19,15 @@ PHPMAJOR=`$PHPCOMMAND -r "echo PHP_MAJOR_VERSION;"`
 PHPMINOR=`$PHPCOMMAND -r "echo PHP_MINOR_VERSION;"`
 echo "Found PHP $PHPMAJOR.$PHPMINOR"
 
-if test $PHPMAJOR != "5" || (test $PHPMINOR != "3" && test $PHPMINOR != "4" && test $PHPMINOR != "5")
+if test $PHPMAJOR != "5" || (test $PHPMINOR != "4" && test $PHPMINOR != "5")
 then
-    echo "Incompatible PHP-Version. Please install PHP 5.3.0 or newer (PHP 5.4 recommended)"
+	if test $PHPMINOR == "3"
+	then
+		echo "Support for PHP 5.3 has been dropped in Pancake 1.3. Please install PHP 5.4 or newer."
+		echo "In case you are using Debian GNU/Linux you may install a newer PHP version from the dotdeb repository (see http://dotdeb.org for more information and instructions)"
+	else
+		echo "Incompatible PHP-Version. Please install PHP 5.4.0 or newer."
+	fi
     exit
 fi
 

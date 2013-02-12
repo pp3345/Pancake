@@ -118,9 +118,9 @@
     dt_remove_function('restore_error_handler');
     dt_remove_function('ini_alter');
     dt_remove_function('stream_register_wrapper');
-    if(function_exists('http_response_code')) dt_remove_function('http_response_code');
-    if(function_exists('header_register_callback')) dt_remove_function('header_register_callback');
-    if(function_exists('session_register_shutdown')) dt_remove_function('session_register_shutdown');
+    dt_remove_function('http_response_code');
+    dt_remove_function('header_register_callback');
+    dt_remove_function('session_register_shutdown');
     dt_rename_function('phpinfo', 'Pancake\PHPFunctions\phpinfo');
     dt_rename_function('ob_get_level', 'Pancake\PHPFunctions\OutputBuffering\getLevel');
     dt_rename_function('ob_end_clean', 'Pancake\PHPFunctions\OutputBuffering\endClean');

@@ -134,11 +134,7 @@
 
     #.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->phpDisabledFunctions;' false
     function PHPDisabledFunction($functionName) {
-    	#.if PHP_MINOR_VERSION == 3 && PHP_RELEASE_VERSION < 6
-    		$backtrace = debug_backtrace();
-    	#.else
-    		$backtrace = debug_backtrace(/* .DEBUG_BACKTRACE_PROVIDE_OBJECT */, 2);
-    	#.endif
+    	$backtrace = debug_backtrace(/* .DEBUG_BACKTRACE_PROVIDE_OBJECT */, 2);
 
     	PHPErrorHandler(/* .E_WARNING */, $functionName . '() has been disabled for security reasons', $backtrace[1]["file"], $backtrace[1]["line"]);
 
@@ -266,11 +262,9 @@
         #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_INTERFACES'
         public static $Pancake_interfacesPre = array();
         #.endif
-        #.if PHP_MINOR_VERSION >= 4
-        	#.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_TRAITS'
-        	public static $Pancake_traitsPre = array();
-        	#.endif
-        #.endif
+    	#.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_TRAITS'
+    	public static $Pancake_traitsPre = array();
+    	#.endif
         #.ifdef 'SUPPORT_CODECACHE'
         public static $Pancake_exclude = array();
         #.endif

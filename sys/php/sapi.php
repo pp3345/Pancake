@@ -73,27 +73,25 @@
         return $headers;
     }
 
-    #.if PHP_MINOR_VERSION >= 4
-        function http_response_code($response_code = 0) {
+    function http_response_code($response_code = 0) {
 
-            if($response_code)
-                Pancake\vars::$Pancake_request->answerCode = $response_code;
-            return Pancake\vars::$Pancake_request->answerCode;
+        if($response_code)
+            Pancake\vars::$Pancake_request->answerCode = $response_code;
+        return Pancake\vars::$Pancake_request->answerCode;
+    }
+
+    function header_register_callback($callback) {
+        if(!is_callable($callback))
+            return false;
+
+        Pancake\vars::$Pancake_headerCallbacks[] = $callback;
+        return true;
+    }
+
+    #.ifdef 'HAVE_SESSION_EXTENSION'
+        function session_register_shutdown() {
+        	return register_shutdown_function('session_write_close');
         }
-
-        function header_register_callback($callback) {
-            if(!is_callable($callback))
-                return false;
-
-            Pancake\vars::$Pancake_headerCallbacks[] = $callback;
-            return true;
-        }
-
-        #.ifdef 'HAVE_SESSION_EXTENSION'
-            function session_register_shutdown() {
-            	return register_shutdown_function('session_write_close');
-            }
-        #.endif
     #.endif
 
     function phpinfo($what = INFO_ALL) {
@@ -292,21 +290,12 @@
     #.ifdef 'HAVE_SESSION_EXTENSION'
     function session_start() {
 		if(session_id());
-		#.if PHP_MINOR_VERSION >= 4
 		else if($id = Pancake\vars::$Pancake_request->getCookies()[session_name()])
 			session_id($id);
 		else if($id = Pancake\vars::$Pancake_request->getGETParams()[session_name()])
 			session_id($id);
 		else if($id = Pancake\vars::$Pancake_request->getPOSTParams()[session_name()])
 			session_id($id);
-		#.else
-		else if($COOKIE = Pancake\vars::$Pancake_request->getCookies() && isset($COOKIE[session_name()]))
-			session_id($COOKIE[session_name()]);
-		else if($GET = Pancake\vars::$Pancake_request->getGETParams() && isset($GET[session_name()]))
-			session_id($GET[session_name()]);
-		else if($POST = Pancake\vars::$Pancake_request->getPOSTParams() && isset($POST[session_name()]))
-			session_id($POST[session_name()]);
-        #.endif
 		else {
 			Pancake\makeSID();
 		}
@@ -460,44 +449,24 @@
     	return ini_set($varname, $newvalue);
     }
 
-    #.if PHP_MINOR_VERSION == 3 && PHP_RELEASE_VERSION < 6
-        function debug_backtrace($provide_object = true) {
-            return Pancake\workBacktrace(Pancake\PHPFunctions\debugBacktrace($provide_object));
-        }
-    #.else
-        function debug_backtrace($options = /* .constant 'DEBUG_BACKTRACE_PROVIDE_OBJECT' */, $limit = 0) {
-        	if($limit)
-        		$limit += 3;
-            return Pancake\workBacktrace(
-            #.if PHP_MINOR_VERSION >= 4
-            	Pancake\PHPFunctions\debugBacktrace($options, $limit)
-            #.else
-            	Pancake\PHPFunctions\debugBacktrace($options)
-            #.endif
-            );
-        }
-   	#.endif
+    function debug_backtrace($options = /* .constant 'DEBUG_BACKTRACE_PROVIDE_OBJECT' */, $limit = 0) {
+    	if($limit)
+    		$limit += 3;
+        return Pancake\workBacktrace(
+        #.if PHP_MINOR_VERSION >= 4
+        	Pancake\PHPFunctions\debugBacktrace($options, $limit)
+        #.else
+        	Pancake\PHPFunctions\debugBacktrace($options)
+        #.endif
+        );
+    }
 
-    #.if PHP_MINOR_VERSION >= 4
     function debug_print_backtrace($options = 0, $limit = 0) {
-    #.elseif PHP_RELEASE_VERSION >= 6
-    function debug_print_backtrace($options = 0) {
-	#.else
-	function debug_print_backtrace() {
-	#.endif
-    	#.if PHP_MINOR_VERSION >= 4
 		if($limit)
     		$limit += 3;
-		#.endif
 
         ob_start();
-        #.if PHP_MINOR_VERSION >= 4
         Pancake\PHPFunctions\debugPrintBacktrace($options, $limit);
-        #.elseif PHP_RELEASE_VERSION >= 6
-        Pancake\PHPFunctions\debugPrintBacktrace($options);
-        #.else
-        Pancake\PHPFunctions\debugPrintBacktrace();
-        #.endif
 
         $backtrace = ob_get_contents();
         Pancake\PHPFunctions\OutputBuffering\endClean();
@@ -615,13 +584,7 @@
 
     #.ifdef 'HAVE_SESSION_EXTENSION'
 	function session_id($id = "") {
-		if(
-		#.if PHP_MINOR_VERSION >= 4
-			session_status() == 1
-		#.else
-			!Pancake\vars::$sessionID
-		#.endif
-		&& !$id)
+		if(session_status() == 1 && !$id)
 			return '';
 		if($id)
 			Pancake\vars::$sessionID = $id;
@@ -629,13 +592,11 @@
 	}
 
 	function session_set_save_handler($open, $close = true, $read = null, $write = null, $destroy = null, $gc = null) {
-		#.if PHP_MINOR_VERSION >= 4
 		if(is_object($open) && $open instanceof SessionHandlerInterface) {
 			$retval = Pancake\PHPFunctions\setSessionSaveHandler($open, false);
 			if($close && $retval)
 				session_register_shutdown();
 		} else
-		#.endif
 			$retval = Pancake\PHPFunctions\setSessionSaveHandler($open, $close, $read, $write, $destroy, $gc);
 		if($retval)
 			return Pancake\vars::$resetSessionSaveHandler = true;
