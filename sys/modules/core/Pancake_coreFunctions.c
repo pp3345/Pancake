@@ -386,6 +386,8 @@ zend_bool CodeCacheJITFetch(const char *name, uint name_len TSRMLS_DC) {
 		PANCAKE_GLOBALS(JIT_POST) = 0;
 	} else if(!strcmp(name, "_FILES")) {
 		PANCAKE_GLOBALS(JIT_FILES) = 0;
+	} else if(!strcmp(name, "_ENV")) {
+		PANCAKE_GLOBALS(JIT_ENV) = 0;
 	}
 
 	return 0;
@@ -402,6 +404,7 @@ PHP_FUNCTION(CodeCacheJITGlobals) {
 	zend_register_auto_global(ZEND_STRL("_REQUEST"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_POST"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_FILES"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
+	zend_register_auto_global(ZEND_STRL("_ENV"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
 
 	zend_activate_auto_globals(TSRMLS_C);
 }
@@ -417,6 +420,7 @@ PHP_FUNCTION(ExecuteJITGlobals) {
 	zend_register_auto_global(ZEND_STRL("_REQUEST"), PANCAKE_GLOBALS(JIT_REQUEST), PancakeJITFetchREQUEST TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_POST"), PANCAKE_GLOBALS(JIT_POST), PancakeJITFetchPOST TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_FILES"), PANCAKE_GLOBALS(JIT_FILES), PancakeJITFetchFILES TSRMLS_CC);
+	zend_register_auto_global(ZEND_STRL("_ENV"), PANCAKE_GLOBALS(JIT_ENV), PancakeJITFetchENV TSRMLS_CC);
 }
 
 PHP_FUNCTION(makeSID) {

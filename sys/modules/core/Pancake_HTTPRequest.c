@@ -1829,6 +1829,16 @@ zend_bool PancakeJITFetchREQUEST(const char *name, uint name_len TSRMLS_DC) {
 	return 0;
 }
 
+zend_bool PancakeJITFetchENV(const char *name, uint name_len TSRMLS_DC) {
+	zval *ENV;
+	MAKE_STD_ZVAL(ENV);
+	array_init(ENV);
+
+	zend_hash_quick_update(&EG(symbol_table), "_ENV", sizeof("_ENV"), HASH_OF__ENV, &ENV, sizeof(zval*), NULL);
+
+	return 0;
+}
+
 PHP_METHOD(HTTPRequest, registerJITGlobals) {
 	PANCAKE_GLOBALS(JITGlobalsHTTPRequest) = this_ptr;
 

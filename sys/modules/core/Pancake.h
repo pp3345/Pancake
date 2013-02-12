@@ -84,6 +84,7 @@ zend_bool PancakeJITFetchCookies(const char *name, uint name_len TSRMLS_DC);
 zend_bool PancakeJITFetchREQUEST(const char *name, uint name_len TSRMLS_DC);
 zend_bool PancakeJITFetchPOST(const char *name, uint name_len TSRMLS_DC);
 zend_bool PancakeJITFetchFILES(const char *name, uint name_len TSRMLS_DC);
+zend_bool PancakeJITFetchENV(const char *name, uint name_len TSRMLS_DC);
 
 zend_bool CodeCacheJITFetch(const char *name, uint name_len TSRMLS_DC);
 
@@ -160,6 +161,7 @@ ZEND_BEGIN_MODULE_GLOBALS(Pancake)
 	int JIT_REQUEST;
 	int JIT_POST;
 	int JIT_FILES;
+	int JIT_ENV;
 	int enableAuthentication;
 	char *tmpDir;
 ZEND_END_MODULE_GLOBALS(Pancake)
@@ -426,6 +428,7 @@ static int PancakeFastHasProperty(zval *object, zval *member, int has_set_exists
 #define HASH_OF__FILES 229455359975127U
 #define HASH_OF__SERVER 7572043519435131U
 #define HASH_OF__COOKIE 7572023243352414U
+#define HASH_OF__ENV 0
 #define HASH_OF_headers 7572451449572097U
 #define HASH_OF_pathInfo 249902003292126174U
 #define HASH_OF_exception 8246287202855534580U
