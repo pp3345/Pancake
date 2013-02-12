@@ -117,10 +117,16 @@
                 }
                 return true;
             }
-            if(!($data = file_get_contents($fileName)) || !($config = self::$parser->parse($data))) {
-                out('Failed to load configuration file ' . $fileName);
-                return false;
-            }
+
+			try {
+				if(!($data = file_get_contents($fileName)) || !($config = self::$parser->parse($data))) {
+				    out('Failed to load configuration file ' . $fileName, OUTPUT_SYSTEM);
+				    return false;
+				}
+			} catch(\Exception $e) {
+				out('Failed to load configuration file ' . $fileName . ': ' . $e->getMessage(), OUTPUT_SYSTEM);
+				return false;
+			}
 
             if(isset($config['include'])) {
             	foreach($config['include'] as &$include) {
