@@ -1152,20 +1152,26 @@ PHP_METHOD(HTTPRequest, invalidRequest) {
 		char *description = zend_make_compiled_string_description(useDefaultHandler ? "Pancake Exception Page Handler" : Z_STRVAL_P(exceptionPageHandler) TSRMLS_CC);
 
 		zend_rebuild_symbol_table(TSRMLS_C);
-		ZEND_SET_SYMBOL_WITH_LENGTH(EG(active_symbol_table), "exception", sizeof("exception"), exception, 3, 1); /// ! refcount?
+
+		if(!zend_hash_quick_exists(EG(active_symbol_table), "exception", sizeof("exception"), HASH_OF_exception)) {
+			zval *runException;
+			ALLOC_ZVAL(runException);
+			INIT_PZVAL_COPY(runException, exception);
+			zval_copy_ctor(runException);
+
+			zend_hash_quick_update(EG(active_symbol_table), "exception", sizeof("exception"), HASH_OF_exception, &runException, sizeof(zval*), NULL);
+		}
 
 		if(zend_eval_stringl(eval, strlen(eval), NULL, description TSRMLS_CC) == FAILURE) {
 			if(useDefaultHandler) {
 				zend_error(E_WARNING, "Pancake Default Exception Page Handler execution failed");
 			} else {
-				Z_DELREF_P(exception);
 				efree(description);
 				efree(contents);
 				goto defaultHandler;
 			}
 		}
 
-		Z_DELREF_P(exception);
 		efree(description);
 
 		php_output_get_contents(output TSRMLS_CC);
