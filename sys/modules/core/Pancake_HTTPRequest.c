@@ -1485,9 +1485,10 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 							Z_STRLEN_P(zType) = strlen(type);
 
 							Z_TYPE_P(zTmpName) = IS_STRING;
-							if(EXPECTED(zTmpName != NULL)) {
+							if(EXPECTED(tempNam != NULL)) {
 								Z_STRLEN_P(zTmpName) = strlen(tempNam);
 								Z_STRVAL_P(zTmpName) = estrndup(tempNam, Z_STRLEN_P(zTmpName));
+								free(tempNam);
 							} else {
 								Z_STRLEN_P(zTmpName) = 0;
 								Z_STRVAL_P(zTmpName) = estrndup("", 0);
