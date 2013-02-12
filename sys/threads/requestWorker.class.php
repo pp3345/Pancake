@@ -16,7 +16,7 @@
     * A request worker processes requests.
     */
     class RequestWorker extends Thread {
-        static private $instances = array();
+        static private $instances = 0;
         static private $codeProcessed = false;
         public $id = 0;
         public $socket = null;
@@ -64,10 +64,7 @@
         	}
 
             // Add instance
-            self::$instances[] = $this;
-
-            // Set id
-            $this->id = max(array_keys(self::$instances));
+            $this->id = ++self::$instances;
 
             $this->doGracefulExit = true;
 

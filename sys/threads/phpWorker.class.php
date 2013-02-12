@@ -16,7 +16,7 @@
     * PHPWorker that runs PHP-scripts
     */
     class PHPWorker extends Thread {
-        static private $instances = array();
+        static private $instances = 0;
         static private $codeProcessed = array();
         public $id = 0;
         public $socket = null;
@@ -68,10 +68,7 @@
             }
 
             // Save instance
-            self::$instances[] = $this;
-
-            // Set id
-            $this->id = max(array_keys(self::$instances));
+            $this->id = self::$instances++;
 
             $this->codeFile = 'compilecache/phpWorker.thread.' . $vHost->name . '.cphp';
             $this->friendlyName = 'PHPWorker #' . ($this->id + 1) . ' ("' . $this->vHost->name . '")';
