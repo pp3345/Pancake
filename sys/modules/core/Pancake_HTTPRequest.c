@@ -600,30 +600,27 @@ PHP_METHOD(HTTPRequest, init) {
 
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "pathinfo", sizeof("pathinfo"), 249902003330075646U, (void**) &value) == SUCCESS) {
 				pcre_cache_entry *pcre;
-				zval *pcre_retval, *matches = NULL;
+				zval *pcre_retval, *matches, **match;
 
 				if((pcre = pcre_get_compiled_regex_cache(Z_STRVAL_PP(value), Z_STRLEN_PP(value) TSRMLS_CC)) == NULL) {
 					continue;
 				}
 
-				MAKE_STD_ZVAL(matches);
 				MAKE_STD_ZVAL(pcre_retval);
+				MAKE_STD_ZVAL(matches);
+				Z_TYPE_P(matches) = IS_NULL;
 
 				php_pcre_match_impl(pcre, firstLine[1], strlen(firstLine[1]),  pcre_retval, matches, 0, 0, 0, 0 TSRMLS_CC);
 
-				if(Z_TYPE_P(matches) == IS_ARRAY) {
-					zval **match;
+				if(zend_hash_index_find(Z_ARRVAL_P(matches), 2, (void**) &match) == SUCCESS) {
+					zend_update_property(HTTPRequest_ce, this_ptr, "pathInfo", sizeof("pathInfo") - 1, *match TSRMLS_CC);
+				}
 
-					if(zend_hash_index_find(Z_ARRVAL_P(matches), 2, (void**) &match) == SUCCESS) {
-						zend_update_property(HTTPRequest_ce, this_ptr, "pathInfo", sizeof("pathInfo") - 1, *match TSRMLS_CC);
-					}
+				if(zend_hash_index_find(Z_ARRVAL_P(matches), 1, (void**) &match) == SUCCESS) {
+					if(fL1isMalloced) { efree(firstLine[1]); }
+					else { fL1isMalloced = 1; }
 
-					if(zend_hash_index_find(Z_ARRVAL_P(matches), 1, (void**) &match) == SUCCESS) {
-						if(fL1isMalloced) { efree(firstLine[1]); }
-						else { fL1isMalloced = 1; }
-
-						firstLine[1] = estrndup(Z_STRVAL_PP(match), Z_STRLEN_PP(match));
-					}
+					firstLine[1] = estrndup(Z_STRVAL_PP(match), Z_STRLEN_PP(match));
 				}
 
 				zval_ptr_dtor(&matches);
