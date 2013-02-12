@@ -653,9 +653,11 @@ PHP_METHOD(HTTPRequest, init) {
 	if(fL1isMalloced) efree(firstLine[1]);
 
 	if(UNEXPECTED(requestFilePath[0] != '/')) {
-		char *requestFilePath_c = estrdup(requestFilePath);
-		efree(requestFilePath);
-		spprintf(&requestFilePath, 0, "/%s", requestFilePath_c);
+		int requestFilePath_len = strlen(requestFilePath);
+		char *requestFilePath_c = estrndup(requestFilePath, requestFilePath_len);
+		requestFilePath = erealloc(requestFilePath, requestFilePath_len + 2);
+		memcpy(requestFilePath, "/", 1);
+		memcpy(requestFilePath + 1, requestFilePath_c, requestFilePath_len + 1);
 		efree(requestFilePath_c);
 	}
 
