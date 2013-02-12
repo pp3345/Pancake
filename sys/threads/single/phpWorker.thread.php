@@ -65,6 +65,17 @@
 	   #.HAVE_FILTER_EXTENSION = true
 	#.endif
 
+	#.longDefine 'EVAL_CODE'
+	global $Pancake_currentThread;
+	if(isset($Pancake_currentThread->vHost->phpINISettings["session.name"]))
+		\Pancake\PHPFunctions\setINI("session.name", $Pancake_currentThread->vHost->phpINISettings["session.name"]);
+	return (bool) $Pancake_currentThread->vHost->phpINISettings;
+	#.endLongDefine
+
+	#.if #.eval EVAL_CODE false
+		#.HAVE_INI_SETTINGS = true
+	#.endif
+
 	#.if Pancake\DEBUG_MODE === true
 		#.define 'BENCHMARK' false
 	#.else
@@ -179,6 +190,14 @@
 		    	define($name, $value, true);
 		   	unset($name);
 		   	unset($value);
+		#.endif
+
+		#.ifdef 'HAVE_INI_SETTINGS'
+			// Set ini settings
+
+			foreach(vars::$Pancake_currentThread->vHost->phpINISettings as $name => $value) {
+				PHPFunctions\setINI($name, $value);
+			}
 		#.endif
 
 	    #.ifdef 'SUPPORT_CODECACHE'

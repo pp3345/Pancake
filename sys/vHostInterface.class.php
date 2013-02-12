@@ -69,6 +69,9 @@
 	        public $deletePredefinedConstantsAfterCodeCacheLoad = false;
 	        #.endif
 	        public $fixStaticMethodCalls = false;
+			#.ifdef 'HAVE_INI_SETTINGS'
+			public $phpINISettings = array();
+			#.endif
 	    #.endif
         public $exceptionPageHandler = "";
 

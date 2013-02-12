@@ -39,6 +39,8 @@ vhosts:
     PHPResetObjectsDestroyDestructors: true                     # Whether the SAPI should not execute object destructors when destroying objects (true = will not execute; false = will execute)
     compareObjects: false                                       # Whether the internal request object should be checked for possible manipulation after being returned from the PHP-SAPI (should be enabled in shared hosting environments or when untrusted scripts are executed)
     PHPMaxExecutionTime: 10                                     # Same function as PHP's max_execution_time-setting
+#    PHPINISettings:                                            # Set custom php.ini settings for this vHost
+#      session.name: "myGreatSession"
 #    PHPPredefinedConstants:                                    # A list of constants that should be predefined before script-execution in the SAPI
 #      myConst: 123
 #      iLovePancakes: true
