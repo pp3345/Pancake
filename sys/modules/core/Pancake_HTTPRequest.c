@@ -562,7 +562,7 @@ PHP_METHOD(HTTPRequest, init) {
 							zend_hash_get_current_key_ex(Z_ARRVAL_PP(value), &headerName, &headerName_len, NULL, 0, NULL) == HASH_KEY_IS_STRING;
 							zend_hash_move_forward(Z_ARRVAL_PP(value))) {
 					Z_ADDREF_PP(headerValue);
-					PancakeSetAnswerHeader(this_ptr, headerName, headerName_len + 1, *headerValue, 1, zend_inline_hash_func(headerName, headerName_len + 1) TSRMLS_CC);
+					PancakeSetAnswerHeader(this_ptr, headerName, headerName_len, *headerValue, 1, zend_inline_hash_func(headerName, headerName_len) TSRMLS_CC);
 				}
 			}
 
