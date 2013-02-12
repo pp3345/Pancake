@@ -249,6 +249,7 @@
 	    	benchmarkFunction('socket_write');
 	    	benchmarkFunction('Pancake\cleanGlobals');
 	    	benchmarkFunction('Pancake\recursiveClearObjects');
+			benchmarkFunction('serialize');
 	    #.endif
 
 	    ExecuteJITGlobals();
@@ -505,6 +506,10 @@
 	        // Clean
 	        PHPFunctions\OutputBuffering\endClean();
 
+			unset($packages);
+			unset($data);
+			unset($contents);
+
 	        dt_remove_constant('PANCAKE_PHP');
 
 	        // Reset error-handling
@@ -713,6 +718,9 @@
 	                    $deleteFunctions[] = $func;
 	                }
 	            }
+
+				unset($func);
+				unset($funcsPost);
 	        #.endif
 
 	        #.ifdef 'AUTODELETE_CLASSES'
@@ -727,6 +735,8 @@
 	                    $deleteClasses[] = $class;
 	                }
 	            }
+
+				unset($class);
 	        #.endif
 
 	        #.ifdef 'AUTODELETE_INTERFACES'
@@ -741,6 +751,8 @@
 	            		$deleteClasses[] = $interface;
 	            	}
 	            }
+
+				unset($interface);
 	        #.endif
 
 	        #.ifdef 'AUTODELETE_CONSTANTS'
@@ -754,6 +766,10 @@
 	                    //gc_collect_cycles();
 	                }
 	            }
+
+				unset($constsPost);
+				unset($const);
+				unset($constValue);
 	        #.endif
 
 	        #.ifdef 'AUTODELETE_INCLUDES'
@@ -767,6 +783,8 @@
 	                    //gc_collect_cycles();
 	                }
 	            }
+
+				unset($include);
 	        #.endif
 
 	        #.ifdef 'AUTODELETE_TRAITS'
@@ -781,6 +799,8 @@
 	                    $deleteClasses[] = $trait;
 	                }
 	            }
+
+				unset($trait);
 	        #.endif
 
 	        #.ifdef 'HAVE_FORCED_DELETES'
@@ -808,6 +828,8 @@
 		                break;
 		            }
 		        }
+
+				unset($delete);
 		    #.endif
 
 		    if(isset($deleteClasses)) {
@@ -815,6 +837,8 @@
 		        	dt_remove_class($class);
 		        	//gc_collect_cycles();
 		        }
+
+				unset($deleteClasses);
 			}
 
 			if(isset($deleteFunctions)) {
@@ -822,6 +846,8 @@
 		        	dt_remove_function($function);
 		        	//gc_collect_cycles();
 		        }
+
+				unset($deleteFunctions);
 			}
 
 		    #.ifdef 'SUPPORT_CODECACHE'
