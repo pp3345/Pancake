@@ -118,18 +118,6 @@
 		Config::workerDestroy();
 
 	    // Don't allow scripts to get information about other vHosts
-	    #.ifdef 'EXPOSE_VHOSTS_IN_PHPINFO'
-	    	foreach($Pancake_vHosts as &$vHost) {
-	    		if($vHost->id == /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->id;' false */) {
-	    			$vHost = vars::$Pancake_currentThread->vHost;
-	    			continue;
-	    		}
-
-	    		$vHost = new vHostInterface($vHost);
-	    	}
-	    	vars::$Pancake_vHosts = $Pancake_vHosts;
-	    	unset($vHost);
-	    #.endif
 	    unset($Pancake_vHosts);
 
 	    // Clean

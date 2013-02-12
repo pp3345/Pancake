@@ -150,7 +150,7 @@
     */
     function cacheFile($fileName) {
         global $Pancake_cacheFiles;
-        #.if #.eval 'global $Pancake_vHost; return (bool) $Pancake_vHosts->phpCodeCacheExcludes;'
+        #.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->phpCodeCacheExcludes;'
         if(isset(vars::$Pancake_currentThread->vHost->phpCodeCacheExcludes[$fileName]))
             return;
         #.endif
@@ -267,9 +267,6 @@
     	#.endif
         #.ifdef 'SUPPORT_CODECACHE'
         public static $Pancake_exclude = array();
-        #.endif
-        #.ifdef 'EXPOSE_VHOSTS_IN_PHPINFO'
-        public static $Pancake_vHosts = array();
         #.endif
         #.ifdef 'HAVE_LIMIT'
         public static $Pancake_processedRequests = 0;
