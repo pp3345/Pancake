@@ -683,7 +683,7 @@ PHP_METHOD(HTTPRequest, init) {
 
 	zval *mimeType = NULL;
 	char *filePath;
-	int filePath_len;
+	int filePath_len, requestFilePath_len;
 	zval *AJP13;
 	FAST_READ_PROPERTY(AJP13, *vHost, "AJP13", 5, HASH_OF_AJP13);
 
@@ -759,7 +759,7 @@ PHP_METHOD(HTTPRequest, init) {
 			FAST_READ_PROPERTY(allowGZIPStatic, *vHost, "gzipStatic", sizeof("gzipStatic") - 1, HASH_OF_gzipStatic);
 
 			if(Z_TYPE_P(allowGZIPStatic) <= IS_BOOL && Z_LVAL_P(allowGZIPStatic) > 0) {
-				int requestFilePath_len = strlen(requestFilePath);
+				requestFilePath_len = strlen(requestFilePath);
 
 				efree(filePath);
 				filePath = emalloc(Z_STRLEN_P(documentRootz) + requestFilePath_len + 4);
@@ -788,7 +788,11 @@ PHP_METHOD(HTTPRequest, init) {
 		efree(host);
 		efree(filePath);
 
-		spprintf(&filePath, 0, "%s%s", documentRoot, requestFilePath);
+		requestFilePath_len = strlen(requestFilePath);
+
+		filePath = emalloc(Z_STRLEN_P(documentRootz) + requestFilePath_len + 1);
+		memcpy(filePath, documentRoot, Z_STRLEN_P(documentRootz));
+		memcpy(filePath + Z_STRLEN_P(documentRootz), requestFilePath, requestFilePath_len + 1);
 
 		if(UNEXPECTED(virtual_access(filePath, F_OK TSRMLS_CC))) {
 			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("File does not exist", 404, requestHeader, requestHeader_len);
