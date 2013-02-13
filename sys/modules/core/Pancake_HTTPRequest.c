@@ -1148,6 +1148,8 @@ PHP_METHOD(HTTPRequest, invalidRequest) {
 
 		if(!strncasecmp(contents, "<?php", 5)) {
 			eval = &contents[5];
+		} else if(!strncmp(contents, "<?", 2)) {
+			eval = &contents[2];
 		} else {
 			freeEval = 1;
 			eval = emalloc(3 + len);
