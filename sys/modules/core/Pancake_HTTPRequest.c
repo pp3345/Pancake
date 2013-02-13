@@ -714,8 +714,6 @@ PHP_METHOD(HTTPRequest, init) {
 				return;
 			}
 
-			efree(host);
-
 			zval *indexFiles;
 			FAST_READ_PROPERTY(indexFiles, *vHost, "indexFiles", sizeof("indexFiles") - 1, HASH_OF_indexFiles);
 
@@ -748,40 +746,46 @@ PHP_METHOD(HTTPRequest, init) {
 				efree(requestLine);
 				efree(requestFilePath);
 				efree(queryString);
+				efree(host);
 				if(authorization != NULL) efree(authorization);
 				if(if_unmodified_since != NULL) efree(if_unmodified_since);
 				return;
 			}
 		// end is_dir
-		} else if(acceptGZIP == 1) {
-			efree(host);
+		}
 
+		if(acceptGZIP == 1) {
 			zval *allowGZIPStatic;
 			FAST_READ_PROPERTY(allowGZIPStatic, *vHost, "gzipStatic", sizeof("gzipStatic") - 1, HASH_OF_gzipStatic);
 
 			if(Z_TYPE_P(allowGZIPStatic) <= IS_BOOL && Z_LVAL_P(allowGZIPStatic) > 0) {
+				int requestFilePath_len = strlen(requestFilePath);
+
 				efree(filePath);
-				filePath_len = spprintf(&filePath, 0, "%s%s.gz", documentRoot, requestFilePath);
+				filePath = emalloc(Z_STRLEN_P(documentRootz) + requestFilePath_len + 4);
+				memcpy(filePath, documentRoot, Z_STRLEN_P(documentRootz));
+				memcpy(filePath + Z_STRLEN_P(documentRootz), requestFilePath, requestFilePath_len);
+				memcpy(filePath + Z_STRLEN_P(documentRootz) + requestFilePath_len, ".gz", 4);
+
 				if(!virtual_access(filePath, F_OK | R_OK)) {
-					mimeType = PancakeMIMEType(filePath, filePath_len TSRMLS_CC);
-					efree(requestFilePath);
-					requestFilePath = filePath;
+					mimeType = PancakeMIMEType(requestFilePath, requestFilePath_len TSRMLS_CC);
+					requestFilePath = erealloc(requestFilePath, requestFilePath_len + 4);
+					memcpy(requestFilePath + requestFilePath_len, ".gz", 4);
 
 					zval *gzipStr;
 					MAKE_STD_ZVAL(gzipStr);
-					gzipStr->type = IS_STRING;
-					gzipStr->value.str.val = "gzip";
-					gzipStr->value.str.len = 4;
+					Z_TYPE_P(gzipStr) = IS_STRING;
+					Z_STRVAL_P(gzipStr) = estrndup("gzip", 4);
+					Z_STRLEN_P(gzipStr) = 4;
 
-					PancakeSetAnswerHeader(this_ptr, "content-encoding", sizeof("content-encoding"), gzipStr, 1, zend_inline_hash_func(filePath, strlen(filePath)));
+					PancakeSetAnswerHeader(this_ptr, "content-encoding", sizeof("content-encoding"), gzipStr, 1, HASH_OF_content_encoding TSRMLS_CC);
 				}
 			}
-		} else {
-			efree(host);
 		}
 
 		checkRead:
 
+		efree(host);
 		efree(filePath);
 
 		spprintf(&filePath, 0, "%s%s", documentRoot, requestFilePath);
