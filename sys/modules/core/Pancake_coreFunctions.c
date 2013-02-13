@@ -161,15 +161,29 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 	}
 
 	char *date = php_format_date(PANCAKE_GLOBALS(dateFormat), strlen(PANCAKE_GLOBALS(dateFormat)), time(NULL), 1 TSRMLS_CC);
-	int outputString_len;
+	int outputString_len, date_len = strlen(date);
 
 	if(PANCAKE_GLOBALS(currentThread) == NULL) {
-		char *pstring = estrndup(*string, string_len);
-		outputString_len = spprintf(&outputString, 0, "[Master] %s %s\n", date, pstring);
-		efree(pstring);
+		outputString_len = sizeof("[Master]  \n") - 1 + date_len + string_len;
+		outputString = emalloc(outputString_len + 1);
+		memcpy(outputString, "[Master] ", sizeof("[Master] ") - 1);
+		memcpy(outputString + sizeof("[Master] ") - 1, date, date_len);
+		outputString[sizeof("[Master] ") - 1 + date_len] = ' ';
+		memcpy(outputString + sizeof("[Master] ") + date_len, *string, string_len);
+		memcpy(outputString + outputString_len - 1, "\n", 2);
 	} else {
 		zval *name = zend_read_property(NULL, PANCAKE_GLOBALS(currentThread), "friendlyName", sizeof("friendlyName") - 1, 0 TSRMLS_CC);
-		outputString_len = spprintf(&outputString, 0, "[%s] %s %s\n", Z_STRVAL_P(name), date, *string);
+
+		outputString_len = 5 + Z_STRLEN_P(name) + date_len + string_len; // 5 = [ + ] + "  \n"
+		outputString = emalloc(outputString_len + 1);
+		outputString[0] = '[';
+		memcpy(outputString + 1, Z_STRVAL_P(name), Z_STRLEN_P(name));
+		outputString[1 + Z_STRLEN_P(name)] = ']';
+		outputString[2 + Z_STRLEN_P(name)] = ' ';
+		memcpy(outputString + 3 + Z_STRLEN_P(name), date, date_len);
+		outputString[3 + Z_STRLEN_P(name) + date_len] = ' ';
+		memcpy(outputString + 4 + Z_STRLEN_P(name) + date_len, *string, string_len);
+		memcpy(outputString + 4 + Z_STRLEN_P(name) + date_len + string_len, "\n", 2);
 	}
 
 	efree(date);

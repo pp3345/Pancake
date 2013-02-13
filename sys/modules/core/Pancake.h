@@ -118,12 +118,12 @@ extern zend_class_entry *MIME_ce;
 	zend_throw_exception_object(exception TSRMLS_CC); \
 	}
 
-#define PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER(message, code) { \
+#define PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER(message, message_len, code) { \
 	zval *exception; \
 	\
 	MAKE_STD_ZVAL(exception); \
 	object_init_ex(exception, invalidHTTPRequestException_ce); \
-	zend_update_property_string(invalidHTTPRequestException_ce, exception, "message", sizeof("message") - 1, message TSRMLS_CC); \
+	zend_update_property_stringl(invalidHTTPRequestException_ce, exception, "message", sizeof("message") - 1, message, message_len TSRMLS_CC); \
 	zend_update_property_long(invalidHTTPRequestException_ce, exception, "code", sizeof("code") - 1, code TSRMLS_CC); \
 	\
 	zend_throw_exception_object(exception TSRMLS_CC); \
@@ -366,7 +366,7 @@ extern ZEND_DECLARE_MODULE_GLOBALS(Pancake);
 PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_DC);
 PANCAKE_API void PancakeSetAnswerHeader(zval *answerHeaderArray, char *name, uint name_len, zval *value, uint replace, ulong h TSRMLS_DC);
 PANCAKE_API zval *PancakeMIMEType(char *filePath, int filePath_len TSRMLS_DC);
-char *PancakeBuildAnswerHeaders(zval *object);
+char *PancakeBuildAnswerHeaders(zval *answerHeaderArray, uint *answerHeader_len);
 zval *PancakeFastReadProperty(zval *object, zval *member, ulong hashValue, const zend_literal *key TSRMLS_DC);
 void PancakeFastWriteProperty(zval *object, zval *member, zval *value, const zend_literal *key TSRMLS_DC);
 

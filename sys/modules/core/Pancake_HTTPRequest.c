@@ -165,13 +165,13 @@ PHP_METHOD(HTTPRequest, setHeader) {
 	PancakeSetAnswerHeader(this_ptr, name, name_len, nvalue, replace, zend_inline_hash_func(name, name_len) TSRMLS_CC);
 }
 
-char *PancakeBuildAnswerHeaders(zval *answerHeaderArray) {
+char *PancakeBuildAnswerHeaders(zval *answerHeaderArray, uint *answerHeader_len) {
 	zval **data;
 	char *index;
 	int index_len;
 	char *retval = emalloc(sizeof(char));
-	size_t retvalSize = 1;
 	size_t offset = 0;
+	size_t retvalSize = 1;
 
 	for(zend_hash_internal_pointer_reset(Z_ARRVAL_P(answerHeaderArray));
 		zend_hash_get_current_data(Z_ARRVAL_P(answerHeaderArray), (void**) &data) == SUCCESS,
@@ -179,6 +179,7 @@ char *PancakeBuildAnswerHeaders(zval *answerHeaderArray) {
 		zend_hash_move_forward(Z_ARRVAL_P(answerHeaderArray))) {
 		// Format index (x-powered-by => X-Powered-By)
 		int i;
+		index_len--;
 		index = estrndup(index, index_len);
 		*index = toupper(*index);
 		for(i = 1;i < index_len;i++) {
@@ -194,27 +195,52 @@ char *PancakeBuildAnswerHeaders(zval *answerHeaderArray) {
 				zend_hash_move_forward(Z_ARRVAL_PP(data))) {
 				convert_to_string(*single);
 
-				size_t elementLength = Z_STRLEN_PP(single) + index_len + 3;
+				size_t elementLength = Z_STRLEN_PP(single) + index_len + 4;
 				retvalSize += elementLength * sizeof(char);
 				retval = erealloc(retval, retvalSize);
 
-				sprintf((char*) (retval + offset), "%s: %s\r\n", index, Z_STRVAL_PP(single));
-				offset += elementLength;
+				//sprintf((char*) (retval + offset), "%s: %s\r\n", index, Z_STRVAL_PP(single));
+				memcpy(retval + offset, index, index_len);
+				offset += index_len;
+				retval[offset] = ':';
+				offset++;
+				retval[offset] = ' ';
+				offset++;
+				memcpy(retval + offset, Z_STRVAL_PP(single), Z_STRLEN_PP(single));
+				offset += Z_STRLEN_PP(single);
+				retval[offset] = '\r';
+				offset++;
+				retval[offset] = '\n';
+				offset ++;
 			}
 		} else {
 			convert_to_string(*data);
 
-			size_t elementLength = Z_STRLEN_PP(data) + index_len + 3;
+			size_t elementLength = Z_STRLEN_PP(data) + index_len + 4;
 			retvalSize += elementLength * sizeof(char);
 			retval = erealloc(retval, retvalSize);
 
-			sprintf((char*) (retval + offset), "%s: %s\r\n", index, Z_STRVAL_PP(data));
-			offset += elementLength;
+			//sprintf((char*) (retval + offset), "%s: %s\r\n", index, Z_STRVAL_PP(data));
+			memcpy(retval + offset, index, index_len);
+			offset += index_len;
+			retval[offset] = ':';
+			offset++;
+			retval[offset] = ' ';
+			offset++;
+			memcpy(retval + offset, Z_STRVAL_PP(data), Z_STRLEN_PP(data));
+			offset += Z_STRLEN_PP(data);
+			retval[offset] = '\r';
+			offset++;
+			retval[offset] = '\n';
+			offset++;
 		}
 
 		efree(index);
 	}
 
+	retval[retvalSize - 1] = '\0';
+
+	*answerHeader_len = retvalSize;
 	return retval;
 }
 
@@ -441,7 +467,8 @@ PHP_METHOD(HTTPRequest, init) {
 
 	if(!strcmp(firstLine[0], "POST")) {
 		if(UNEXPECTED(!haveContentLength)) {
-			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("Your request can't be processed without a given Content-Length", 411, requestHeader, requestHeader_len);
+			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("Your request can't be processed without a given Content-Length",
+					sizeof("Your request can't be processed without a given Content-Length") - 1, 411, requestHeader, requestHeader_len);
 			efree(firstLine);
 			efree(host);
 			efree(requestLine);
@@ -451,7 +478,8 @@ PHP_METHOD(HTTPRequest, init) {
 		}
 
 		if(contentLength > PANCAKE_GLOBALS(postMaxSize)) {
-			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("The uploaded content is too large.", 413, requestHeader, requestHeader_len);
+			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("The uploaded content is too large.",
+					sizeof("The uploaded content is too large.") - 1, 413, requestHeader, requestHeader_len);
 			efree(firstLine);
 			efree(host);
 			efree(requestLine);
@@ -580,7 +608,7 @@ PHP_METHOD(HTTPRequest, init) {
 				if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "exceptionmessage", sizeof("exceptionmessage"), 14507601710368331673U, (void**) &value2) == SUCCESS) {
 					PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL(Z_STRVAL_PP(value2), Z_STRLEN_PP(value2), Z_LVAL_PP(value), requestHeader, requestHeader_len);
 				} else {
-					PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("The server was unable to process your request", Z_LVAL_PP(value), requestHeader, requestHeader_len);
+					PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("The server was unable to process your request", sizeof("The server was unable to process your request") - 1, Z_LVAL_PP(value), requestHeader, requestHeader_len);
 				}
 
 				if(fL1isMalloced) efree(firstLine[1]);
@@ -596,7 +624,7 @@ PHP_METHOD(HTTPRequest, init) {
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "destination", sizeof("destination"), 15010265353095908391U, (void**) &value) == SUCCESS) {
 				Z_ADDREF_PP(value);
 				PancakeSetAnswerHeader(this_ptr, "location", sizeof("location"), *value, 1, 249896952137776350U TSRMLS_CC);
-				PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("Redirecting...", 301);
+				PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("Redirecting...", sizeof("Redirecting...") - 1, 301);
 				if(fL1isMalloced) efree(firstLine[1]);
 				efree(firstLine);
 				efree(host);
@@ -645,6 +673,7 @@ PHP_METHOD(HTTPRequest, init) {
 	zend_update_property_string(HTTPRequest_ce, this_ptr, "requestURI", sizeof("requestURI") - 1, firstLine[1] TSRMLS_CC);
 
 	char *uriptr, *requestFilePath, *queryString;
+	int requestFilePath_len;
 
 	requestFilePath = strtok_r(firstLine[1], "?", &uriptr);
 	queryString = strtok_r(NULL, "?", &uriptr);
@@ -658,20 +687,23 @@ PHP_METHOD(HTTPRequest, init) {
 		requestFilePath =  strchr(requestFilePath, '/');
 	}
 
-	requestFilePath = estrdup(requestFilePath);
+	requestFilePath_len = strlen(requestFilePath);
+	requestFilePath = estrndup(requestFilePath, requestFilePath_len);
+
 	if(fL1isMalloced) efree(firstLine[1]);
 
 	if(UNEXPECTED(requestFilePath[0] != '/')) {
-		int requestFilePath_len = strlen(requestFilePath);
 		char *requestFilePath_c = estrndup(requestFilePath, requestFilePath_len);
 		requestFilePath = erealloc(requestFilePath, requestFilePath_len + 2);
-		memcpy(requestFilePath, "/", 1);
+		requestFilePath[0] = '/';
 		memcpy(requestFilePath + 1, requestFilePath_c, requestFilePath_len + 1);
+		requestFilePath_len++;
 		efree(requestFilePath_c);
 	}
 
 	if(UNEXPECTED(strstr(requestFilePath, "../") != NULL)) {
-		PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("You are not allowed to access the requested file", 403, requestHeader, requestHeader_len);
+		PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("You are not allowed to access the requested file",
+				sizeof("You are not allowed to access the requested file") - 1, 403, requestHeader, requestHeader_len);
 		efree(host);
 		efree(firstLine);
 		efree(requestLine);
@@ -683,7 +715,7 @@ PHP_METHOD(HTTPRequest, init) {
 
 	zval *mimeType = NULL;
 	char *filePath;
-	int filePath_len, requestFilePath_len = strlen(requestFilePath);
+	int filePath_len;
 	zval *AJP13;
 	FAST_READ_PROPERTY(AJP13, *vHost, "AJP13", 5, HASH_OF_AJP13);
 
@@ -699,12 +731,11 @@ PHP_METHOD(HTTPRequest, init) {
 				zval *redirectValue;
 
 				MAKE_STD_ZVAL(redirectValue);
-				redirectValue->type = IS_STRING;
-				spprintf(&redirectValue->value.str.val, 0, "http://%s%s/?%s", host, requestFilePath, queryString ? queryString : "");
-				redirectValue->value.str.len = strlen(redirectValue->value.str.val);
+				Z_TYPE_P(redirectValue) = IS_STRING;
+				Z_STRLEN_P(redirectValue) = spprintf(&Z_STRVAL_P(redirectValue), 0, "http://%s%s/?%s", host, requestFilePath, queryString ? queryString : "");
 
 				PancakeSetAnswerHeader(this_ptr, "location", sizeof("location"), redirectValue, 1, 249896952137776350);
-				PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("Redirecting...", 301);
+				PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("Redirecting...", sizeof("Redirecting...") - 1, 301);
 				efree(filePath);
 				efree(host);
 				efree(firstLine);
@@ -747,7 +778,8 @@ PHP_METHOD(HTTPRequest, init) {
 			FAST_READ_PROPERTY(allowDirectoryListings, *vHost, "allowDirectoryListings", sizeof("allowDirectoryListings") - 1, HASH_OF_allowDirectoryListings);
 
 			if(Z_TYPE_P(allowDirectoryListings) > IS_BOOL || Z_LVAL_P(allowDirectoryListings) == 0) {
-				PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("You're not allowed to view the listing of the requested directory", 403, requestHeader, requestHeader_len);
+				PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("You're not allowed to view the listing of the requested directory",
+						sizeof("You're not allowed to view the listing of the requested directory") - 1, 403, requestHeader, requestHeader_len);
 				efree(filePath);
 				efree(firstLine);
 				efree(requestLine);
@@ -799,7 +831,8 @@ PHP_METHOD(HTTPRequest, init) {
 		memcpy(filePath + Z_STRLEN_P(documentRootz), requestFilePath, requestFilePath_len + 1);
 
 		if(UNEXPECTED(virtual_access(filePath, F_OK TSRMLS_CC))) {
-			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("File does not exist", 404, requestHeader, requestHeader_len);
+			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("File does not exist",
+					sizeof("File does not exist") - 1, 404, requestHeader, requestHeader_len);
 			efree(filePath);
 			efree(firstLine);
 			efree(requestLine);
@@ -811,7 +844,8 @@ PHP_METHOD(HTTPRequest, init) {
 		}
 
 		if(UNEXPECTED(virtual_access(filePath, R_OK TSRMLS_CC))) {
-			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("You're not allowed to access the requested file", 403, requestHeader, requestHeader_len);
+			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("You're not allowed to access the requested file",
+					sizeof("You're not allowed to access the requested file") - 1, 403, requestHeader, requestHeader_len);
 			efree(filePath);
 			efree(firstLine);
 			efree(requestLine);
@@ -826,7 +860,8 @@ PHP_METHOD(HTTPRequest, init) {
 
 		if(if_unmodified_since != NULL) {
 			if(st.st_mtime != php_parse_date(if_unmodified_since, NULL)) {
-				PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("File was modified since requested time.", 412, requestHeader, requestHeader_len);
+				PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("File was modified since requested time.",
+						sizeof("File was modified since requested time.") - 1, 412, requestHeader, requestHeader_len);
 				efree(firstLine);
 				efree(requestLine);
 				efree(requestFilePath);
@@ -856,8 +891,8 @@ PHP_METHOD(HTTPRequest, init) {
 
 		MAKE_STD_ZVAL(arg);
 		Z_TYPE_P(arg) = IS_STRING;
-		Z_STRLEN_P(arg) = strlen(requestFilePath);
-		Z_STRVAL_P(arg) = estrndup(requestFilePath, Z_STRLEN_P(arg));
+		Z_STRLEN_P(arg) = requestFilePath_len;
+		Z_STRVAL_P(arg) = estrndup(requestFilePath, requestFilePath_len);
 
 		if(UNEXPECTED(call_user_function(CG(function_table), NULL, callArray, &authData, 1, &arg TSRMLS_CC) == FAILURE)) {
 			zval_ptr_dtor(&callArray);
@@ -869,7 +904,8 @@ PHP_METHOD(HTTPRequest, init) {
 			if(authorization != NULL) efree(authorization);
 
 			// Let's throw a 500 for safety
-			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("An internal server error occured while trying to handle your request", 500, requestHeader, requestHeader_len);
+			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("An internal server error occured while trying to handle your request",
+					sizeof("An internal server error occured while trying to handle your request") - 1, 500, requestHeader, requestHeader_len);
 			return;
 		}
 
@@ -903,8 +939,8 @@ PHP_METHOD(HTTPRequest, init) {
 
 						MAKE_STD_ZVAL(arg);
 						Z_TYPE_P(arg) = IS_STRING;
-						Z_STRLEN_P(arg) = strlen(requestFilePath);
-						Z_STRVAL_P(arg)= estrndup(requestFilePath, Z_STRLEN_P(arg));
+						Z_STRLEN_P(arg) = requestFilePath_len;
+						Z_STRVAL_P(arg)= estrndup(requestFilePath, requestFilePath_len);
 
 						MAKE_STD_ZVAL(arg2);
 						Z_TYPE_P(arg2) = IS_STRING;
@@ -935,7 +971,8 @@ PHP_METHOD(HTTPRequest, init) {
 							efree(authorization);
 
 							// Let's throw a 500 for safety
-							PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("An internal server error occured while trying to handle your request", 500, requestHeader, requestHeader_len);
+							PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("An internal server error occured while trying to handle your request",
+									sizeof("An internal server error occured while trying to handle your request") - 1, 500, requestHeader, requestHeader_len);
 							return;
 						}
 
@@ -978,7 +1015,8 @@ PHP_METHOD(HTTPRequest, init) {
 			efree(requestFilePath);
 			efree(queryString);
 			zval_dtor(&authData);
-			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("You need to authorize in order to access this file.", 401, requestHeader, requestHeader_len);
+			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("You need to authorize in order to access this file.",
+					sizeof("You need to authorize in order to access this file.") - 1, 401, requestHeader, requestHeader_len);
 			return;
 		} else if(authorization != NULL) {
 			efree(authorization);
@@ -990,14 +1028,14 @@ PHP_METHOD(HTTPRequest, init) {
 	end:;
 
 	if(mimeType == NULL)
-		mimeType = PancakeMIMEType(requestFilePath, strlen(requestFilePath) TSRMLS_CC);
+		mimeType = PancakeMIMEType(requestFilePath, requestFilePath_len TSRMLS_CC);
 
 	if(queryString == NULL) {
 		queryString = "";
 	}
 
 	zend_update_property_string(HTTPRequest_ce, this_ptr, "queryString", sizeof("queryString") - 1, queryString TSRMLS_CC);
-	zend_update_property_string(HTTPRequest_ce, this_ptr, "requestFilePath", sizeof("requestFilePath") - 1, requestFilePath TSRMLS_CC);
+	zend_update_property_stringl(HTTPRequest_ce, this_ptr, "requestFilePath", sizeof("requestFilePath") - 1, requestFilePath, requestFilePath_len TSRMLS_CC);
 	zend_update_property(HTTPRequest_ce, this_ptr, "mimeType", sizeof("mimeType") - 1, mimeType TSRMLS_CC);
 	zend_update_property_long(HTTPRequest_ce, this_ptr, "requestTime", sizeof("requestTime") - 1, time(NULL) TSRMLS_CC);
 
@@ -1102,13 +1140,46 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 
 	char *returnValue;
 	char *answerCodeString;
-	int returnValue_len;
-	char *answerHeaders = PancakeBuildAnswerHeaders(answerHeaderArray);
+	uint returnValue_len, answerHeader_len;
+	char *answerHeaders = PancakeBuildAnswerHeaders(answerHeaderArray, &answerHeader_len);
+	char *answerCodeAsString;
+	int answerCode_len = spprintf(&answerCodeAsString, 0, "%ld", answerCode);
+	int offset = 0;
+	int answerCodeString_len;
 
 	PANCAKE_ANSWER_CODE_STRING(answerCodeString, answerCode);
+	answerCodeString_len = strlen(answerCodeString);
 
-	returnValue_len = spprintf(&returnValue, 0, "HTTP/%s %lu %s\r\n%s\r\n", Z_STRVAL_P(protocolVersion), answerCode, answerCodeString, answerHeaders);
+	// This is ugly. But it is fast.
+	returnValue_len = sizeof("HTTP/1.1  \r\n\r\n") + answerCode_len + answerCodeString_len + answerHeader_len - 2; // 2 = null byte from answerHeaders + null byte from sizeof()
+	returnValue = emalloc(returnValue_len + 1);
+	memcpy(returnValue, "HTTP/", sizeof("HTTP/") - 1);
+	offset += sizeof("HTTP/") - 1;
+	memcpy(returnValue + offset, Z_STRVAL_P(protocolVersion), Z_STRLEN_P(protocolVersion));
+	offset += Z_STRLEN_P(protocolVersion);
+	returnValue[offset] = ' ';
+	offset++;
+	memcpy(returnValue + offset, answerCodeAsString, answerCode_len);
+	offset += answerCode_len;
+	returnValue[offset] = ' ';
+	offset++;
+	memcpy(returnValue + offset, answerCodeString, answerCodeString_len);
+	offset += answerCodeString_len;
+	returnValue[offset] = '\r';
+	offset++;
+	returnValue[offset] = '\n';
+	offset++;
+	memcpy(returnValue + offset, answerHeaders, answerHeader_len - 1);
+	offset += answerHeader_len - 1;
+	returnValue[offset] = '\r';
+	offset++;
+	returnValue[offset] = '\n';
+	returnValue[returnValue_len] = '\0';
+
+	// old implementation
+	//returnValue_len = spprintf(&returnValue, 0, "HTTP/%s %lu %s\r\n%s\r\n", Z_STRVAL_P(protocolVersion), answerCode, answerCodeString, answerHeaders);
 	efree(answerHeaders);
+	efree(answerCodeAsString);
 
 	// Another request served by Pancake.
 	// Let's deliver the result to the client
