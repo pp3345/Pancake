@@ -1144,11 +1144,15 @@ PHP_METHOD(HTTPRequest, invalidRequest) {
 		}
 
 		char *eval = "?>";
+		int freeEval = 0;
 
 		if(!strncasecmp(contents, "<?php", 5)) {
 			eval = &contents[5];
 		} else {
-			strcat(eval, contents); // !
+			freeEval = 1;
+			eval = emalloc(3 + len);
+			memcpy(eval, "?>", 2);
+			memcpy(eval + 2, contents, len + 1);
 		}
 
 		char *description = zend_make_compiled_string_description(useDefaultHandler ? "Pancake Exception Page Handler" : Z_STRVAL_P(exceptionPageHandler) TSRMLS_CC);
@@ -1168,12 +1172,14 @@ PHP_METHOD(HTTPRequest, invalidRequest) {
 			if(UNEXPECTED(useDefaultHandler)) {
 				zend_error(E_WARNING, "Pancake Default Exception Page Handler execution failed");
 			} else {
+				if(freeEval) efree(eval);
 				efree(description);
 				efree(contents);
 				goto defaultHandler;
 			}
 		}
 
+		if(freeEval) efree(eval);
 		efree(description);
 
 		php_output_get_contents(output TSRMLS_CC);
