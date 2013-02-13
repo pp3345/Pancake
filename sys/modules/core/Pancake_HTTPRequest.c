@@ -249,14 +249,23 @@ PHP_METHOD(HTTPRequest, init) {
 		RETURN_FALSE;
 	}
 
-	char *requestLine, *ptr1, *ptr2, *ptr3;
-	int i;
+	char *ptr1, *ptr2, *ptr3;
+	int i, requestLine_len;
 	char **firstLine = ecalloc(3, sizeof(char*));
 	char *requestHeader_dupe = estrndup(requestHeader, requestHeader_len);
+	char *requestLine = strtok_r(requestHeader_dupe, "\r\n", &ptr1);
 
-	requestLine = estrdup(strtok_r(requestHeader_dupe, "\r\n", &ptr1));
+	if(EXPECTED(requestLine != NULL)) {
+		requestLine_len = strlen(requestLine);
+		requestLine = estrndup(requestLine, requestLine_len);
+	} else {
+		PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("Bad request line", sizeof("Bad request line") - 1, 400, requestHeader, requestHeader_len);
+		efree(requestHeader_dupe);
+		efree(firstLine);
+		return;
+	}
 
-	zend_update_property_string(HTTPRequest_ce, this_ptr, "requestLine", sizeof("requestLine") - 1, requestLine TSRMLS_CC);
+	zend_update_property_stringl(HTTPRequest_ce, this_ptr, "requestLine", sizeof("requestLine") - 1, requestLine, requestLine_len TSRMLS_CC);
 
 	for(i = 0;i < 3;i++) {
 		firstLine[i] = strtok_r(i ? NULL : requestLine, " ", &ptr2);
