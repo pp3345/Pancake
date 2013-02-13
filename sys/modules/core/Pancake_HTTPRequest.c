@@ -1588,7 +1588,7 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 								array_init(array);
 
 								add_assoc_zval(array, name, zvalue);
-								php_array_merge(Z_ARRVAL_P(POSTParameters), Z_ARRVAL_P(array), 1 TSRMLS_CC);
+								Pancake_array_merge(Z_ARRVAL_P(POSTParameters), Z_ARRVAL_P(array), 1 TSRMLS_CC);
 								zval_ptr_dtor(&array);
 							} else {
 								add_assoc_zval(POSTParameters, name, zvalue);
