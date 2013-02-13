@@ -182,6 +182,7 @@
 
     unset($loadCodeFile);
 
+	Thread::clearCache();
     MIME::load();
 
     foreach($Pancake_vHosts as $id => &$vHost) {
@@ -265,6 +266,8 @@
 
     // Set blocking for signals
     pcntl_sigprocmask(/* .constant 'SIG_BLOCK' */, array(/* .constant 'SIGINT' */, /* .constant 'SIGHUP' */));
+
+	//dt_debug_objects_store();
 
     // Set user and group
     setUser();

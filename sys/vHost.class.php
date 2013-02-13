@@ -71,10 +71,7 @@
         * @return vHost
         */
         public function __construct($name) {
-            $this->name = $name;
-
-            // Set ID
-            $this->id = self::$vHosts++;
+        	$this->name = $name;
 
             // Get configured settings
             $config = Config::get('vhosts.'.$this->name);
@@ -86,6 +83,9 @@
                 $this->enabled = false;
                 return;
             }
+
+            // Set ID
+            $this->id = self::$vHosts++;
 
             $this->documentRoot = $config['docroot'];
             $this->AJP13 = (string) $config['ajp13'];

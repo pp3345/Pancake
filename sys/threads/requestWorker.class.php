@@ -58,6 +58,7 @@
         			$codeProcessor = new CodeProcessor('threads/single/requestWorker.thread.php', 'compilecache/requestWorker.thread.cphp');
 	        		$codeProcessor->run();
 	        		file_put_contents('compilecache/requestWorker.thread.hash', $hash);
+					unset($codeProcessor);
         		}
         		self::$codeProcessed = true;
         		unset($hash);
