@@ -719,6 +719,7 @@ PHP_METHOD(HTTPRequest, init) {
 
 			if(EXPECTED(Z_TYPE_P(indexFiles) == IS_ARRAY)) {
 				zval **indexFile;
+				requestFilePath_len = strlen(requestFilePath);
 
 				for(zend_hash_internal_pointer_reset(Z_ARRVAL_P(indexFiles));
 					zend_hash_get_current_data(Z_ARRVAL_P(indexFiles), (void**) &indexFile) == SUCCESS;
@@ -727,10 +728,14 @@ PHP_METHOD(HTTPRequest, init) {
 						continue;
 
 					efree(filePath);
-					spprintf(&filePath, 0, "%s%s%s", documentRoot, requestFilePath, Z_STRVAL_PP(indexFile));
+					filePath = emalloc(Z_STRLEN_P(documentRootz) + requestFilePath_len + Z_STRLEN_PP(indexFile) + 1);
+					memcpy(filePath, documentRoot, Z_STRLEN_P(documentRootz));
+					memcpy(filePath + Z_STRLEN_P(documentRootz), requestFilePath, requestFilePath_len);
+					memcpy(filePath + Z_STRLEN_P(documentRootz) + requestFilePath_len, Z_STRVAL_PP(indexFile), Z_STRLEN_PP(indexFile) + 1);
+
 					if(!virtual_access(filePath, F_OK | R_OK)) {
-						requestFilePath = erealloc(requestFilePath, (strlen(requestFilePath) + Z_STRLEN_PP(indexFile) + 1) * sizeof(char));
-						strcat(requestFilePath, Z_STRVAL_PP(indexFile));
+						requestFilePath = erealloc(requestFilePath, (requestFilePath_len + Z_STRLEN_PP(indexFile) + 1) * sizeof(char));
+						memcpy(requestFilePath + requestFilePath_len, Z_STRVAL_PP(indexFile), Z_STRLEN_PP(indexFile) + 1);
 						goto checkRead;
 					}
 				}
