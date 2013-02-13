@@ -683,17 +683,19 @@ PHP_METHOD(HTTPRequest, init) {
 
 	zval *mimeType = NULL;
 	char *filePath;
-	int filePath_len, requestFilePath_len;
+	int filePath_len, requestFilePath_len = strlen(requestFilePath);
 	zval *AJP13;
 	FAST_READ_PROPERTY(AJP13, *vHost, "AJP13", 5, HASH_OF_AJP13);
 
 	if(EXPECTED(Z_TYPE_P(AJP13) != IS_OBJECT)) {
 		struct stat st;
 
-		spprintf(&filePath, 0, "%s%s", documentRoot, requestFilePath);
+		filePath = emalloc(Z_STRLEN_P(documentRootz) + requestFilePath_len + 1);
+		memcpy(filePath, documentRoot, Z_STRLEN_P(documentRootz));
+		memcpy(filePath + Z_STRLEN_P(documentRootz), requestFilePath, requestFilePath_len + 1);
 
 		if(!stat(filePath, &st) && S_ISDIR(st.st_mode)) {
-			if(requestFilePath[strlen(requestFilePath) - 1] !=  '/') {
+			if(requestFilePath[requestFilePath_len - 1] !=  '/') {
 				zval *redirectValue;
 
 				MAKE_STD_ZVAL(redirectValue);
@@ -719,7 +721,6 @@ PHP_METHOD(HTTPRequest, init) {
 
 			if(EXPECTED(Z_TYPE_P(indexFiles) == IS_ARRAY)) {
 				zval **indexFile;
-				requestFilePath_len = strlen(requestFilePath);
 
 				for(zend_hash_internal_pointer_reset(Z_ARRVAL_P(indexFiles));
 					zend_hash_get_current_data(Z_ARRVAL_P(indexFiles), (void**) &indexFile) == SUCCESS;
@@ -736,6 +737,7 @@ PHP_METHOD(HTTPRequest, init) {
 					if(!virtual_access(filePath, F_OK | R_OK)) {
 						requestFilePath = erealloc(requestFilePath, (requestFilePath_len + Z_STRLEN_PP(indexFile) + 1) * sizeof(char));
 						memcpy(requestFilePath + requestFilePath_len, Z_STRVAL_PP(indexFile), Z_STRLEN_PP(indexFile) + 1);
+						requestFilePath_len += Z_STRLEN_PP(indexFile);
 						goto checkRead;
 					}
 				}
@@ -764,8 +766,6 @@ PHP_METHOD(HTTPRequest, init) {
 			FAST_READ_PROPERTY(allowGZIPStatic, *vHost, "gzipStatic", sizeof("gzipStatic") - 1, HASH_OF_gzipStatic);
 
 			if(Z_TYPE_P(allowGZIPStatic) <= IS_BOOL && Z_LVAL_P(allowGZIPStatic) > 0) {
-				requestFilePath_len = strlen(requestFilePath);
-
 				efree(filePath);
 				filePath = emalloc(Z_STRLEN_P(documentRootz) + requestFilePath_len + 4);
 				memcpy(filePath, documentRoot, Z_STRLEN_P(documentRootz));
@@ -776,6 +776,7 @@ PHP_METHOD(HTTPRequest, init) {
 					mimeType = PancakeMIMEType(requestFilePath, requestFilePath_len TSRMLS_CC);
 					requestFilePath = erealloc(requestFilePath, requestFilePath_len + 4);
 					memcpy(requestFilePath + requestFilePath_len, ".gz", 4);
+					requestFilePath_len += 3;
 
 					zval *gzipStr;
 					MAKE_STD_ZVAL(gzipStr);
@@ -792,8 +793,6 @@ PHP_METHOD(HTTPRequest, init) {
 
 		efree(host);
 		efree(filePath);
-
-		requestFilePath_len = strlen(requestFilePath);
 
 		filePath = emalloc(Z_STRLEN_P(documentRootz) + requestFilePath_len + 1);
 		memcpy(filePath, documentRoot, Z_STRLEN_P(documentRootz));
