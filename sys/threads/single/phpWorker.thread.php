@@ -897,8 +897,9 @@
 
 		        	unset($result);
 		        	unset($functionResults);
-		        	unset($results);
 		        }
+
+				unset($results);
 	        #.endif
 
 	        cycle:
