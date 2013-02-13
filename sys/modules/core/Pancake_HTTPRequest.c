@@ -1247,6 +1247,11 @@ zval *PancakeProcessQueryString(zval *destination, zval *queryString, const char
 
 	part = strtok_r(queryString_c, delimiter, &ptr1);
 
+	if(UNEXPECTED(part == NULL)) {
+		efree(queryString_c);
+		return destination;
+	}
+
 	do {
 		char *value;
 		zval *zvalue;
