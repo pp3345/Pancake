@@ -64,7 +64,7 @@
         	}
 
             // Add instance
-            $this->id = ++self::$instances;
+            $this->id = self::$instances++;
 
             $this->doGracefulExit = true;
 
