@@ -454,7 +454,7 @@ PHP_FUNCTION(ExecuteJITGlobals) {
 	zend_register_auto_global(ZEND_STRL("_POST"), PANCAKE_GLOBALS(JIT_POST), PancakeJITFetchPOST TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_FILES"), PANCAKE_GLOBALS(JIT_FILES), PancakeJITFetchFILES TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_ENV"), PANCAKE_GLOBALS(JIT_ENV), PancakeJITFetchENV TSRMLS_CC);
-	zend_register_auto_global(ZEND_STRL("GLOBALS"), PANCAKE_GLOBALS(JIT_GLOBALS), PancakeJITFetchGLOBALS TSRMLS_CC);
+	zend_register_auto_global(ZEND_STRL("GLOBALS"), 0, PancakeJITFetchGLOBALS TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_SESSION"), 0, NULL TSRMLS_CC);
 }
 
