@@ -403,6 +403,15 @@
                 $requestObject = $requests[$socketID];
 
                 $packages = hexdec(socket_read($socket, 8));
+				if(!$packages) {
+					unset($listenSocketsOrig[array_search($socket, $listenSocketsOrig)]);
+                	unset($phpSockets[(int) $socket]);
+                	socket_close($socket);
+                	unset($socket);
+					$requestObject->invalidRequest(new invalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
+					goto write;
+				}
+
                 $length = hexdec(socket_read($socket, 8));
 
                 if($packages > 1) {
@@ -417,6 +426,15 @@
                 }
                 else
                 	$obj = unserialize(socket_read($socket, $length));
+
+				if(!($obj instanceof \stdClass)) {
+					unset($listenSocketsOrig[array_search($socket, $listenSocketsOrig)]);
+                	unset($phpSockets[(int) $socket]);
+                	socket_close($socket);
+                	unset($socket);
+					$requestObject->invalidRequest(new invalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
+					goto write;
+				}
 
 				$requestObject->answerHeaders = $obj->answerHeaders;
 				$requestObject->answerBody = $obj->answerBody;
