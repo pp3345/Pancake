@@ -418,8 +418,6 @@ static zend_bool CodeCacheJITFetch(const char *name, uint name_len TSRMLS_DC) {
 		PANCAKE_GLOBALS(JIT_FILES) = 0;
 	} else if(!strcmp(name, "_ENV")) {
 		PANCAKE_GLOBALS(JIT_ENV) = 0;
-	} else if(!strcmp(name, "GLOBALS")) {
-		PANCAKE_GLOBALS(JIT_GLOBALS) = 0;
 	}
 
 	return 0;
@@ -428,7 +426,7 @@ static zend_bool CodeCacheJITFetch(const char *name, uint name_len TSRMLS_DC) {
 PHP_FUNCTION(CodeCacheJITGlobals) {
 	// Kill Zend auto globals HashTable and rebuild it
 	zend_hash_destroy(CG(auto_globals));
-	zend_hash_init_ex(CG(auto_globals), 8, NULL, NULL, 1, 0);
+	zend_hash_init_ex(CG(auto_globals), 7, NULL, NULL, 1, 0);
 
 	zend_register_auto_global(ZEND_STRL("_GET"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_COOKIE"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
@@ -437,7 +435,6 @@ PHP_FUNCTION(CodeCacheJITGlobals) {
 	zend_register_auto_global(ZEND_STRL("_POST"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_FILES"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_ENV"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
-	zend_register_auto_global(ZEND_STRL("GLOBALS"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
 
 	zend_activate_auto_globals(TSRMLS_C);
 }

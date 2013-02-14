@@ -162,7 +162,6 @@ ZEND_BEGIN_MODULE_GLOBALS(Pancake)
 	int JIT_POST;
 	int JIT_FILES;
 	int JIT_ENV;
-	int JIT_GLOBALS;
 	int enableAuthentication;
 	char *tmpDir;
 ZEND_END_MODULE_GLOBALS(Pancake)

@@ -160,7 +160,6 @@ void php_Pancake_init_globals(zend_Pancake_globals *Pancake_globals)
 	Pancake_globals->JIT_POST = PG(auto_globals_jit);
 	Pancake_globals->JIT_FILES = PG(auto_globals_jit);
 	Pancake_globals->JIT_ENV = PG(auto_globals_jit);
-	Pancake_globals->JIT_GLOBALS = PG(auto_globals_jit);
 }
 
 PHP_MINIT_FUNCTION(Pancake)
