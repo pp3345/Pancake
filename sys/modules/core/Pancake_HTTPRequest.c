@@ -265,6 +265,7 @@ PHP_METHOD(HTTPRequest, __construct) {
 	MAKE_STD_ZVAL(answerHeaderArray);
 	array_init(answerHeaderArray);
 	zend_update_property(HTTPRequest_ce, this_ptr, "answerHeaders", sizeof("answerHeaders") - 1, answerHeaderArray TSRMLS_CC);
+	zval_ptr_dtor(&answerHeaderArray);
 }
 
 PHP_METHOD(HTTPRequest, init) {
@@ -2011,12 +2012,6 @@ PHP_METHOD(HTTPRequest, __destruct) {
 	FAST_READ_PROPERTY(requestHeaderArray, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, HASH_OF_requestHeaders);
 	if(Z_TYPE_P(requestHeaderArray) == IS_ARRAY && Z_REFCOUNT_P(requestHeaderArray) > 1) {
 		Z_DELREF_P(requestHeaderArray);
-	}
-
-	zval *answerHeaderArray;
-	FAST_READ_PROPERTY(answerHeaderArray, this_ptr, "answerHeaders", sizeof("answerHeaders") - 1, HASH_OF_answerHeaders);
-	if(Z_REFCOUNT_P(answerHeaderArray) > 1) {
-		Z_DELREF_P(answerHeaderArray);
 	}
 
 	zval *acceptedCompressions;

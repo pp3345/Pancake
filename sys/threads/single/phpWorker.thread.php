@@ -480,11 +480,15 @@
 		        }
 	        #.endif
 
+	        $object = new \stdClass;
+			$object->answerHeaders = vars::$Pancake_request->answerHeaders;
+			$object->answerCode = vars::$Pancake_request->answerCode;
+
 	        // Update request object and send it to RequestWorker
 	        if(!vars::$invalidRequest)
-	            vars::$Pancake_request->answerBody = $contents;
+	            $object->answerBody = $contents;
 
-	        $data = serialize(vars::$Pancake_request);
+	        $data = serialize($object);
 	        $packages = array();
 
 	      	if(strlen($data) > (socket_get_option(vars::$requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_SNDBUF' */) - 1024)
@@ -509,6 +513,7 @@
 			unset($packages);
 			unset($data);
 			unset($contents);
+			unset($object);
 
 	        dt_remove_constant('PANCAKE_PHP');
 

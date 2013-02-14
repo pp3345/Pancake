@@ -51,7 +51,6 @@
         public $resetClassNonObjects = false;
         public $resetFunctionObjects = false;
         public $resetFunctionNonObjects = false;
-        public $shouldCompareObjects = false;
         public $resetObjectsDestroyDestructor = false;
         public $predefinedConstants = array();
         public $deletePredefinedConstantsAfterCodeCacheLoad = false;
@@ -117,7 +116,6 @@
             $this->resetClassNonObjects = (bool) $config['phpresetclassstaticnonobjects'];
             $this->resetFunctionObjects = (bool) $config['phpresetfunctionstaticobjects'];
             $this->resetFunctionNonObjects = (bool) $config['phpresetfunctionstaticnonobjects'];
-            $this->shouldCompareObjects = (bool) $config['compareobjects'];
             $this->resetObjectsDestroyDestructor = (bool) $config['phpresetobjectsdestroydestructors'];
             $this->predefinedConstants = (array) $config['phppredefinedconstants'];
             $this->deletePredefinedConstantsAfterCodeCacheLoad = (bool) $config['phpdeletepredefinedconstantsaftercodecacheload'];

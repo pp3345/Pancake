@@ -419,11 +419,9 @@
                 else
                 	$obj = unserialize(socket_read($socket, $length));
 
-                if($obj instanceof HTTPRequest && !(/* .VHOST_COMPARE_OBJECTS */ && (string) $requestObject != (string) $obj)) {
-                	$obj->vHost = $requests[$socketID]->vHost;
-                	$requestObject = $requests[$socketID] = $obj;
-                } else
-                	$requestObject->invalidRequest(new invalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
+				$requestObject->answerHeaders = $obj->answerHeaders;
+				$requestObject->answerBody = $obj->answerBody;
+				$requestObject->answerCode = $obj->answerCode;
 
                 unset($listenSocketsOrig[array_search($socket, $listenSocketsOrig)]);
                 unset($phpSockets[(int) $socket]);
