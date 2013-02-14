@@ -172,7 +172,8 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 		memcpy(outputString + sizeof("[Master] ") + date_len, *string, string_len);
 		memcpy(outputString + outputString_len - 1, "\n", 2);
 	} else {
-		zval *name = zend_read_property(NULL, PANCAKE_GLOBALS(currentThread), "friendlyName", sizeof("friendlyName") - 1, 0 TSRMLS_CC);
+		zval *name;
+		FAST_READ_PROPERTY(name, PANCAKE_GLOBALS(currentThread), "friendlyName", sizeof("friendlyName") - 1, HASH_OF_friendlyName);
 
 		outputString_len = 5 + Z_STRLEN_P(name) + date_len + string_len; // 5 = [ + ] + "  \n"
 		outputString = emalloc(outputString_len + 1);
