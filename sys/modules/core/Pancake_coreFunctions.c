@@ -411,7 +411,7 @@ zend_bool CodeCacheJITFetch(const char *name, uint name_len TSRMLS_DC) {
 PHP_FUNCTION(CodeCacheJITGlobals) {
 	// Kill Zend auto globals HashTable and rebuild it
 	zend_hash_destroy(CG(auto_globals));
-	zend_hash_init_ex(CG(auto_globals), 6, NULL, NULL, 1, 0);
+	zend_hash_init_ex(CG(auto_globals), 7, NULL, NULL, 1, 0);
 
 	zend_register_auto_global(ZEND_STRL("_GET"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_COOKIE"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
@@ -427,11 +427,11 @@ PHP_FUNCTION(CodeCacheJITGlobals) {
 PHP_FUNCTION(ExecuteJITGlobals) {
 	// Kill Zend auto globals HashTable and rebuild it
 	zend_hash_destroy(CG(auto_globals));
-	zend_hash_init_ex(CG(auto_globals), 6, NULL, NULL, 1, 0);
+	zend_hash_init_ex(CG(auto_globals), 7, NULL, NULL, 1, 0);
 
 	zend_register_auto_global(ZEND_STRL("_COOKIE"), PANCAKE_GLOBALS(JIT_COOKIE), PancakeJITFetchCookies TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_GET"), PANCAKE_GLOBALS(JIT_GET), PancakeJITFetchGET TSRMLS_CC);
-	zend_register_auto_global(ZEND_STRL("_SERVER"), PANCAKE_GLOBALS(JIT_SERVER), PancakeCreateSERVER TSRMLS_CC);
+	zend_register_auto_global(ZEND_STRL("_SERVER"), PANCAKE_GLOBALS(JIT_SERVER), PancakeJITFetchSERVER TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_REQUEST"), PANCAKE_GLOBALS(JIT_REQUEST), PancakeJITFetchREQUEST TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_POST"), PANCAKE_GLOBALS(JIT_POST), PancakeJITFetchPOST TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_FILES"), PANCAKE_GLOBALS(JIT_FILES), PancakeJITFetchFILES TSRMLS_CC);

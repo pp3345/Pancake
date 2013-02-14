@@ -1755,8 +1755,7 @@ PHP_METHOD(HTTPRequest, getCookies) {
 	RETURN_ZVAL(retval, 0 , 1);
 }
 
-zend_bool PancakeCreateSERVER(const char *name, uint name_len TSRMLS_DC) {
-	zval *this_ptr = PANCAKE_GLOBALS(JITGlobalsHTTPRequest);
+zval *PancakeFetchSERVER(zval *this_ptr TSRMLS_DC) {
 	zval *server, *requestTime, *requestMicrotime, *requestMethod, *protocolVersion, *requestFilePath,
 		*originalRequestURI, *requestURI, *vHost, *documentRoot, *remoteIP, *remotePort, *queryString,
 		*localIP, *localPort, *requestHeaderArray, **data, *pathInfo;
@@ -1890,9 +1889,20 @@ zend_bool PancakeCreateSERVER(const char *name, uint name_len TSRMLS_DC) {
 		add_assoc_zval_ex(server, "SERVER_NAME", sizeof("SERVER_NAME"), *data);
 	}
 
-	zend_hash_quick_update(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), HASH_OF__SERVER, &server, sizeof(zval*), NULL);
+	return server;
+}
+
+zend_bool PancakeJITFetchSERVER(const char *name, uint name_len TSRMLS_DC) {
+	zval *retval = PancakeFetchSERVER(PANCAKE_GLOBALS(JITGlobalsHTTPRequest) TSRMLS_CC);
+
+	zend_hash_quick_update(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), HASH_OF__SERVER, &retval, sizeof(zval*), NULL);
 
 	return 0;
+}
+
+PHP_METHOD(HTTPRequest, createSERVER) {
+	zval *retval = PancakeFetchSERVER(this_ptr TSRMLS_CC);
+	RETURN_ZVAL(retval, 0 , 1);
 }
 
 zend_bool PancakeJITFetchREQUEST(const char *name, uint name_len TSRMLS_DC) {

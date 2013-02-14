@@ -69,6 +69,7 @@ PHP_METHOD(HTTPRequest, getAnswerCodeString);
 PHP_METHOD(HTTPRequest, getGETParams);
 PHP_METHOD(HTTPRequest, getPOSTParams);
 PHP_METHOD(HTTPRequest, getCookies);
+PHP_METHOD(HTTPRequest, createSERVER);
 PHP_METHOD(HTTPRequest, registerJITGlobals);
 PHP_METHOD(HTTPRequest, setCookie);
 
@@ -78,7 +79,7 @@ PHP_METHOD(invalidHTTPRequestException, getHeader);
 PHP_METHOD(MIME, typeOf);
 PHP_METHOD(MIME, load);
 
-zend_bool PancakeCreateSERVER(const char *name, uint name_len TSRMLS_DC);
+zend_bool PancakeJITFetchSERVER(const char *name, uint name_len TSRMLS_DC);
 zend_bool PancakeJITFetchGET(const char *name, uint name_len TSRMLS_DC);
 zend_bool PancakeJITFetchCookies(const char *name, uint name_len TSRMLS_DC);
 zend_bool PancakeJITFetchREQUEST(const char *name, uint name_len TSRMLS_DC);
