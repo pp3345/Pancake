@@ -32,13 +32,13 @@
         	$caseSensitivePaths = array('phppredefinedconstants', 'auth');
 
         	if(!$file && !file_exists(self::PATH) && file_exists(self::EXAMPLE_PATH)) {
-        		out('It seems that Pancake is being started for the first time - Welcome to Pancake!');
-        		out('Using example configuration');
+        		out('It seems that Pancake is being started for the first time - Welcome to Pancake!', OUTPUT_SYSTEM);
+        		out('Using example configuration', OUTPUT_SYSTEM);
 
         		copy(self::EXAMPLE_PATH, self::PATH);
 
         		if(!file_exists(self::DEFAULT_VHOST_INCLUDE_DIR) && file_exists(self::VHOST_EXAMPLE_PATH)) {
-        			out('Loading example vHost');
+        			out('Loading example vHost', OUTPUT_SYSTEM);
 
         			if(!file_exists(self::DEFAULT_VHOST_INCLUDE_DIR))
         				mkdir(self::DEFAULT_VHOST_INCLUDE_DIR, 0644);
@@ -54,7 +54,7 @@
         	self::$configuration = arrayIndicesToLower(self::$configuration, $caseSensitivePaths);
 
             if(!self::loadFile(self::SKELETON_PATH) || !self::loadFile($file ? $file : self::PATH)) {
-                out('Couldn\'t load configuration');
+                out('Couldn\'t load configuration', OUTPUT_SYSTEM);
                 abort();
             }
 
@@ -71,7 +71,7 @@
 
             if(isset($firstStart)) {
             	if(!@posix_getpwnam(self::get('main.user'))) {
-            		out('The default user was not found. Trying to create it automatically');
+            		out('The default user was not found. Trying to create it automatically', OUTPUT_SYSTEM);
             		exec('useradd --no-create-home --shell /dev/null ' . self::get('main.user'), $x, $returnValue);
             		if($returnValue != 0) {
             			trigger_error('Failed to create user ' . self::get('main.user') . ' - Please create it yourself', \E_USER_ERROR);
@@ -79,7 +79,7 @@
             		}
             	}
             	if(!@posix_getgrnam(self::get('main.group'))) {
-            		out('The default group was not found. Trying to create it automatically');
+            		out('The default group was not found. Trying to create it automatically', OUTPUT_SYSTEM);
             		exec('groupadd ' . self::get('main.group'), $x, $returnValue);
             		if($returnValue != 0) {
             			trigger_error('Failed to create group ' . self::get('main.group') . ' - Please create it yourself', \E_USER_ERROR);
