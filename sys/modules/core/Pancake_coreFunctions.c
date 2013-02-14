@@ -439,6 +439,7 @@ PHP_FUNCTION(ExecuteJITGlobals) {
 }
 
 PHP_FUNCTION(makeSID) {
-	efree(PS(id));
+	if(PS(id) != NULL)
+		efree(PS(id));
 	PS(id) = PS(mod)->s_create_sid(&PS(mod_data), NULL TSRMLS_CC);
 }
