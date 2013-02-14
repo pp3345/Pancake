@@ -436,9 +436,9 @@
 					goto write;
 				}
 
-				$requestObject->answerHeaders = $obj->answerHeaders;
-				$requestObject->answerBody = $obj->answerBody;
-				$requestObject->answerCode = $obj->answerCode;
+				$requestObject->answerHeaders = (array) $obj->answerHeaders;
+				$requestObject->answerBody = (string) $obj->answerBody;
+				$requestObject->answerCode = (int) $obj->answerCode;
 
                 unset($listenSocketsOrig[array_search($socket, $listenSocketsOrig)]);
                 unset($phpSockets[(int) $socket]);
