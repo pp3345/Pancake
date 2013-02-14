@@ -56,7 +56,7 @@ then
 	then
     	$PHPCOMMAND -d zend_extension=./natives/DeepTrace/$ARCH\_$PHPMAJOR$PHPMINOR.so -d extension=./natives/core/$ARCH\_$PHPMAJOR$PHPMINOR.so $DIRNAME/syscore.php $1 $2 $3
     else
-    	echo "No compiled Pancake natives found (looking for ./natives/core/$ARCH""_$PHPMAJOR$PHPMINOR.so) - Please compile Pancake for your system using compile.php"
+    	echo "No compiled Pancake natives found (looking for ./natives/core/$ARCH""_$PHPMAJOR$PHPMINOR.so) - Please compile Pancake for your system and make sure it is executable"
     fi
 else
     echo "No compatible DeepTrace-extension found (looking for ./natives/DeepTrace/$ARCH""_$PHPMAJOR$PHPMINOR.so) - Please compile DeepTrace for your system and make sure it is executable"
