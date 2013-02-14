@@ -401,6 +401,7 @@ PHP_METHOD(HTTPRequest, init) {
 			}
 
 			zend_update_property(HTTPRequest_ce, this_ptr, "acceptedCompressions", sizeof("acceptedCompressions") - 1, acceptedCompressions TSRMLS_CC);
+			zval_ptr_dtor(&acceptedCompressions);
 		} else if(!strcmp(headerName, "authorization")) {
 			authorization = estrdup(headerValue);
 		} else if(!strcmp(headerName, "if-unmodified-since")) {
@@ -436,6 +437,7 @@ PHP_METHOD(HTTPRequest, init) {
 	}
 
 	zend_update_property(HTTPRequest_ce, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, headerArray TSRMLS_CC);
+	zval_ptr_dtor(&headerArray);
 
 	efree(requestHeader_dupe);
 
@@ -1405,6 +1407,7 @@ zval *PancakeFetchGET(zval *this_ptr TSRMLS_DC) {
 		}
 
 		zend_update_property(HTTPRequest_ce, this_ptr, "GETParameters", sizeof("GETParameters") - 1, GETParameters TSRMLS_CC);
+		Z_DELREF_P(GETParameters);
 	}
 
 	return GETParameters;
@@ -1412,19 +1415,16 @@ zval *PancakeFetchGET(zval *this_ptr TSRMLS_DC) {
 
 zend_bool PancakeJITFetchGET(const char *name, uint name_len TSRMLS_DC) {
 	zval *retval = PancakeFetchGET(PANCAKE_GLOBALS(JITGlobalsHTTPRequest) TSRMLS_CC);
-	zval *nvalue;
 
-	ALLOC_ZVAL(nvalue);
-	INIT_PZVAL_COPY(nvalue, retval);
-	zval_copy_ctor(nvalue);
-	zend_hash_quick_update(&EG(symbol_table), "_GET", sizeof("_GET"), HASH_OF__GET, &nvalue, sizeof(zval*), NULL);
+	Z_ADDREF_P(retval);
+	zend_hash_quick_update(&EG(symbol_table), "_GET", sizeof("_GET"), HASH_OF__GET, &retval, sizeof(zval*), NULL);
 
 	return 0;
 }
 
 PHP_METHOD(HTTPRequest, getGETParams) {
 	zval *retval = PancakeFetchGET(this_ptr TSRMLS_CC);
-	RETURN_ZVAL(retval, 0 , 1);
+	RETURN_ZVAL(retval, 1, 0);
 }
 
 zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
@@ -1694,6 +1694,9 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 		zend_update_property(HTTPRequest_ce, this_ptr, "uploadedFiles", sizeof("uploadedFiles") - 1, files TSRMLS_CC);
 		zend_update_property(HTTPRequest_ce, this_ptr, "POSTParameters", sizeof("POSTParameters") - 1, POSTParameters TSRMLS_CC);
 		zend_update_property(HTTPRequest_ce, this_ptr, "uploadedFileTempNames", sizeof("uploadedFileTempNames") - 1, tempNames TSRMLS_CC);
+		Z_DELREF_P(POSTParameters);
+		Z_DELREF_P(files);
+		Z_DELREF_P(tempNames);
 	}
 
 	return POSTParameters;
@@ -1701,6 +1704,8 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 
 zend_bool PancakeJITFetchPOST(const char *name, uint name_len TSRMLS_DC) {
 	zval *retval = PancakeFetchPOST(PANCAKE_GLOBALS(JITGlobalsHTTPRequest) TSRMLS_CC);
+
+	Z_ADDREF_P(retval);
 	zend_hash_quick_update(&EG(symbol_table), "_POST", sizeof("_POST"), HASH_OF__POST, &retval, sizeof(zval*), NULL);
 
 	return 0;
@@ -1711,6 +1716,7 @@ zend_bool PancakeJITFetchFILES(const char *name, uint name_len TSRMLS_DC) {
 
 	PancakeFetchPOST(PANCAKE_GLOBALS(JITGlobalsHTTPRequest) TSRMLS_CC);
 	FAST_READ_PROPERTY(files, PANCAKE_GLOBALS(JITGlobalsHTTPRequest), "uploadedFiles", sizeof("uploadedFiles") - 1, HASH_OF_uploadedFiles);
+	Z_ADDREF_P(files);
 	zend_hash_quick_update(&EG(symbol_table), "_FILES", sizeof("_FILES"), HASH_OF__FILES, &files, sizeof(zval*), NULL);
 
 	return 0;
@@ -1718,7 +1724,7 @@ zend_bool PancakeJITFetchFILES(const char *name, uint name_len TSRMLS_DC) {
 
 PHP_METHOD(HTTPRequest, getPOSTParams) {
 	zval *retval = PancakeFetchPOST(this_ptr TSRMLS_CC);
-	RETURN_ZVAL(retval, 0 , 1);
+	RETURN_ZVAL(retval, 1 , 0);
 }
 
 zval *PancakeFetchCookies(zval *this_ptr TSRMLS_DC) {
@@ -1737,6 +1743,7 @@ zval *PancakeFetchCookies(zval *this_ptr TSRMLS_DC) {
 		}
 
 		zend_update_property(HTTPRequest_ce, this_ptr, "cookies", sizeof("cookies") - 1, cookies TSRMLS_CC);
+		Z_DELREF_P(cookies);
 	}
 
 	return cookies;
@@ -1745,6 +1752,7 @@ zval *PancakeFetchCookies(zval *this_ptr TSRMLS_DC) {
 zend_bool PancakeJITFetchCookies(const char *name, uint name_len TSRMLS_DC) {
 	zval *retval = PancakeFetchCookies(PANCAKE_GLOBALS(JITGlobalsHTTPRequest) TSRMLS_CC);
 
+	Z_ADDREF_P(retval);
 	zend_hash_quick_update(&EG(symbol_table), "_COOKIE", sizeof("_COOKIE"), HASH_OF__COOKIE, &retval, sizeof(zval*), NULL);
 
 	return 0;
@@ -1752,7 +1760,7 @@ zend_bool PancakeJITFetchCookies(const char *name, uint name_len TSRMLS_DC) {
 
 PHP_METHOD(HTTPRequest, getCookies) {
 	zval *retval = PancakeFetchCookies(this_ptr TSRMLS_CC);
-	RETURN_ZVAL(retval, 0 , 1);
+	RETURN_ZVAL(retval, 1 , 0);
 }
 
 zval *PancakeFetchSERVER(zval *this_ptr TSRMLS_DC) {
@@ -2013,50 +2021,4 @@ PHP_METHOD(HTTPRequest, setCookie) {
 	PancakeSetAnswerHeader(this_ptr, "set-cookie", sizeof("set-cookie"), cookie, 0, 13893642455224896184U TSRMLS_CC);
 
 	RETURN_TRUE;
-}
-
-PHP_METHOD(HTTPRequest, __destruct) {
-	/* Free memory */
-
-	zval *requestHeaderArray;
-	FAST_READ_PROPERTY(requestHeaderArray, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, HASH_OF_requestHeaders);
-	if(Z_TYPE_P(requestHeaderArray) == IS_ARRAY && Z_REFCOUNT_P(requestHeaderArray) > 1) {
-		Z_DELREF_P(requestHeaderArray);
-	}
-
-	zval *acceptedCompressions;
-	FAST_READ_PROPERTY(acceptedCompressions, this_ptr, "acceptedCompressions", sizeof("acceptedCompressions") - 1, HASH_OF_acceptedCompressions);
-	if(Z_TYPE_P(acceptedCompressions) == IS_ARRAY && Z_REFCOUNT_P(acceptedCompressions) > 1) {
-		Z_DELREF_P(acceptedCompressions);
-	}
-
-	zval *GETParameters;
-	FAST_READ_PROPERTY(GETParameters, this_ptr, "GETParameters", sizeof("GETParameters") - 1, HASH_OF_GETParameters);
-	if(Z_TYPE_P(GETParameters) == IS_ARRAY && Z_REFCOUNT_P(GETParameters) > 1) {
-		Z_DELREF_P(GETParameters);
-	}
-
-	zval *cookies;
-	FAST_READ_PROPERTY(cookies, this_ptr, "cookies", sizeof("cookies") - 1, HASH_OF_cookies);
-	if(Z_TYPE_P(cookies) == IS_ARRAY && Z_REFCOUNT_P(cookies) > 1) {
-		Z_DELREF_P(cookies);
-	}
-
-	zval *POSTParameters;
-	FAST_READ_PROPERTY(POSTParameters, this_ptr, "POSTParameters", sizeof("POSTParameters") - 1, HASH_OF_POSTParameters);
-	if(Z_TYPE_P(POSTParameters) == IS_ARRAY && Z_REFCOUNT_P(POSTParameters) > 1) {
-		Z_DELREF_P(POSTParameters);
-	}
-
-	zval *files;
-	FAST_READ_PROPERTY(files, this_ptr, "uploadedFiles", sizeof("uploadedFiles") - 1, HASH_OF_uploadedFiles);
-	if(Z_TYPE_P(files) == IS_ARRAY && Z_REFCOUNT_P(files) > 1) {
-		Z_DELREF_P(files);
-	}
-
-	zval *tempNames;
-	FAST_READ_PROPERTY(tempNames, this_ptr, "uploadedFileTempNames", sizeof("uploadedFileTempNames") - 1, HASH_OF_uploadedFileTempNames);
-	if(Z_TYPE_P(tempNames) == IS_ARRAY && Z_REFCOUNT_P(tempNames) > 1) {
-		Z_DELREF_P(tempNames);
-	}
 }

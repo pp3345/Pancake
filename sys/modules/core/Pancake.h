@@ -60,7 +60,6 @@ PHP_FUNCTION(makeSID);
 PHP_FUNCTION(makeFastClass);
 
 PHP_METHOD(HTTPRequest, __construct);
-PHP_METHOD(HTTPRequest, __destruct);
 PHP_METHOD(HTTPRequest, init);
 PHP_METHOD(HTTPRequest, buildAnswerHeaders);
 PHP_METHOD(HTTPRequest, setHeader);

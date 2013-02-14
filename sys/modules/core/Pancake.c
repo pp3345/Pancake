@@ -93,7 +93,6 @@ const zend_function_entry Pancake_functions[] = {
 
 const zend_function_entry HTTPRequest_methods[] = {
 	ZEND_ME(HTTPRequest, __construct, arginfo_pancake_HTTPRequest_construct, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
-	ZEND_ME(HTTPRequest, __destruct, NULL, ZEND_ACC_PUBLIC | ZEND_ACC_DTOR)
 	ZEND_ME(HTTPRequest, init, arginfo_pancake_HTTPRequest_init, ZEND_ACC_PUBLIC)
 	ZEND_ME(HTTPRequest, buildAnswerHeaders, NULL, ZEND_ACC_PUBLIC)
 	ZEND_ME(HTTPRequest, setHeader, arginfo_pancake_HTTPRequest_setHeader, ZEND_ACC_PUBLIC)
