@@ -40,7 +40,7 @@
         } else {
             $header = explode(':', $string, 2);
             Pancake\vars::$Pancake_request->setHeader($header[0], isset($header[1]) ? trim($header[1]) : null, $replace);
-            if(strtolower($header[0]) == 'location' && Pancake\vars::$Pancake_request->answerCode != 201 && substr(Pancake\vars::$Pancake_request->answerCode, 0, 1) != 3)
+            if(strtolower($header[0]) == 'location' && Pancake\vars::$Pancake_request->answerCode != 201 && (Pancake\vars::$Pancake_request->answerCode < 300 || Pancake\vars::$Pancake_request->answerCode > 399))
             	Pancake\vars::$Pancake_request->answerCode = 302;
         }
 
