@@ -160,6 +160,7 @@ void php_Pancake_init_globals(zend_Pancake_globals *Pancake_globals)
 	Pancake_globals->JIT_POST = PG(auto_globals_jit);
 	Pancake_globals->JIT_FILES = PG(auto_globals_jit);
 	Pancake_globals->JIT_ENV = PG(auto_globals_jit);
+	Pancake_globals->JIT_GLOBALS = PG(auto_globals_jit);
 }
 
 PHP_MINIT_FUNCTION(Pancake)
@@ -219,7 +220,7 @@ PHP_MINIT_FUNCTION(Pancake)
 	INIT_NS_CLASS_ENTRY(mime, "Pancake", "MIME", MIME_methods);
 	MIME_ce = zend_register_internal_class(&mime TSRMLS_CC);
 
-	//char *getHash = "headers";
+	//char *getHash = "GLOBALS";
 	//printf("#define HASH_OF_%s %luU\n", getHash, zend_inline_hash_func(getHash, strlen(getHash) + 1));
 
 	return SUCCESS;

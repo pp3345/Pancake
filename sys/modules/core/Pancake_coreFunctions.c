@@ -387,7 +387,22 @@ PHP_FUNCTION(setThread) {
 	Z_STRLEN_P(PANCAKE_GLOBALS(defaultContentType)) = sizeof("text/html") - 1;
 }
 
-zend_bool CodeCacheJITFetch(const char *name, uint name_len TSRMLS_DC) {
+static zend_bool PancakeJITFetchGLOBALS(const char *name, uint name_len TSRMLS_DC) /* {{{ */
+{
+	zval *globals;
+
+	ALLOC_ZVAL(globals);
+	Z_SET_REFCOUNT_P(globals, 1);
+	Z_SET_ISREF_P(globals);
+	Z_TYPE_P(globals) = IS_ARRAY;
+	Z_ARRVAL_P(globals) = &EG(symbol_table);
+
+	zend_hash_quick_update(&EG(symbol_table), "GLOBALS", sizeof("GLOBALS"), HASH_OF_GLOBALS, &globals, sizeof(zval*), NULL);
+
+	return 0;
+}
+
+static zend_bool CodeCacheJITFetch(const char *name, uint name_len TSRMLS_DC) {
 	// Every superglobal fetched now can not be JIT fetched
 	if(!strcmp(name, "_GET")) {
 		PANCAKE_GLOBALS(JIT_GET) = 0;
@@ -403,6 +418,8 @@ zend_bool CodeCacheJITFetch(const char *name, uint name_len TSRMLS_DC) {
 		PANCAKE_GLOBALS(JIT_FILES) = 0;
 	} else if(!strcmp(name, "_ENV")) {
 		PANCAKE_GLOBALS(JIT_ENV) = 0;
+	} else if(!strcmp(name, "GLOBALS")) {
+		PANCAKE_GLOBALS(JIT_GLOBALS) = 0;
 	}
 
 	return 0;
@@ -420,6 +437,7 @@ PHP_FUNCTION(CodeCacheJITGlobals) {
 	zend_register_auto_global(ZEND_STRL("_POST"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_FILES"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_ENV"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
+	zend_register_auto_global(ZEND_STRL("GLOBALS"), 1, (zend_auto_global_callback) CodeCacheJITFetch TSRMLS_CC);
 
 	zend_activate_auto_globals(TSRMLS_C);
 }
@@ -436,6 +454,7 @@ PHP_FUNCTION(ExecuteJITGlobals) {
 	zend_register_auto_global(ZEND_STRL("_POST"), PANCAKE_GLOBALS(JIT_POST), PancakeJITFetchPOST TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_FILES"), PANCAKE_GLOBALS(JIT_FILES), PancakeJITFetchFILES TSRMLS_CC);
 	zend_register_auto_global(ZEND_STRL("_ENV"), PANCAKE_GLOBALS(JIT_ENV), PancakeJITFetchENV TSRMLS_CC);
+	zend_register_auto_global(ZEND_STRL("GLOBALS"), PANCAKE_GLOBALS(JIT_GLOBALS), PancakeJITFetchGLOBALS TSRMLS_CC);
 }
 
 PHP_FUNCTION(makeSID) {

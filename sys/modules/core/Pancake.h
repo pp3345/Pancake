@@ -86,7 +86,7 @@ zend_bool PancakeJITFetchPOST(const char *name, uint name_len TSRMLS_DC);
 zend_bool PancakeJITFetchFILES(const char *name, uint name_len TSRMLS_DC);
 zend_bool PancakeJITFetchENV(const char *name, uint name_len TSRMLS_DC);
 
-zend_bool CodeCacheJITFetch(const char *name, uint name_len TSRMLS_DC);
+static zend_bool CodeCacheJITFetch(const char *name, uint name_len TSRMLS_DC);
 
 PANCAKE_API int PancakeLoadFilePointers(TSRMLS_C);
 
@@ -162,6 +162,7 @@ ZEND_BEGIN_MODULE_GLOBALS(Pancake)
 	int JIT_POST;
 	int JIT_FILES;
 	int JIT_ENV;
+	int JIT_GLOBALS;
 	int enableAuthentication;
 	char *tmpDir;
 ZEND_END_MODULE_GLOBALS(Pancake)
@@ -434,5 +435,6 @@ static int PancakeFastHasProperty(zval *object, zval *member, int has_set_exists
 #define HASH_OF_exception 8246287202855534580U
 #define HASH_OF_content_encoding 6922690342783561268U
 #define HASH_OF_friendlyName 1253487734700793347U
+#define HASH_OF_GLOBALS 7571012008160073U
 
 #endif	/* PANCAKE_H */
