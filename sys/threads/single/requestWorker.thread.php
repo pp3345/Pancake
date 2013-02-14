@@ -121,7 +121,6 @@
     #.macro 'LOCAL_PORT' '$requestObject->localPort'
     #.macro 'RAW_POST_DATA' '$requestObject->rawPOSTData'
     #.macro 'ACCEPTS_COMPRESSION' 'isset($requestObject->acceptedCompressions[$compression])' '$compression'
-    #.macro 'VHOST_COMPARE_OBJECTS' '/* .VHOST */->shouldCompareObjects'
     #.macro 'VHOST_FASTCGI' '(isset(/* .VHOST */->fastCGI[/* .MIME_TYPE */]) ? /* .VHOST */->fastCGI[/* .MIME_TYPE */] : null)'
     #.macro 'VHOST_AJP13' '/* .VHOST */->AJP13'
     #.macro 'VHOST_PHP_WORKERS' '/* .VHOST */->phpWorkers'

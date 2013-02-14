@@ -37,7 +37,6 @@ vhosts:
     PHPResetFunctionStaticObjects: true                         # Whether the SAPI should search for objects inside static function variables and reset them (will also look recursively in arrays and object's properties) - Try this setting when the SAPI often crashes or acts strange
     PHPResetFunctionStaticNonObjects: false                     # Whether the SAPI should set all static function variables to null after finishing a request (will still destroy objects before if phpresetfunctionstaticobjects is enabled)
     PHPResetObjectsDestroyDestructors: true                     # Whether the SAPI should not execute object destructors when destroying objects (true = will not execute; false = will execute)
-    compareObjects: false                                       # Whether the internal request object should be checked for possible manipulation after being returned from the PHP-SAPI (should be enabled in shared hosting environments or when untrusted scripts are executed)
     PHPMaxExecutionTime: 10                                     # Same function as PHP's max_execution_time-setting
 #    PHPINISettings:                                            # Set custom php.ini settings for this vHost
 #      session.name: "myGreatSession"
