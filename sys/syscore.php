@@ -42,7 +42,7 @@
         echo "--daemon                           Run Pancake as a system daemon\n";
         echo "--config=...                       Specify a custom configuration file path (defaults to ../conf/config.yml)\n";
         echo "--use-malloc                       Disable Zend Memory Manager (USE WITH CARE!)\n";
-        echo "--pidfile=...                      When used in combination with --daemon Pancake will put its' PID in this file\n\n";
+        echo "--pidfile=...                      When used in combination with --daemon Pancake will put its PID in this file\n\n";
         echo "Have fun with Pancake!\n";
         exit;
     }
