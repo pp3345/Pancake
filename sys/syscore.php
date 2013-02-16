@@ -47,7 +47,7 @@
         exit;
     }
 
-    out('Loading Pancake ' . VERSION . '... 2012 Yussuf Khalil', OUTPUT_SYSTEM);
+    out('Loading Pancake ' . VERSION . '... 2012 - 2013 Yussuf Khalil', OUTPUT_SYSTEM);
 
     // Check for php-cli
     if(\PHP_SAPI != 'cli') {
