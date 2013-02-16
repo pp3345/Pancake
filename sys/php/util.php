@@ -109,8 +109,12 @@
     	}
     	#.endif
 
-    	$data = serialize(vars::$Pancake_request);
+    	$object = new \stdClass;
+        $object->answerHeaders = vars::$Pancake_request->answerHeaders;
+        $object->answerCode = vars::$Pancake_request->answerCode;
+        $object->answerBody = ob_get_contents();
 
+        $data = serialize($object);
     	$packages = array();
 
       	if(strlen($data) > (socket_get_option(vars::$requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_SNDBUF' */) - 1024)
