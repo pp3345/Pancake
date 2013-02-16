@@ -152,9 +152,6 @@
 
     dt_phpinfo_mode(\DT_PHPINFO_HTML);
 
-    // Set thread title
-    dt_set_proctitle('Pancake HTTP Server ' . VERSION);
-
     // Set PANCAKE_DEBUG_MODE
     if(isset($startOptions['debug']) || Config::get('main.debugmode') === true) {
         define('Pancake\DEBUG_MODE', true);
@@ -169,20 +166,6 @@
         out('The configured user/group doesn\'t exist.');
         abort();
     }
-
-    // Daemonize
-    if(isset($startOptions['daemon'])) {
-        ignore_user_abort(true);
-
-        if(is_resource(\STDIN))  fclose(\STDIN);
-        if(is_resource(\STDOUT)) fclose(\STDOUT);
-        if(is_resource(\STDERR)) fclose(\STDERR);
-        fopen('/dev/null', 'r');
-        fopen('/dev/null', 'r');
-        fopen('/dev/null', 'r');
-        define('Pancake\DAEMONIZED', true);
-    } else
-        define('Pancake\DAEMONIZED', false);
 
     // Check for ports to listen on
     if(!Config::get('main.listenports')) {
@@ -201,6 +184,34 @@
         out('You need to define at least one virtual host.');
         abort();
     }
+
+	// Daemonize
+    if(isset($startOptions['daemon'])) {
+        ignore_user_abort(true);
+
+		$pid = pcntl_fork();
+		
+		if($pid == -1) {
+			out('Failed to daemonize', OUTPUT_SYSTEM);
+			abort();
+		} else if($pid) {
+			// Parent
+			exit;
+		}
+
+		if(is_resource(\STDIN))  fclose(\STDIN);
+        if(is_resource(\STDOUT)) fclose(\STDOUT);
+        if(is_resource(\STDERR)) fclose(\STDERR);
+        fopen('/dev/null', 'r');
+        fopen('/dev/null', 'r');
+        fopen('/dev/null', 'r');
+
+        define('Pancake\DAEMONIZED', true);
+    } else
+        define('Pancake\DAEMONIZED', false);
+		
+	// Set thread title
+    dt_set_proctitle('Pancake HTTP Server ' . VERSION);
 
     // Create sockets
     // IPv6
