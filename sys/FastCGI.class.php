@@ -137,7 +137,7 @@
 			$body .= "\xb" . chr(strlen(/* .LOCAL_IP */)) . "SERVER_ADDR" . /* .LOCAL_IP */;
 			if($requestObject->pathInfo) {
 				$body .= "\x9" . chr(strlen($requestObject->pathInfo)) . "PATH_INFO" . $requestObject->pathInfo;
-				$body .= "\xf" . chr(strlen($requestObject->documentRoot . $requestObject->pathInfo)) . "PATH_TRANSLATED" . $requestObject->documentRoot . $requestObject->pathInfo;
+				$body .= "\xf" . chr(strlen($requestObject->vHost->documentRoot . $requestObject->pathInfo)) . "PATH_TRANSLATED" . $requestObject->vHost->documentRoot . $requestObject->pathInfo;
 			}
 
 			if(/* .RAW_POST_DATA */) {
