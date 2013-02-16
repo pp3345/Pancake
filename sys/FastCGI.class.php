@@ -198,15 +198,15 @@
 		}
 
 		public function upstreamRecord($data, $socketID) {
-			if($data === "") {
+			if($data === "" || $data === false) {
 				/* Upstream server closed connection */
-				foreach($this->requests as $requestID => $request) {
-					if($request->fCGISocket != $socketID)
+				foreach($this->requests as $requestID => $requestObject) {
+					if($requestObject->fCGISocket != $socketID)
 						continue;
 
-					$request->invalidRequest(new invalidHTTPRequestException("The FastCGI upstream server unexpectedly closed the network connection.", 502));
+					$requestObject->invalidRequest(new invalidHTTPRequestException("The FastCGI upstream server unexpectedly closed the network connection.", 502));
 
-					$retval = array($this->requestSockets[$requestID], $request, true);
+					$retval = array($this->requestSockets[$requestID], $requestObject, true);
 					unset($this->requestSockets[$requestID], $this->requests[$requestID]);
 					return $retval;
 				}
