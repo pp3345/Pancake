@@ -1,0 +1,161 @@
+#! /bin/sh
+
+### BEGIN INIT INFO
+# Provides:          pancake
+# Required-Start:    $all
+# Required-Stop:     $all
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Pancake
+# Description:       Pancake HTTP Server
+### END INIT INFO
+
+# Author: Jan Erik Petersen <Marco01_809@web.de>
+# Requires Pancake 1.3 or newer
+
+PATH=/sbin:/usr/local/sbin:/usr/sbin:/bin:/usr/local/bin:/usr/bin
+
+DESC="Pancake HTTP Server"
+NAME=pancake
+
+PIDFILE=/var/run/$NAME.pid
+SCRIPTNAME=/etc/init.d/$NAME
+
+DAEMON=/usr/local/Pancake/sys/pancake.sh
+DAEMON_ARGS="--daemon --pidfile=$PIDFILE"
+
+STOP_WAIT_SECS=30
+
+# Exit if the package is not installed
+[ -x "$DAEMON" ] || exit 0
+
+# Read configuration variable file if it is present
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+
+# 0 -> Process running ($PIDFILE exists)
+# 1 -> Process not running, $PIDFILE doesn't exist
+# 2 -> Process not running, $PIDFILE exists
+get_status() {
+        [ ! -r $PIDFILE ] && return 1
+        PID=`cat $PIDFILE`
+        kill -0 $PID >/dev/null 2>/dev/null
+        [ $? = 0 ] && return 0 || return 2
+}
+
+# 0 -> Process started successfully
+# 1 -> Process was running
+# 2 -> Couldn't start process
+do_start() {
+        get_status
+        [ $? = 0 ] && return 1
+
+        $DAEMON $DAEMON_ARGS >/dev/null
+        [ $? = 0 ] && return 0 || return 2
+}
+
+# 0 -> Process stopped successfully
+# 1 -> Process wasn't running
+# 2 -> Couldn't stop process
+do_stop() {
+        get_status
+        [ $? != 0 ] && return 1
+
+        kill -TERM $PID
+        [ $? != 0 ] && return 2
+
+        local tries=0
+        while [ $tries -lt $STOP_WAIT_SECS ]; do
+                sleep 1
+                get_status
+                if [ $? != 0 ]; then
+                        rm -f $PIDFILE
+                        return 0
+                fi
+                tries=$((tries+1))
+        done
+
+        kill -KILL $PID
+        [ $? != 0 ] && return 2
+        sleep 2
+
+        get_status
+        if [ $? != 0 ]; then
+                rm -f $PIDFILE
+                return 0
+        fi
+        return 2
+}
+
+# 0 -> SIGHUP sent successfully
+# 1 -> Process wasn't running
+# 2 -> Couldn't send SIGHUP
+do_reload() {
+        get_status
+        [ $? != 0 ] && return 1
+
+        kill -1 $PID >/dev/null 2>/dev/null
+        [ $? = 0 ] && return 0 || return 2
+}
+
+case "$1" in
+        start)
+                echo -n "Starting $DESC: "
+                do_start
+                status=$?
+                [ $status = 0 ] && echo "$NAME."
+                [ $status = 1 ] && echo "ERROR: $NAME is already running."
+                [ $status = 2 ] && echo "ERROR: Couldn't start $NAME."
+                exit $status
+                ;;
+        stop)
+                echo -n "Stopping $DESC: "
+                do_stop
+                status=$?
+                [ $status = 0 ] && echo "$NAME."
+                [ $status = 1 ] && echo "ERROR: $NAME is not running."
+                [ $status = 2 ] && echo "ERROR: Couldn't stop $NAME."
+                exit $status
+                ;;
+        restart|force-reload)
+                echo -n "Restarting $DESC: "
+                do_stop
+                status=$?
+                [ $status = 1 ] && echo -n "WARNING: $NAME was not running: "
+                [ $status = 2 ] && echo "ERROR: Couldn't stop $NAME." && exit 2
+                do_start
+                status=$?
+                [ $status = 0 ] && echo "$NAME."
+                [ $status = 1 ] && echo "ERROR: $NAME is already running."
+                [ $status = 2 ] && echo "ERROR: Couldn't start $NAME."
+                exit $status
+                ;;
+        reload)
+                echo -n "Reloading $DESC: "
+                do_reload
+                status=$?
+                [ $status = 0 ] && echo "$NAME."
+                [ $status = 1 ] && echo "ERROR: $NAME is not running."
+                [ $status = 2 ] && echo "ERROR: Couldn't reload $NAME."
+                exit $status
+                ;;
+        status)
+                get_status
+                status=$?
+                case "$status" in
+                        0)
+                                echo "$DESC is running. PID: $PID"
+                                ;;
+                        1)
+                                echo "$DESC is not running"
+                                ;;
+                        2)
+                                echo "$DESC is not running, but $PIDFILE still exists"
+                                ;;
+                esac
+                exit $status
+                ;;
+        *)
+                echo "Usage: $SCRIPTNAME {start|stop|restart|reload|force-reload|status}"
+                exit 3
+                ;;
+esac

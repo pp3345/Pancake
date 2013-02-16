@@ -21,7 +21,7 @@ Then add the executable flag to the Pancake/sys/pancake.sh file and run it. On m
     wget http://github.com/pp3345/Pancake/tarball/<version>
     tar -zxvf <version>
     mv pp3345-Pancake-* Pancake
-    cd pp3345-Pancake/sys
+    cd Pancake/sys
     chmod +x pancake.sh
     sudo ./pancake.sh
 
@@ -36,6 +36,29 @@ of the new Pancake, please make sure to read it first. It usually contains infor
 ## Documentation
 
 Documentation and information about the configuration of Pancake can be found at the [Pancake Wiki](https://github.com/pp3345/Pancake/wiki).
+
+## Bundled init script
+
+Pancake now has an official init script for Debian GNU/Linux (and Debian-derived distributions like Ubuntu or Raspbian) bundled.
+The script is located in the main directory of Pancake. Run the following commands to use it:
+
+    cd <PancakeDirectory>
+    sudo cp init /etc/init.d/pancake
+    sudo update-rc.d pancake enable
+    
+In case your Pancake is **not** installed in /usr/local/Pancake, please change the `DAEMON` line in the script to match your Pancake installation path.
+
+You can then start your Pancake using
+
+    sudo /etc/init.d/pancake start
+    
+and stop it again using
+
+    sudo /etc/init.d/pancake stop
+    
+Pancake will also be automatically run when your computer starts up.
+
+The script is bundled with kind permission of [Jan Erik Petersen](https://github.com/marco01809).
 
 ## Contact
 
