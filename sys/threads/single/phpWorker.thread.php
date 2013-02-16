@@ -328,11 +328,11 @@
 	            vars::$executedShutdown = true;
 
 	            // Run header callbacks
-	            foreach((array) vars::$Pancake_headerCallbacks as $callback)
+	            foreach(vars::$Pancake_headerCallbacks as $callback)
 	                call_user_func($callback);
 
 	            // Run Registered Shutdown Functions
-	            foreach((array) vars::$Pancake_shutdownCalls as $shutdownCall)
+	            foreach(vars::$Pancake_shutdownCalls as $shutdownCall)
 	            	call_user_func_array($shutdownCall["callback"], $shutdownCall["args"]);
 
 	            goto postShutdown;

@@ -73,7 +73,7 @@
     		return;
 
     	// Execute registered shutdown callbacks
-    	foreach((array) vars::$Pancake_shutdownCalls as $shutdownCall)
+    	foreach(vars::$Pancake_shutdownCalls as $shutdownCall)
     		call_user_func_array($shutdownCall["callback"], $shutdownCall["args"]);
 
     	while(PHPFunctions\OutputBuffering\getLevel() > 1)
