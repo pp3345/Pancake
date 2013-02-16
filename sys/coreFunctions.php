@@ -97,10 +97,6 @@
                 if($listOnly)
                     $list[] = $globalName;
                 else {
-                	if($clearRecursive && (is_array($GLOBALS[$globalName]) || is_object($GLOBALS[$globalName]))) {
-                		recursiveClearObjects($GLOBALS[$globalName]);
-                    }
-
                     $GLOBALS[$globalName] = null;
                     unset($GLOBALS[$globalName]);
                 }

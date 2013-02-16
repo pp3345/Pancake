@@ -199,38 +199,29 @@
      * @param array $data
      * @return array
      */
-    function recursiveClearObjects($data, $objects = array()) {
+    function recursiveClearObjects($data) {
     	if(is_object($data)) {
-    		$reflect = new \ReflectionObject($data);
-    		$objects[] = $data;
-
     		#.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetObjectsDestroyDestructor;'
-    			if($reflect->hasMethod('__destruct')) {
+    			if(method_exists($data, '__destruct')) {
 	    			global $destroyedDestructors;
 
 	    			$name = 'Pancake_DestroyedDestructor' . mt_rand();
-	    			dt_rename_method($reflect->getName(), '__destruct', $name);
-	    			$destroyedDestructors[$reflect->getName()] = $name;
+	    			dt_rename_method(get_class($data), '__destruct', $name);
+	    			$destroyedDestructors[get_class($data)] = $name;
 	    		}
 	    	#.endif
 
-    		foreach($reflect->getProperties() as $property) {
-    			$property->setAccessible(true);
-
-	    		if((is_object($property->getValue($data)) && !in_array($property->getValue($data), $objects, true)) || is_array($data))
-			    	// Search for objects in the object's properties
-			    	$property->setValue($data, recursiveClearObjects($property->getValue($data), $objects));
-    		}
-
-    		// Destroy object
     		$data = null;
-
-    		gc_collect_cycles();
     	} else if(is_array($data)) {
 	    	foreach($data as $index => &$val) {
-	    		if((is_array($val) || is_object($val)) && !($val = recursiveClearObjects($val)))
+	    	    if(is_object($val))
+                    unset($data[$index]);
+                else if(is_array($val) && !($val = recursiveClearObjects($val)))
 	    			unset($data[$index]);
 	    	}
+            
+            if(!$data)
+                $data = null;
     	}
 
     	return $data;
