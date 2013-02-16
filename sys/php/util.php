@@ -78,7 +78,6 @@
 
     	while(PHPFunctions\OutputBuffering\getLevel() > 1)
     		PHPFunctions\OutputBuffering\endFlush();
-    	vars::$Pancake_request->answerBody = ob_get_contents();
 
         #.ifdef 'HAVE_SESSION_EXTENSION'
     	if(session_id() || vars::$sessionID) {
@@ -112,7 +111,7 @@
     	$object = new \stdClass;
         $object->answerHeaders = vars::$Pancake_request->answerHeaders;
         $object->answerCode = vars::$Pancake_request->answerCode;
-        $object->answerBody = ob_get_contents();
+        $object->answerBody = ob_get_clean();
 
         $data = serialize($object);
     	$packages = array();
