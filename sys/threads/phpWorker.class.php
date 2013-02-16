@@ -44,10 +44,8 @@
             			. serialize((array) Config::get('moody'))
             			. md5_file('vHostInterface.class.php')
             			. md5_file('threads/single/phpWorker.thread.php')
-            			. md5_file('HTTPRequest.class.php')
             			. md5_file('php/sapi.php')
             			. md5_file('php/util.php')
-            			. md5_file('mime.class.php')
             			. md5_file('natives/Moody/' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '.cphp')
             			. md5_file('workerFunctions.php')
             			. \PHP_MINOR_VERSION
