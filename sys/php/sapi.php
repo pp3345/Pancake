@@ -152,7 +152,7 @@
 
 		            $pancakeAdd .= '<table border="0" cellpadding="3" width="600">';
 		            $pancakeAdd .= '<tr class="v"><td>';
-		            $pancakeAdd .= 'Pancake Copyright (c) 2012 Yussuf Khalil <br/>';
+		            $pancakeAdd .= 'Pancake Copyright (c) 2012 - 2013 Yussuf Khalil <br/>';
 		            $pancakeAdd .= 'Find out more about Pancake at <a href="http://www.pancakehttp.net">pancakehttp.net</a>';
 		            $pancakeAdd .= '</td></tr>';
 		            $pancakeAdd .= '</table><br/>';
