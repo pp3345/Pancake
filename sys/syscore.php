@@ -30,7 +30,7 @@
     error_reporting(ERROR_REPORTING);
 
     // Get start options
-    $startOptions = getopt('-h', array('benchmark::', 'debug', 'daemon', 'live', 'help', 'config:', 'use-malloc'));
+    $startOptions = getopt('-h', array('debug', 'daemon', 'help', 'config:', 'use-malloc', 'pidfile:'));
 
     // Display help if requested
     if(isset($startOptions['h']) || isset($startOptions['help'])) {
@@ -198,6 +198,10 @@
 			// Parent
 			exit;
 		}
+
+        if(isset($startOptions['pidfile'])) {
+            file_put_contents($startOptions['pidfile'], posix_getpid());
+        }
 
 		if(is_resource(\STDIN))  fclose(\STDIN);
         if(is_resource(\STDOUT)) fclose(\STDOUT);
