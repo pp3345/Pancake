@@ -30,7 +30,7 @@
 		out("Compiling RequestWorker - Please wait...");
 	}
 
-	require_once 'moody_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '.cphp';
+	require_once 'natives/Moody/' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '.cphp';
 
 	foreach(get_declared_classes() as $class) {
 		if(in_array('Moody\TokenHandler', class_implements($class)))
