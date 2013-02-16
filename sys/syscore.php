@@ -34,13 +34,16 @@
 
     // Display help if requested
     if(isset($startOptions['h']) || isset($startOptions['help'])) {
-        echo 'Pancake '.VERSION."\n";
-        echo '2012 Yussuf Khalil'."\n";
-        echo "\n";
-        echo 'Pancake is a simple and lightweight HTTP-server. These are the start-options you may use:'."\n";
-        echo '-h --help                          Displays this help'."\n";
-        echo '--debug                            Enable debugging'."\n";
-        echo '--daemon                           Run Pancake as a background-process'."\n";
+        echo 'Pancake HTTP Server ' . VERSION . "\n";
+        echo "2012 - 2013 Yussuf Khalil\n\n";
+        echo "Pancake is a fast and lightweight HTTP-server. You may append the following settings to the start command:\n\n";
+        echo "-h --help                          Show this help\n";
+        echo "--debug                            Enable debug mode\n";
+        echo "--daemon                           Run Pancake as a system daemon\n";
+        echo "--config=...                       Specify a custom configuration file path (defaults to ../conf/config.yml)\n";
+        echo "--use-malloc                       Disable Zend Memory Manager (USE WITH CARE!)\n";
+        echo "--pidfile=...                      When used in combination with --daemon Pancake will put its' PID in this file\n\n";
+        echo "Have fun with Pancake!\n";
         exit;
     }
 
@@ -48,7 +51,7 @@
 
     // Check for php-cli
     if(\PHP_SAPI != 'cli') {
-    	out('Pancake must be executed with the PHP CLI-SAPI. You are using the "' . \PHP_SAPI . '" SAPI.', OUTPUT_SYSTEM);
+    	out('Pancake must be executed using PHP in CLI mode. You are currently running the "' . \PHP_SAPI . '" SAPI.', OUTPUT_SYSTEM);
     	abort();
     }
 
