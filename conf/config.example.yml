@@ -14,7 +14,7 @@ main:
     - 0
   IPv6:                                                         # IPv6 network interfaces to listen on (use ::0 to listen on all available interfaces)
     - ::0
-  requestWorkers: 4                                             # Amount of RequestWorkers to run
+  requestWorkers: 2                                             # Amount of RequestWorkers to run
   exposePancake: true                                           # If true, Pancake will send a "Server"-Header with Information about Pancake
   sizePrefix: bin                                               # "si" or "bin" - SI: 1000 Byte = 1 Kilobyte - Binary: 1024 Byte = 1 Kibibyte
   allowHEAD: true                                               # Whether to allow the "HEAD"-requestmethod
