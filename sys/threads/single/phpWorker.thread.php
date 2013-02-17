@@ -525,6 +525,13 @@
 	        // Reset ini-settings
 	        ini_set(null, null, true);
 	        stream_register_wrapper(null, null, null, true);
+            
+            // Clean uploaded files
+            if(vars::$Pancake_request->uploadedFileTempNames) {
+                foreach(vars::$Pancake_request->uploadedFileTempNames as $file)
+                    @unlink($file);
+                unset($file);
+            }
 
 	        vars::$errorHandler = null;
 	        vars::$errorHandlerHistory = array();

@@ -131,6 +131,12 @@
         socket_write(vars::$requestSocket, dechex(strlen($packages[0])));
         foreach($packages as $data)
         	socket_write(vars::$requestSocket, $data);
+        
+        // Clean uploaded files
+        if(vars::$Pancake_request->uploadedFileTempNames) {
+            foreach(vars::$Pancake_request->uploadedFileTempNames as $file)
+                @unlink($file);
+        }
 
 		socket_write(vars::$Pancake_currentThread->socket, "EXPECTED_SHUTDOWN");
     }

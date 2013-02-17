@@ -968,9 +968,6 @@
             if(!in_array($requestSocket, $listenSocketsOrig, true) && $requestObject->answerHeaders["connection"] == 'keep-alive')
                 $listenSocketsOrig[] = $requestSocket;
 
-            foreach((array) /* .UPLOADED_FILES */ as $file)
-                @unlink($file['tmp_name']);
-
             #.ifdef 'USE_IOCACHE'
             	if(/* .RAW_POST_DATA */ instanceof \stdClass)
             		$ioCache->deallocateBuffer(/* .RAW_POST_DATA */);
