@@ -1,2 +1,3 @@
 # Force LF
 * text eol=lf
+*.so binary
