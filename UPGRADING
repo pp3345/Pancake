@@ -1,0 +1,20 @@
+Upgrading to Pancake 1.3
+
+There are two compatibility changes in Pancake 1.3 that should be noted.
+
+First, Pancake does not work with PHP 5.3 anymore. Please upgrade to PHP 5.4.
+Debian 6.0 Squeeze users may install a newer version of PHP from the dotdeb repository: http://www.dotdeb.org/
+See "instructions" on their web page for more information.
+
+Second, if you are using a custom exception page handler you should make sure not to use Pancake\HTTPRequest::$answerCodes anymore.
+This will cause a crash. Instead you may get the string corresponding to an answer code using the new Pancake\HTTPRequest::getAnswerCodeString()
+function. Example:
+
+Instead of calling
+  HTTPRequest::$answerCodes[$exception->getCode()]
+you should use
+  HTTPRequest::getAnswerCodeString($exception->getCode())
+
+That's all. In case you have further questions, please don't hesitate to contact support@pancakehttp.net. :-)
+
+Have fun with Pancake 1.3!
