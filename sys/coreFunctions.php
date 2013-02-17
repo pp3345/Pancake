@@ -51,7 +51,7 @@
         if($return)
         	return;
         else
-        	exit;
+        	exit(-1);
     }
 
     /**
