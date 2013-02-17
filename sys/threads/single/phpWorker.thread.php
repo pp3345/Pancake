@@ -387,9 +387,10 @@
 
 	        // After $invalidRequest is set to true it might still happen that the registered shutdown functions do some output
 	        if(vars::$invalidRequest) {
-	        	if(!ob_get_contents())
+	        	if(!ob_get_contents()) {
+	        	    $requestObject = vars::$Pancake_request;
 	        		vars::$Pancake_request->invalidRequest(new invalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
-	        	else
+	        	} else
 	        		vars::$invalidRequest = false;
 	        }
 
