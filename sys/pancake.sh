@@ -66,7 +66,7 @@ then
         exit 4
     fi
 else
-    echo "No compatible DeepTrace-extension found (looking for ./natives/DeepTrace/$ARCH""_$PHPMAJOR$PHPMINOR.so) - Please compile DeepTrace for your system and make sure it is executable" >&2
+    echo "No compatible DeepTrace extension found (looking for ./natives/DeepTrace/$ARCH""_$PHPMAJOR$PHPMINOR.so) - Please compile DeepTrace for your system and make sure it is executable" >&2
     exit 5
 fi
 
