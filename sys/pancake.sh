@@ -15,6 +15,12 @@ PHPCOMMAND=php
 ARCH=`uname -m`
 echo "Found $ARCH processor"
 
+if [ ! -x $PHPCOMMAND  ];
+then
+	echo "No PHP binary found. Please make sure to have PHP installed in the given path." >&2
+	exit 1
+fi
+
 PHPMAJOR=`$PHPCOMMAND -r "echo PHP_MAJOR_VERSION;"`
 PHPMINOR=`$PHPCOMMAND -r "echo PHP_MINOR_VERSION;"`
 echo "Found PHP $PHPMAJOR.$PHPMINOR"
