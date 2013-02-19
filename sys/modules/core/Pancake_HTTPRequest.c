@@ -737,7 +737,7 @@ PHP_METHOD(HTTPRequest, init) {
 				Z_TYPE_P(redirectValue) = IS_STRING;
 				Z_STRLEN_P(redirectValue) = spprintf(&Z_STRVAL_P(redirectValue), 0, "http://%s%s/?%s", host, requestFilePath, queryString ? queryString : "");
 
-				PancakeSetAnswerHeader(this_ptr, "location", sizeof("location"), redirectValue, 1, 249896952137776350);
+				PancakeSetAnswerHeader(this_ptr, "location", sizeof("location"), redirectValue, 1, 249896952137776350U);
 				PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("Redirecting...", sizeof("Redirecting...") - 1, 301);
 				efree(filePath);
 				efree(host);
@@ -1066,7 +1066,7 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 	answerCode = Z_LVAL_P(answerCodez);
 	answerBody_len = Z_STRLEN_P(answerBodyz);
 
-	if((quickFindResult = zend_hash_quick_find(Z_ARRVAL_P(answerHeaderArray), "content-length", sizeof("content-length"), 2767439838230162255, (void**) &contentLength)) == FAILURE
+	if((quickFindResult = zend_hash_quick_find(Z_ARRVAL_P(answerHeaderArray), "content-length", sizeof("content-length"), 2767439838230162255U, (void**) &contentLength)) == FAILURE
 	|| !Z_LVAL_PP(contentLength)) {
 		if(quickFindResult == FAILURE) {
 			zval *contentLengthM;
@@ -1077,7 +1077,7 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 		Z_LVAL_PP(contentLength) = answerBody_len;
 
 		if(quickFindResult == FAILURE) {
-			PancakeSetAnswerHeader(answerHeaderArray, "content-length", sizeof("content-length"), *contentLength, 1, 2767439838230162255);
+			PancakeSetAnswerHeader(answerHeaderArray, "content-length", sizeof("content-length"), *contentLength, 1, 2767439838230162255U);
 		}
 	}
 
@@ -1738,7 +1738,7 @@ zval *PancakeFetchCookies(zval *this_ptr TSRMLS_DC) {
 		MAKE_STD_ZVAL(cookies);
 		array_init(cookies);
 
-		if(zend_hash_quick_find(Z_ARRVAL_P(requestHeaders), "cookie", sizeof("cookie"), 229462176616959, (void**) &cookie) == SUCCESS) {
+		if(zend_hash_quick_find(Z_ARRVAL_P(requestHeaders), "cookie", sizeof("cookie"), 229462176616959U, (void**) &cookie) == SUCCESS) {
 			cookies = PancakeProcessQueryString(cookies, *cookie, ";");
 		}
 
