@@ -23,6 +23,7 @@ fi
 
 PHPMAJOR=`$PHPCOMMAND -r "echo PHP_MAJOR_VERSION;"`
 PHPMINOR=`$PHPCOMMAND -r "echo PHP_MINOR_VERSION;"`
+HAVE_SESSION_EXTENSION=`$PHPCOMMAND -r "echo (int) extension_loaded('session');"`
 echo "Found PHP $PHPMAJOR.$PHPMINOR"
 
 if test $PHPMAJOR != "5" || (test $PHPMINOR != "4" && test $PHPMINOR != "5")
@@ -34,6 +35,12 @@ then
         fi
         echo "In case you are using Debian GNU/Linux you may install a newer PHP version from the dotdeb repository (see http://dotdeb.org for more information and instructions)" >&2
         exit 3
+fi
+
+if test $HAVE_SESSION_EXTENSION != "1"
+then
+	echo "Your PHP installation is missing the session extension. Pancake currently requires the session extension to work properly."
+	exit 6
 fi
 
 if test $ARCH == "i386" || test $ARCH == "i486" || test $ARCH == "i586" || test $ARCH == "i686"
