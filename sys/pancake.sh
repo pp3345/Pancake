@@ -39,7 +39,7 @@ fi
 
 if test $HAVE_SESSION_EXTENSION != "1"
 then
-	echo "Your PHP installation is missing the session extension. Pancake currently requires the session extension to work properly."
+	echo "Your PHP installation is missing the session extension. Pancake currently requires the session extension to work properly." >&2
 	exit 6
 fi
 
