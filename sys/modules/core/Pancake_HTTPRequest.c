@@ -990,7 +990,7 @@ PHP_METHOD(HTTPRequest, init) {
 PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 	zval *vHost, *answerHeaderArray, *answerCodez, *answerBodyz, *protocolVersion, **contentLength, *requestHeaderArray, *connectionAnswer, **connection;
 	long answerCode;
-	int answerBody_len, quickFindResult;
+	int answerBody_len;
 
 	FAST_READ_PROPERTY(answerHeaderArray, this_ptr, "answerHeaders", sizeof("answerHeaders") - 1, HASH_OF_answerHeaders);
 	FAST_READ_PROPERTY(answerCodez, this_ptr, "answerCode", sizeof("answerCode") - 1, HASH_OF_answerCode);
@@ -999,19 +999,21 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 	answerCode = Z_LVAL_P(answerCodez);
 	answerBody_len = Z_STRLEN_P(answerBodyz);
 
-	if((quickFindResult = zend_hash_quick_find(Z_ARRVAL_P(answerHeaderArray), "content-length", sizeof("content-length"), 2767439838230162255U, (void**) &contentLength)) == FAILURE
-	|| !Z_LVAL_PP(contentLength)) {
-		if(quickFindResult == FAILURE) {
-			zval *contentLengthM;
-			MAKE_STD_ZVAL(contentLengthM);
-			contentLength = &contentLengthM;
+	if(zend_hash_quick_find(Z_ARRVAL_P(answerHeaderArray), "content-length", sizeof("content-length"), 2767439838230162255U, (void**) &contentLength) == SUCCESS) {
+		convert_to_long(*contentLength);
+
+		if(!Z_LVAL_PP(contentLength) && answerBody_len) {
+			Z_LVAL_PP(contentLength) = answerBody_len;
 		}
+	} else {
+		zval *contentLengthM;
+		MAKE_STD_ZVAL(contentLengthM);
+		contentLength = &contentLengthM;
+
 		Z_TYPE_PP(contentLength) = IS_LONG;
 		Z_LVAL_PP(contentLength) = answerBody_len;
 
-		if(quickFindResult == FAILURE) {
-			PancakeSetAnswerHeader(answerHeaderArray, "content-length", sizeof("content-length"), *contentLength, 1, 2767439838230162255U);
-		}
+		PancakeSetAnswerHeader(answerHeaderArray, "content-length", sizeof("content-length"), *contentLength, 1, 2767439838230162255U);
 	}
 
 	if(answerCode < 100 || answerCode > 599) {
