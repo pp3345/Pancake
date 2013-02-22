@@ -711,7 +711,7 @@ $trace = "";
 $i = 0;
 
 foreach($backtrace as $traceElement) {
-	if(strpos($traceElement, '/sys/threads/single/phpWorker.thread'))
+	if(strpos($traceElement, '/sys/compilecache/phpWorker.thread'))
     	break;
     $trace .= $traceElement . "\n";
     $i++;
