@@ -45,73 +45,6 @@ static void PancakeAutoglobalMerge(HashTable *dest, HashTable *src TSRMLS_DC)
 	}
 }
 
-/* Copy of php_array_merge() with small change to keep numeric indexes if not 0 */
-static int Pancake_array_merge(HashTable *dest, HashTable *src, int recursive TSRMLS_DC) /* {{{ */
-{
-	zval **src_entry, **dest_entry;
-	char *string_key;
-	uint string_key_len;
-	ulong num_key;
-	HashPosition pos;
-
-	zend_hash_internal_pointer_reset_ex(src, &pos);
-	while (zend_hash_get_current_data_ex(src, (void **)&src_entry, &pos) == SUCCESS) {
-		switch (zend_hash_get_current_key_ex(src, &string_key, &string_key_len, &num_key, 0, &pos)) {
-			case HASH_KEY_IS_STRING:
-				if (recursive && zend_hash_find(dest, string_key, string_key_len, (void **)&dest_entry) == SUCCESS) {
-					HashTable *thash = Z_TYPE_PP(dest_entry) == IS_ARRAY ? Z_ARRVAL_PP(dest_entry) : NULL;
-
-					if ((thash && thash->nApplyCount > 1) || (*src_entry == *dest_entry && Z_ISREF_PP(dest_entry) && (Z_REFCOUNT_PP(dest_entry) % 2))) {
-						php_error_docref(NULL TSRMLS_CC, E_WARNING, "recursion detected");
-						return 0;
-					}
-					SEPARATE_ZVAL(dest_entry);
-					SEPARATE_ZVAL(src_entry);
-
-					if (Z_TYPE_PP(dest_entry) == IS_NULL) {
-						convert_to_array_ex(dest_entry);
-						add_next_index_null(*dest_entry);
-					} else {
-						convert_to_array_ex(dest_entry);
-					}
-					if (Z_TYPE_PP(src_entry) == IS_NULL) {
-						convert_to_array_ex(src_entry);
-						add_next_index_null(*src_entry);
-					} else {
-						convert_to_array_ex(src_entry);
-					}
-					if (thash) {
-						thash->nApplyCount++;
-					}
-					if (!Pancake_array_merge(Z_ARRVAL_PP(dest_entry), Z_ARRVAL_PP(src_entry), recursive TSRMLS_CC)) {
-						if (thash) {
-							thash->nApplyCount--;
-						}
-						return 0;
-					}
-					if (thash) {
-						thash->nApplyCount--;
-					}
-				} else {
-					Z_ADDREF_PP(src_entry);
-					zend_hash_update(dest, string_key, string_key_len, src_entry, sizeof(zval *), NULL);
-				}
-				break;
-
-			case HASH_KEY_IS_LONG:
-				Z_ADDREF_PP(src_entry);
-				if(num_key == 0) {
-					zend_hash_next_index_insert(dest, src_entry, sizeof(zval *), NULL);
-				} else {
-					zend_hash_index_update(dest, num_key, src_entry, sizeof(zval*), NULL);
-				}
-				break;
-		}
-		zend_hash_move_forward_ex(src, &pos);
-	}
-	return 1;
-}
-
 PANCAKE_API void PancakeSetAnswerHeader(zval *answerHeaderArray, char *name, uint name_len, zval *value, uint replace, ulong h TSRMLS_DC) {
 	zval **answerHeader;
 
@@ -1302,29 +1235,120 @@ PHP_METHOD(HTTPRequest, getAnswerCodeString) {
 	RETURN_STRING(answerCodeString, 1);
 }
 
-zval *PancakeRecursiveResolveParameter(char *part, zval *value) {
+static zval *PancakeRecursiveResolveParameterRun(char *part, zval *value, zval *destination) {
 	char *begin, *end;
+	int len;
 
-	if((begin = strchr(part, '[')) && (end = strchr(part, ']'))) {
-		char *name = begin + 1;
-		zval *array;
-		*end = '\0';
+	begin = strchr(part, '[');
+	end = strchr(part, ']');
 
-		MAKE_STD_ZVAL(array);
-		array_init(array);
+	if(!begin || UNEXPECTED(!end)) {
+		len = end ? end - part : strlen(part);
 
-		zval *nvalue = PancakeRecursiveResolveParameter(end + 1, value);
-
-		if(!strlen(name)) {
-			add_index_zval(array, 0, nvalue);
+		if(len) {
+			part[len] = '\0';
+			add_assoc_zval_ex(destination, part, len + 1, value);
 		} else {
-			add_assoc_zval(array, name, nvalue);
+			add_next_index_zval(destination, value);
+		}
+	} else {
+		zval *newDestination, **data;
+
+		len = end > begin ? begin - part : end - part;
+		part[len] = '\0';
+
+		if(zend_symtable_find(Z_ARRVAL_P(destination), part, len + 1, (void**) &data) == SUCCESS && Z_TYPE_PP(data) == IS_ARRAY) {
+			Z_ADDREF_PP(data);
+			newDestination = *data;
+		} else {
+			MAKE_STD_ZVAL(newDestination);
+			array_init(newDestination);
 		}
 
-		return array;
+		newDestination = PancakeRecursiveResolveParameterRun(begin + 1, value, newDestination);
+
+		if(len) {
+			add_assoc_zval_ex(destination, part, len + 1, newDestination);
+		} else {
+			add_next_index_zval(destination, newDestination);
+		}
 	}
 
-	return value;
+	return destination;
+}
+
+static inline zval *PancakeRecursiveResolveParameter(char *part, zval *value, zval *destination) {
+	if(!strlen(part)) {
+		add_assoc_zval_ex(destination, "", 1, value);
+	} else {
+		destination = PancakeRecursiveResolveParameterRun(part, value, destination);
+	}
+
+	return destination;
+}
+
+static inline zval *PancakeResolveFILES(char **opart, zval *zName, zval *zType, zval *zTmpName, zval *zError, zval *zSize, zval *destination) {
+	char *part = *opart;
+	int part_len = strlen(part);
+	char *begin, *end, *dupe;
+
+	begin = strchr(part, '[');
+
+	if(begin) {
+		int key_len = part_len - (begin - part) + 1;
+		int beginOffset = begin - part;
+
+		part = erealloc(part, part_len + 7);
+
+		memmove(part + beginOffset + 6, part + beginOffset, key_len);
+		memcpy(part + beginOffset, "[name]", sizeof("[name]") - 1);
+		dupe = estrndup(part, part_len + 6);
+		destination = PancakeRecursiveResolveParameter(dupe, zName, destination);
+		efree(dupe);
+
+		memcpy(part + beginOffset, "[type]", sizeof("[type]") - 1);
+		dupe = estrndup(part, part_len + 6);
+		destination = PancakeRecursiveResolveParameter(dupe, zType, destination);
+		efree(dupe);
+
+		memcpy(part + beginOffset, "[size]", sizeof("[size]") - 1);
+		dupe = estrndup(part, part_len + 6);
+		destination = PancakeRecursiveResolveParameter(dupe, zSize, destination);
+		efree(dupe);
+
+		part = erealloc(part, part_len + 8);
+		memmove(part + beginOffset + 7, part + beginOffset + 6, key_len);
+		memcpy(part + beginOffset, "[error]", sizeof("[error]") - 1);
+		dupe = estrndup(part, part_len + 7);
+		destination = PancakeRecursiveResolveParameter(dupe, zError, destination);
+		efree(dupe);
+
+		part = erealloc(part, part_len + sizeof("[tmp_name]"));
+		memmove(part + beginOffset + sizeof("[tmp_name]") - 1, part + beginOffset + 7, key_len);
+		memcpy(part + beginOffset, "[tmp_name]", sizeof("[tmp_name]") - 1);
+		dupe = estrndup(part, part_len + sizeof("[tmp_name]") - 1);
+		destination = PancakeRecursiveResolveParameter(dupe, zTmpName, destination);
+		efree(dupe);
+	} else {
+		part = erealloc(part, part_len + 7);
+
+		memcpy(part + part_len, "[name]", sizeof("[name]"));
+		destination = PancakeRecursiveResolveParameter(part, zName, destination);
+		memcpy(part + part_len, "[type]", sizeof("[type]"));
+		destination = PancakeRecursiveResolveParameter(part, zType, destination);
+		memcpy(part + part_len, "[size]", sizeof("[size]"));
+		destination = PancakeRecursiveResolveParameter(part, zSize, destination);
+		part = erealloc(part, part_len + 8);
+		memcpy(part + part_len, "[error]", sizeof("[error]"));
+		destination = PancakeRecursiveResolveParameter(part, zError, destination);
+		part = erealloc(part, part_len + sizeof("[tmp_name]"));
+		memcpy(part + part_len, "[tmp_name]", sizeof("[tmp_name]"));
+		destination = PancakeRecursiveResolveParameter(part, zTmpName, destination);
+	}
+
+	*opart = part;
+
+	return destination;
 }
 
 zval *PancakeProcessQueryString(zval *destination, zval *queryString, const char *delimiter) {
@@ -1366,23 +1390,11 @@ zval *PancakeProcessQueryString(zval *destination, zval *queryString, const char
 
 		php_url_decode(part, strlen(part));
 
-		zvalue = PancakeRecursiveResolveParameter(part, zvalue);
+		destination = PancakeRecursiveResolveParameter(part, zvalue, destination);
 
 		char *pos = strchr(part, '[');
 		if(pos != NULL) {
 			*pos = '\0';
-		}
-
-		if(Z_TYPE_P(zvalue) == IS_ARRAY) {
-			zval *array;
-			MAKE_STD_ZVAL(array);
-			array_init(array);
-
-			add_assoc_zval(array, part, zvalue);
-			Pancake_array_merge(Z_ARRVAL_P(destination), Z_ARRVAL_P(array), 1 TSRMLS_CC);
-			zval_ptr_dtor(&array);
-		} else {
-			add_assoc_zval(destination, part, zvalue);
 		}
 	} while((part = strtok_r(NULL, delimiter, &ptr1)) != NULL);
 
@@ -1549,9 +1561,6 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 							goto free;
 						}
 
-						zval *zvalue;
-						MAKE_STD_ZVAL(zvalue);
-
 						if(fileName != NULL) {
 							if(UNEXPECTED(type == NULL)) {
 								efree(name);
@@ -1605,77 +1614,20 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 							Z_TYPE_P(zSize) = IS_LONG;
 							Z_LVAL_P(zSize) = rawDataLength;
 
-							char *begin, *baseName;
-							if((begin = strchr(name, '[')) && (strchr(name, ']'))) {
-								baseName = estrndup(name, begin - name);
-								int i;
-								zval **resolveZval;
-
-								for(i = 0;i < 5;i++) {
-									switch(i) {
-										case 0:
-											resolveZval = &zName;
-											break;
-										case 1:
-											resolveZval = &zType;
-											break;
-										case 2:
-											resolveZval = &zError;
-											break;
-										case 3:
-											resolveZval = &zTmpName;
-											break;
-										case 4:
-											resolveZval = &zSize;
-											break;
-									}
-
-									char *begin_dupe = estrdup(begin);
-									*resolveZval = PancakeRecursiveResolveParameter(begin_dupe, *resolveZval);
-									efree(begin_dupe);
-								}
-							} else {
-								baseName = estrdup(name);
-							}
-
-							zval *dataArray;
-							MAKE_STD_ZVAL(dataArray);
-							array_init_size(dataArray, 5);
-							add_assoc_zval_ex(dataArray, "name", 5, zName);
-							add_assoc_zval_ex(dataArray, "type", 5, zType);
-							add_assoc_zval_ex(dataArray, "tmp_name", sizeof("tmp_name"), zTmpName);
-							add_assoc_zval_ex(dataArray, "error", 6, zError);
-							add_assoc_zval_ex(dataArray, "size", 5, zSize);
-
-							array_init_size(zvalue, 1);
-							add_assoc_zval(zvalue, baseName, dataArray);
-
-							efree(baseName);
-
-							Pancake_array_merge(Z_ARRVAL_P(files), Z_ARRVAL_P(zvalue), 1 TSRMLS_CC);
-							zval_ptr_dtor(&zvalue);
+							files = PancakeResolveFILES(&name, zName, zType, zTmpName, zError, zSize, files);
 						} else {
+							zval *zvalue;
+
+							MAKE_STD_ZVAL(zvalue);
 							Z_TYPE_P(zvalue) = IS_STRING;
 							Z_STRLEN_P(zvalue) = rawDataLength;
 							Z_STRVAL_P(zvalue) = estrndup(rawDataOffset, rawDataLength);
 
-							zvalue = PancakeRecursiveResolveParameter(name, zvalue);
+							POSTParameters = PancakeRecursiveResolveParameter(name, zvalue, POSTParameters);
 
 							char *pos = strchr(name, '[');
 							if(pos != NULL) {
 								*pos = '\0';
-							}
-
-							if(Z_TYPE_P(zvalue) == IS_ARRAY) {
-								zval *array;
-								MAKE_STD_ZVAL(array);
-								array_init(array);
-
-								add_assoc_zval(array, name, zvalue);
-								Pancake_array_merge(Z_ARRVAL_P(POSTParameters), Z_ARRVAL_P(array), 1 TSRMLS_CC);
-								zval_ptr_dtor(&array);
-							} else {
-								add_assoc_zval(POSTParameters, name, zvalue);
 							}
 						}
 
