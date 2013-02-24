@@ -454,13 +454,18 @@ PHP_METHOD(HTTPRequest, init) {
 	FAST_READ_PROPERTY(rewriteRules, *vHost, "rewriteRules", sizeof("rewriteRules") - 1, HASH_OF_rewriteRules);
 
 	int fL1isMalloced = 0;
+	char *queryStringStart;
 
-	php_url_decode(firstLine[1], strlen(firstLine[1]));
+	if(queryStringStart = strchr(firstLine[1], '?')) {
+		php_url_decode(firstLine[1], queryStringStart - firstLine[1]);
+		firstLine[1][queryStringStart - firstLine[1]] = '?';
+	} else {
+		php_url_decode(firstLine[1], strlen(firstLine[1]));
+	}
 
 	if(Z_TYPE_P(rewriteRules) == IS_ARRAY) {
 		zval **rewriteRule;
 		char *path = NULL;
-		char *queryStringStart;
 
 		for(zend_hash_internal_pointer_reset(Z_ARRVAL_P(rewriteRules));
 			zend_hash_get_current_data(Z_ARRVAL_P(rewriteRules), (void**) &rewriteRule) == SUCCESS;
