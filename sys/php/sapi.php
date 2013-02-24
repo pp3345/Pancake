@@ -290,12 +290,12 @@
     #.ifdef 'HAVE_SESSION_EXTENSION'
     function session_start() {
 		if(session_id());
-		else if($id = Pancake\vars::$Pancake_request->getCookies()[session_name()])
-			session_id($id);
-		else if($id = Pancake\vars::$Pancake_request->getGETParams()[session_name()])
-			session_id($id);
-		else if($id = Pancake\vars::$Pancake_request->getPOSTParams()[session_name()])
-			session_id($id);
+		else if(isset(Pancake\vars::$Pancake_request->getCookies()[session_name()]))
+			session_id(Pancake\vars::$Pancake_request->getCookies()[session_name()]);
+		else if(isset(Pancake\vars::$Pancake_request->getGETParams()[session_name()]))
+			session_id(Pancake\vars::$Pancake_request->getGETParams()[session_name()]);
+		else if(isset(Pancake\vars::$Pancake_request->getPOSTParams()[session_name()]))
+			session_id(Pancake\vars::$Pancake_request->getPOSTParams()[session_name()]);
 		else {
 			Pancake\makeSID();
 		}
