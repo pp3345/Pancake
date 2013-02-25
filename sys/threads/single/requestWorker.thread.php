@@ -95,10 +95,6 @@
     	#.define 'SUPPORT_MULTIPLE_VHOSTS' true
     #.endif
 
-    #.if #.number #.call 'Pancake\Config::get' 'main.iocacheram'
-    	#.define 'USE_IOCACHE' true
-    #.endif
-
     #.macro 'REQUEST_TYPE' '$requestObject->requestType'
     #.macro 'GET_PARAMS' '$requestObject->getGETParams()'
     #.macro 'MIME_TYPE' '$requestObject->mimeType'
@@ -164,20 +160,7 @@
     #.include 'workerFunctions.php'
     #.include 'vHostInterface.class.php'
 
-    #.ifdef 'USE_IOCACHE'
-    	#.include 'IOCache.class.php'
-    #.endif
-
     makeFastClass('Pancake\vHostInterface');
-
-    /*var_dump($buffer = $ioCache->allocateBuffer(10, 'abcdefghijklmnopqrstuvwxyz1234567890'));
-    var_dump($ioCache->getBytes($buffer, 36));
-    var_dump($buffer2 = $ioCache->allocateBuffer(10, 'anti'));
-    var_dump($ioCache->getBytes($buffer2));
-    var_dump($buffer);
-    var_dump($ioCache->getBytes($buffer, 36));
-    var_dump($buffer3 = $ioCache->allocateBuffer(11, "aaaaa"));
-    var_dump($ioCache->getBytes($buffer, 36), $ioCache->getBytes($buffer2, 4), $ioCache->getBytes($buffer3, 5));*/
 
     unset($loadCodeFile);
 
@@ -253,11 +236,6 @@
     	benchmarkFunction("socket_read");
     	benchmarkFunction("socket_write");
     	benchmarkFunction("hexdec");
-    #.endif
-
-    #.ifdef 'USE_IOCACHE'
-    	global $ioCache;
-    	$ioCache = new IOCache;
     #.endif
 
     // Ready
@@ -387,11 +365,7 @@
                 $requestSocket = $socket;
                 $requestObject = $requests[$socketID];
                 if(!isset($socketData[$socketID])) {
-                	#.ifdef 'USE_IOCACHE'
-                		$socketData[$socketID] = $ioCache->allocateBuffer(/* .constant 'IOCACHE_SOCKET_BUFFER_PRIORITY' */);
-                	#.else
-                		$socketData[$socketID] = "";
-                	#.endif
+                	$socketData[$socketID] = "";
                 }
                 break;
             }
@@ -474,11 +448,7 @@
                 goto clean;
             $socketID = (int) $requestSocket;
             
-            #.ifdef 'USE_IOCACHE'
-            	$socketData[$socketID] = $ioCache->allocateBuffer(/* .constant 'IOCACHE_SOCKET_BUFFER_PRIORITY' */);
-            #.else
-            	$socketData[$socketID] = "";
-            #.endif
+            $socketData[$socketID] = "";
 
             #.ifdef 'SUPPORT_TLS'
             	socket_getsockname($requestSocket, $ip, $port);
@@ -516,33 +486,15 @@
             if(strlen($postData[$socketID]) >= /* .GET_REQUEST_HEADER '"content-length"' */)
                 goto readData;
         } else if($bytes) {
-        	#.ifdef 'USE_IOCACHE'
-        		$ioCache->addBytes($socketData[$socketID], $bytes);
-        	#.else
-            	$socketData[$socketID] .= $bytes;
-            #.endif
+            $socketData[$socketID] .= $bytes;
 
             // Check if all headers were received
-            #.ifdef 'USE_IOCACHE'
-            if(strpos($ioCache->getBytes($socketData[$socketID], -1), "\r\n\r\n")) {
-            #.else
             if(strpos($socketData[$socketID], "\r\n\r\n")) {
-			#.endif
             	// Check for POST
-                #.ifdef 'USE_IOCACHE'
-                	if($ioCache->getBytes($socketData[$socketID], 4) === "POST") {
-                		$data = explode("\r\n\r\n", $ioCache->getBytes($socketData[$socketID], -1), 2);
-				#.else
-               		if(strpos($socketData[$socketID], "POST") === 0) {
-               			$data = explode("\r\n\r\n", $socketData[$socketID], 2);
-               	#.endif
-                    #.ifdef 'USE_IOCACHE'
-                    	$ioCache->setBytes($socketData[$socketID], $data[0]);
-                    	$postData[$socketID] = $ioCache->allocateBuffer(/* .constant 'IOCACHE_POST_BUFFER_PRIORITY' */, $data[1]);
-                    #.else
-                    	$socketData[$socketID] = $data[0];
-	                    $postData[$socketID] = $data[1];
-	                #.endif
+           		if(strpos($socketData[$socketID], "POST") === 0) {
+           			$data = explode("\r\n\r\n", $socketData[$socketID], 2);
+                	$socketData[$socketID] = $data[0];
+                    $postData[$socketID] = $data[1];
                 }
 
                 goto readData;
@@ -550,11 +502,7 @@
 
             // Avoid memory exhaustion by just sending random but long data that does not contain \r\n\r\n
             // I assume that no normal HTTP-header will be longer than 10 KiB
-            #.ifdef 'USE_IOCACHE'
-            if(/* .IOCACHE_BUFFER_TOTAL_BYTES '$socketData[$socketID]' */ >= 10240)
-            #.else
             if(strlen($socketData[$socketID]) >= 10240)
-            #.endif
                 goto close;
         }
         // Event-based reading
@@ -576,18 +524,12 @@
             // Create request object / Read Headers
             try {
                 $requestObject = $requests[$socketID] = new HTTPRequest($ip, $port, $lip, $lport);
-                #.ifdef 'USE_IOCACHE'
-                	$requestObject->init($ioCache->getBytes($socketData[$socketID], -1));
-                	$ioCache->deallocateBuffer($socketData[$socketID]);
-                #.else
-                	$requestObject->init($socketData[$socketID]);
-                #.endif
+                $requestObject->init($socketData[$socketID]);
+                
                 unset($socketData[$socketID]);
             } catch(invalidHTTPRequestException $exception) {
                 $requestObject->invalidRequest($exception);
-                #.ifdef 'USE_IOCACHE'
-                	$ioCache->deallocateBuffer($socketData[$socketID]);
-                #.endif
+                
                 unset($socketData[$socketID], $exception);
                 goto write;
             }
@@ -595,15 +537,9 @@
 
         // Check for POST and get all POST-data
         if(/* .REQUEST_TYPE */ == 'POST') {
-			#.ifdef 'USE_IOCACHE'
-			if(/* .IOCACHE_BUFFER_TOTAL_BYTES '$postData[$socketID]' */ >= /* .GET_REQUEST_HEADER '"content-length"' */) {
-				if(/* .IOCACHE_BUFFER_TOTAL_BYTES '$postData[$socketID]' */ > /* .GET_REQUEST_HEADER '"content-length"' */)
-					$ioCache->setBytes($postData[$socketID], substr($ioCache->getBytes($postData[$socketID], -1), 0, /* .GET_REQUEST_HEADER '"content-length"' */));
-			#.else
             if(strlen($postData[$socketID]) >= /* .GET_REQUEST_HEADER '"content-length"' */) {
                 if(strlen($postData[$socketID]) > /* .GET_REQUEST_HEADER '"content-length"' */)
                     $postData[$socketID] = substr($postData[$socketID], 0, /* .GET_REQUEST_HEADER '"content-length"' */);
-            #.endif
                 if($key = array_search($requestSocket, $listenSocketsOrig))
                     unset($listenSocketsOrig[$key]);
                 /* .RAW_POST_DATA */ = $postData[$socketID];
@@ -755,16 +691,6 @@
             #.ifdef 'SUPPORT_WAITSLOTS'
             unset($waitSlotsOrig[$socketID]);
             unset($waits[$socketID]);
-            #.endif
-
-            #.ifdef 'USE_IOCACHE'
-            	// Load cache data into object
-            	if(/* .RAW_POST_DATA */) {
-            		$buffer = /* .RAW_POST_DATA */;
-            		/* .RAW_POST_DATA */ = $ioCache->getBytes(/* .RAW_POST_DATA */, -1);
-            		$ioCache->deallocateBuffer($buffer);
-            		unset($buffer);
-            	}
             #.endif
 
             $data = serialize($requestObject);
@@ -968,26 +894,12 @@
         } else {
             if(!in_array($requestSocket, $listenSocketsOrig, true) && $requestObject->answerHeaders["connection"] == 'keep-alive')
                 $listenSocketsOrig[] = $requestSocket;
-
-            #.ifdef 'USE_IOCACHE'
-            	if(/* .RAW_POST_DATA */ instanceof \stdClass)
-            		$ioCache->deallocateBuffer(/* .RAW_POST_DATA */);
-            #.endif
         }
 
 
         #.ifdef 'SUPPORT_WAITSLOTS'
         unset($waitSlotsOrig[$socketID]);
         unset($waits[$socketID]);
-        #.endif
-
-        #.ifdef 'USE_IOCACHE'
-        	if($socketData[$socketID]) {
-				#.ifdef 'IOCACHE_DEBUG'
-        			out('Late deallocate');
-        		#.endif
-        		$ioCache->deallocateBuffer($socketData[$socketID]);
-        	}
         #.endif
 
         unset($socketData[$socketID]);

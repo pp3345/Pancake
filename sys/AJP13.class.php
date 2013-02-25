@@ -251,17 +251,14 @@
 			switch($data[4]) {
 				case /* .AJP13_GET_BODY_CHUNK */:
 					$length = (ord($data[5]) << 8) + ord($data[6]);
-					#.ifdef 'USE_IOCACHE'
-
-					#.else
-						if($requestObject->rawPOSTData) {
-							$string = substr($requestObject->rawPOSTData, 0, $length);
-							$strlen = strlen($string);
-							socket_write($socket, "\x12\x34" . chr(($strlen + 2) >> 8) . chr($strlen + 2) . chr($strlen >> 8) . chr($strlen) . $string);
-							$requestObject->rawPOSTData = substr($requestObject->rawPOSTData, $strlen);
-						} else
-							socket_write($socket, "\x12\x34\x0\x0");
-					#.endif
+					if($requestObject->rawPOSTData) {
+						$string = substr($requestObject->rawPOSTData, 0, $length);
+						$strlen = strlen($string);
+						socket_write($socket, "\x12\x34" . chr(($strlen + 2) >> 8) . chr($strlen + 2) . chr($strlen >> 8) . chr($strlen) . $string);
+						$requestObject->rawPOSTData = substr($requestObject->rawPOSTData, $strlen);
+					} else
+						socket_write($socket, "\x12\x34\x0\x0");
+                    
 					return 5;
 				case /* .AJP13_SEND_BODY_CHUNK */:
 					$requestObject->answerBody .= substr($data, 7, (ord($data[5]) << 8) + ord($data[6]));
