@@ -45,7 +45,7 @@ The script is located in the main directory of Pancake. Run the following comman
     cd <PancakeDirectory>
     sudo cp init /etc/init.d/pancake
     sudo chmod +x /etc/init.d/pancake
-    sudo update-rc.d pancake enable
+    sudo update-rc.d pancake defaults enable
     
 In case your Pancake is **not** installed in /usr/local/Pancake, please change the `DAEMON` line in the script to match your Pancake installation path.
 
