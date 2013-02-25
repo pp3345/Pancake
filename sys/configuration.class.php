@@ -120,11 +120,11 @@
 
 			try {
 				if(!($data = file_get_contents($fileName)) || !($config = self::$parser->parse($data))) {
-				    out('Failed to load configuration file ' . $fileName, OUTPUT_SYSTEM);
+				    out('Failed to load configuration file ' . $fileName);
 				    return false;
 				}
 			} catch(\Exception $e) {
-				out('Failed to load configuration file ' . $fileName . ': ' . $e->getMessage(), OUTPUT_SYSTEM);
+				out('Failed to load configuration file ' . $fileName . ': ' . $e->getMessage());
 				return false;
 			}
 
@@ -133,6 +133,17 @@
             		$include = realpath($include);
             		self::loadFile($include);
             	}
+            }
+
+            if(isset($config['vhosts'])) {
+                foreach($config['vhosts'] as $key => $value) {
+                    if(isset(self::$configuration['vhosts'][$key])) {
+                        out('The vHost "' . $key . '" seems to be defined in two files. This might be done on purpose, however, you 
+                        should make sure that you are not trying to define two different vHosts and mistakenly forgot to change the name,
+                        as this will overwrite the configuration of the first vHost. 
+                        The name of a vHost is usually set in the second line of a vHost configuration file.');
+                    }
+                }
             }
 
             self::$configuration = array_merge(self::$configuration, $config);
