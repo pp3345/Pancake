@@ -462,9 +462,10 @@
                     	goto clean;
                     case "LOAD_FILE_POINTERS":
                         loadFilePointers();
+                        goto clean;
                 }
             }
-
+            
             if(
             #.if 0 != #.call 'Pancake\Config::get' 'main.maxconcurrent'
             /* .call 'Pancake\Config::get' 'main.maxconcurrent' */ < count($listenSocketsOrig) - count($Pancake_sockets) ||
@@ -472,7 +473,7 @@
             !($requestSocket = @socket_accept($socket)))
                 goto clean;
             $socketID = (int) $requestSocket;
-
+            
             #.ifdef 'USE_IOCACHE'
             	$socketData[$socketID] = $ioCache->allocateBuffer(/* .constant 'IOCACHE_SOCKET_BUFFER_PRIORITY' */);
             #.else
