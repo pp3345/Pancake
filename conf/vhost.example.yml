@@ -38,6 +38,8 @@ vhosts:
     PHPResetFunctionStaticNonObjects: false                     # Whether the SAPI should set all static function variables to null after finishing a request (will still destroy objects before if phpresetfunctionstaticobjects is enabled)
     PHPResetObjectsDestroyDestructors: true                     # Whether the SAPI should not execute object destructors when destroying objects (true = will not execute; false = will execute)
     PHPMaxExecutionTime: 10                                     # Same function as PHP's max_execution_time-setting
+#    PHPModules:                                                # Load PHP modules for this vHost
+#      - gd
 #    PHPINISettings:                                            # Set custom php.ini settings for this vHost
 #      session.name: "myGreatSession"
 #    PHPPredefinedConstants:                                    # A list of constants that should be predefined before script-execution in the SAPI

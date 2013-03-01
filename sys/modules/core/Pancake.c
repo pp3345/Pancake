@@ -88,6 +88,8 @@ const zend_function_entry Pancake_functions[] = {
 	ZEND_NS_FE("Pancake", loadFilePointers, NULL)
 	ZEND_NS_FE("Pancake", makeSID, NULL)
 	ZEND_NS_FE("Pancake", makeFastClass, NULL)
+	ZEND_NS_FE("Pancake", loadModule, NULL)
+	ZEND_NS_FE("Pancake", disableModuleLoader, NULL)
 	ZEND_FE_END
 };
 
@@ -160,6 +162,7 @@ void php_Pancake_init_globals(zend_Pancake_globals *Pancake_globals)
 	Pancake_globals->JIT_POST = PG(auto_globals_jit);
 	Pancake_globals->JIT_FILES = PG(auto_globals_jit);
 	Pancake_globals->JIT_ENV = PG(auto_globals_jit);
+	Pancake_globals->disableModuleLoader = 0;
 }
 
 PHP_MINIT_FUNCTION(Pancake)

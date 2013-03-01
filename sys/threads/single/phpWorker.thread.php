@@ -75,6 +75,15 @@
 	#.if #.eval EVAL_CODE false
 		#.HAVE_INI_SETTINGS = true
 	#.endif
+	
+	#.longDefine 'EVAL_CODE'
+	global $Pancake_currentThread;
+    return (bool) $Pancake_currentThread->vHost->phpModules;
+	#.endLongDefine
+	
+	#.if #.eval EVAL_CODE false
+	   #.HAVE_PHP_MODULES = true
+	#.endif
 
 	#.if Pancake\DEBUG_MODE === true
 		#.define 'BENCHMARK' false
@@ -174,12 +183,25 @@
 		   	unset($value);
 		#.endif
 
+        #.ifdef 'HAVE_PHP_MODULES'
+            foreach(vars::$Pancake_currentThread->vHost->phpModules as $name) {
+                loadModule($name);
+            }
+            
+            unset($name);
+        #.endif
+        
+        disableModuleLoader();
+
 		#.ifdef 'HAVE_INI_SETTINGS'
 			// Set ini settings
 
 			foreach(vars::$Pancake_currentThread->vHost->phpINISettings as $name => $value) {
 				PHPFunctions\setINI($name, $value);
 			}
+            
+            unset($name);
+            unset($value);
 		#.endif
 
 	    #.ifdef 'SUPPORT_CODECACHE'

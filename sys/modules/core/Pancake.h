@@ -34,6 +34,16 @@ extern zend_module_entry Pancake_module_entry;
 #	error "Microsoft Windows is not supported by Pancake"
 #endif
 
+#if defined(__i386__)
+#	define PANAKE_X86
+#elif defined(__x86_64__)
+#	define PANCAKE_X86_64
+#elif defined(__arm__)
+#	define PANCAKE_ARMHF
+#else
+#	error "Unsupported processor"
+#endif
+
 #if defined(__GNUC__) && __GNUC__ >= 4
 #	define PANCAKE_API __attribute__ ((visibility("default")))
 #else
@@ -56,8 +66,9 @@ PHP_FUNCTION(CodeCacheJITGlobals);
 PHP_FUNCTION(ExecuteJITGlobals);
 PHP_FUNCTION(loadFilePointers);
 PHP_FUNCTION(makeSID);
-
+PHP_FUNCTION(loadModule);
 PHP_FUNCTION(makeFastClass);
+PHP_FUNCTION(disableModuleLoader);
 
 PHP_METHOD(HTTPRequest, __construct);
 PHP_METHOD(HTTPRequest, init);
@@ -164,6 +175,7 @@ ZEND_BEGIN_MODULE_GLOBALS(Pancake)
 	int JIT_ENV;
 	int enableAuthentication;
 	char *tmpDir;
+	int disableModuleLoader;
 ZEND_END_MODULE_GLOBALS(Pancake)
 extern ZEND_DECLARE_MODULE_GLOBALS(Pancake);
 

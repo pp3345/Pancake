@@ -71,6 +71,9 @@
 			#.ifdef 'HAVE_INI_SETTINGS'
 			public $phpINISettings = array();
 			#.endif
+			#.ifdef 'HAVE_PHP_MODULES'
+			public $phpModules = array();
+			#.endif
 	    #.endif
         public $exceptionPageHandler = "";
 

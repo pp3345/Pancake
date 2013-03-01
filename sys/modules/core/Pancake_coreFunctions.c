@@ -460,3 +460,59 @@ PHP_FUNCTION(makeSID) {
 		efree(PS(id));
 	PS(id) = PS(mod)->s_create_sid(&PS(mod_data), NULL TSRMLS_CC);
 }
+
+PHP_FUNCTION(loadModule) {
+	char *name, *modulePath;
+	int name_len;
+	zend_bool isPancakeModule = 0;
+
+	if(PANCAKE_GLOBALS(disableModuleLoader)) {
+		zend_error(E_ERROR, "Can't load Pancake modules after startup");
+		RETURN_FALSE;
+	}
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|b", &name, &name_len, &isPancakeModule) == FAILURE) {
+		RETURN_FALSE;
+	}
+
+	if(isPancakeModule) {
+		char *pancakePath = get_current_dir_name();
+
+#ifdef PANCAKE_X86_64
+		spprintf(&modulePath, 0, "%s/natives/%s/x86_64_54.so", pancakePath, name);
+#elif defined(PANCAKE_X86)
+		spprintf(&modulePath, 0, "%s/natives/%s/x86_54.so", pancakePath, name);
+#elif defined(PANCAKE_ARMHF)
+		spprintf(&modulePath, 0, "%s/natives/%s/armhf_54.so", pancakePath, name);
+#endif
+
+		free(pancakePath);
+	} else {
+		modulePath = emalloc(name_len + 4);
+		memcpy(modulePath, name, name_len);
+		memcpy(modulePath + name_len, ".so", sizeof(".so"));
+	}
+
+	php_dl(modulePath, MODULE_PERSISTENT, return_value, 1 TSRMLS_CC);
+
+	efree(modulePath);
+
+	if(Z_LVAL_P(return_value)) {
+		char *string, *stringP;
+		spprintf(&string, 0, "Module %s loaded", name);
+		stringP = string;
+		PancakeOutput(&string, strlen(string), OUTPUT_SYSTEM | OUTPUT_DEBUG);
+		efree(string);
+		efree(stringP);
+
+		EG(full_tables_cleanup) = 1;
+		RETURN_TRUE;
+	} else {
+		zend_error(E_WARNING, "Failed to load module %s", name);
+		RETURN_FALSE;
+	}
+}
+
+PHP_FUNCTION(disableModuleLoader) {
+	PANCAKE_GLOBALS(disableModuleLoader) = 1;
+}

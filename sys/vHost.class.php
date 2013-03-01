@@ -62,6 +62,7 @@
         public $gzipStatic = false;
         public $gzipMimeTypes = array();
 		public $phpINISettings = array();
+        public $phpModules = array();
 
         /**
         * Loads a vHost
@@ -127,6 +128,7 @@
             $this->gzipStatic = (bool) $config['gzipstatic'];
             $this->gzipMimeTypes = (array) $config['gzipmimetypes'];
 			$this->phpINISettings = (array) $config['phpinisettings'];
+            $this->phpModules = (array) $config['phpmodules'];
 
             // Check for Hosts to listen on
             $this->listen = (array) $config['listen'];
