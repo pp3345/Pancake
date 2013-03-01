@@ -499,9 +499,9 @@ PHP_FUNCTION(loadModule) {
 
 	if(Z_LVAL_P(return_value)) {
 		char *string, *stringP;
-		spprintf(&string, 0, "Module %s loaded", name);
+		int string_len = spprintf(&string, 0, "Module %s loaded", name);
 		stringP = string;
-		PancakeOutput(&string, strlen(string), OUTPUT_SYSTEM | OUTPUT_DEBUG);
+		PancakeOutput(&string, string_len, OUTPUT_SYSTEM | OUTPUT_DEBUG | OUTPUT_LOG TSRMLS_CC);
 		efree(string);
 		efree(stringP);
 

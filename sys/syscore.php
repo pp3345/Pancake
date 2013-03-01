@@ -223,7 +223,7 @@
     // Create sockets
     // IPv6
     foreach((array) Config::get('main.ipv6') as $interface) {
-        foreach(\array_merge((array) Config::get('main.listenports'), (array) Config::get('main.secureports')) as $listenPort) {
+        foreach(\array_merge((array) Config::get('main.listenports'), (array) Config::get('tls.ports')) as $listenPort) {
             // Create socket
             $socket = socket_create(\AF_INET6, \SOCK_STREAM, \SOL_TCP);
 
@@ -249,7 +249,7 @@
 
     // IPv4
     foreach((array) Config::get('main.ipv4') as $interface) {
-        foreach(\array_merge((array) Config::get('main.listenports'), (array) Config::get('main.secureports')) as $listenPort) {
+        foreach(\array_merge((array) Config::get('main.listenports'), (array) Config::get('tls.ports')) as $listenPort) {
             // Create socket
             $socket = socket_create(\AF_INET, \SOCK_STREAM, \SOL_TCP);
 

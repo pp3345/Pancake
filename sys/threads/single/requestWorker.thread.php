@@ -14,8 +14,11 @@
         exit;
    	#.endif
 
-   	#.if 0 && #.bool #.call 'Pancake\Config::get' 'main.secureports'
-    	#.define 'SUPPORT_TLS' true
+   	#.if #.bool #.Pancake\Config::get 'tls'
+    	#.SUPPORT_TLS = true
+    	#.TLS_ACCEPT = 1
+    	#.TLS_READ = 2
+    	#.TLS_WRITE = 3
     #.endif
 
     #.if #.bool #.call 'Pancake\Config::get' 'fastcgi'
@@ -141,10 +144,6 @@
     // Precalculate post_max_size in bytes
    	#.define 'POST_MAX_SIZE' #.eval '$size = strtolower(ini_get("post_max_size")); if(strpos($size, "k")) $size = (int) $size * 1024; else if(strpos($size, "m")) $size = (int) $size * 1024 * 1024; else if(strpos($size, "g")) $size = (int) $size * 1024 * 1024 * 1024; return $size;' false
 
-    #.ifdef 'SUPPORT_TLS'
-    	#.include 'TLSConnection.class.php'
-    #.endif
-
     #.ifdef 'SUPPORT_FASTCGI'
     	#.include 'FastCGI.class.php'
     #.endif
@@ -166,7 +165,7 @@
 
 	Thread::clearCache();
     MIME::load();
-
+        
     foreach($Pancake_vHosts as $id => &$vHost) {
     	if($vHost instanceof vHostInterface)
     		break;
@@ -177,6 +176,7 @@
     	#.ifdef 'SUPPORT_AJP13'
     		$vHost->initializeAJP13();
     	#.endif
+
     	unset($Pancake_vHosts[$id]);
     	foreach($vHost->listen as $address)
     		$Pancake_vHosts[$address] = $vHost;
@@ -187,8 +187,17 @@
     #.else
         setThread($Pancake_currentThread, vHostInterface::$defaultvHost, $Pancake_vHosts, /* .constant 'POST_MAX_SIZE' */, 0);
     #.endif
+    
+    #.ifdef 'SUPPORT_TLS'
+    LoadModule('tls', true);
+    #.certificateChain = #.Pancake\Config::get 'tls.certificatechain'
+    #.privateKey = #.Pancake\Config::get 'tls.privatekey'
+    TLSCreateContext(/* .certificateChain */, /* .privateKey */);
+    #.endif
 
     unset($id, $vHost, $address);
+        
+    disableModuleLoader();
 
     Config::workerDestroy();
 
@@ -201,7 +210,7 @@
     $decliningNewRequests = false;
     #.endif
     #.ifdef 'SUPPORT_TLS'
-    $secureConnection = array();
+    $TLSConnections = array();
     #.endif
     #.ifdef 'SUPPORT_FASTCGI'
     $fastCGISockets = array();
@@ -231,7 +240,7 @@
     $waitSlotsOrig = array();
     $waits = array();
     #.endif
-
+    
     #.if BENCHMARK === true
     	benchmarkFunction("socket_read");
     	benchmarkFunction("socket_write");
@@ -275,12 +284,26 @@
 
         	$socketID = (int) $requestSocket;
         	$requestObject = $requests[$socketID];
+            
+            #.ifdef 'SUPPORT_TLS'
+            if(isset($TLSConnections[$socketID]) && $TLSConnections[$socketID] < /* .TLS_WRITE */) {
+                goto TLSRead;
+            }
+            #.endif
             goto liveWrite;
         }
 
         // New connection, downloadable content from a client or the PHP-SAPI finished a request
         foreach($listenSockets as $index => $socket) {
         	unset($listenSockets[$index]);
+
+            #.ifdef 'SUPPORT_TLS'
+            if(isset($TLSConnections[(int) $socket]) && $TLSConnections[(int) $socket] == /* .TLS_WRITE */) {
+                $socketID = (int) $socket;
+                $requestSocket = $socket;
+                goto liveWrite;
+            }
+            #.endif
 
         	#.ifdef 'SUPPORT_AJP13'
         	if(isset($ajp13Sockets[(int) $socket])) {
@@ -447,20 +470,72 @@
             !($requestSocket = @socket_accept($socket)))
                 goto clean;
             $socketID = (int) $requestSocket;
-            
-            $socketData[$socketID] = "";
 
             #.ifdef 'SUPPORT_TLS'
-            	socket_getsockname($requestSocket, $ip, $port);
-            	if(in_array($port, Config::get("main.secureports")))
-            		$secureConnection[$socketID] = new TLSConnection;
+            socket_getSockName($requestSocket, $xx, $port);
+            
+            if(in_array($port, Config::get('tls.ports'))) {
+                $TLSConnections[$socketID] = /* .TLS_ACCEPT */;
+                TLSInitializeConnection($requestSocket);
+            }
             #.endif
+            
+            $socketData[$socketID] = "";
 
             // Set O_NONBLOCK-flag
             socket_set_nonblock($requestSocket);
             break;
         }
 
+        #.ifdef 'SUPPORT_TLS'
+        TLSRead:
+        
+        if(isset($TLSConnections[$socketID])) {
+            switch($TLSConnections[$socketID]) {
+                case /* .TLS_ACCEPT */:
+                    switch(TLSAccept($socketID)) {
+                        case 1:
+                            $TLSConnections[$socketID] = /* .TLS_READ */;
+                        case 2:
+                            if(!in_array($requestSocket, $listenSocketsOrig)) {
+                                $liveReadSockets[$socketID] = true;
+                                $listenSocketsOrig[] = $requestSocket;
+                            }
+                            
+                            goto clean;
+                        case 3:
+                            if(!in_array($requestSocket, $liveWriteSocketsOrig))
+                                $liveWriteSocketsOrig[] = $requestSocket;
+                            goto clean;
+                        case 0:
+                            goto close;
+                    }
+                    break;
+                case /* .TLS_READ */:
+                    if(isset($requests[$socketID]))
+                        $bytes = TLSRead($socketID, /* .GET_REQUEST_HEADER '"content-length"' */ - strlen($postData[$socketID]));
+                    else 
+                        $bytes = TLSRead($socketID, 10240);
+
+                    if($bytes === 2) {
+                        if(!in_array($requestSocket, $listenSocketsOrig)) {
+                            $liveReadSockets[$socketID] = true;
+                            $listenSocketsOrig[] = $requestSocket;
+                        }
+                        
+                        goto clean;
+                    }
+                    
+                    if($bytes === 3) {
+                        if(!in_array($requestSocket, $liveWriteSocketsOrig))
+                            $liveWriteSocketsOrig[] = $requestSocket;
+                        goto clean;
+                    }
+                    break; 
+            }
+        } else
+        #.endif
+        
         // Receive data from client
         if(isset($requests[$socketID]))
             $bytes = @socket_read($requestSocket, /* .GET_REQUEST_HEADER '"content-length"' */ - strlen($postData[$socketID]));
@@ -471,14 +546,6 @@
         // We should not close the socket if socket_read() returns bool(false) - This might lead to problems with slow connections
         if($bytes === "")
             goto close;
-
-        #.ifdef 'SUPPORT_TLS'
-        	if($secureConnection[$socketID] && strlen($bytes) >= 5) {
-        		socket_set_block($requestSocket);
-        		socket_write($requestSocket, $secureConnection[$socketID]->data($bytes));
-        		goto close;
-        	}
-        #.endif
 
         // Check if request was already initialized and we are only reading POST-data
         if(isset($requests[$socketID])) {
@@ -842,8 +909,33 @@
         liveWrite:
 
         // The buffer should usually only be empty if the hard limit was reached - In this case Pancake won't allocate any buffers except when the client really IS ready to receive data
-        if(!strlen($writeBuffer[$socketID]))
+        if(!strlen($writeBuffer[$socketID]) 
+        #.ifdef 'SUPPORT_TLS'
+        && isset($requestFileHandle[$socketID])
+        #.endif
+        )
         	$writeBuffer[$socketID] = fread($requestFileHandle[$socketID], /* .call 'Pancake\Config::get' 'main.writebuffermin' */);
+
+        #.ifdef 'SUPPORT_TLS'        
+        if(isset($TLSConnections[$socketID])) {
+            $TLSConnections[$socketID] = /* .TLS_WRITE */;
+            if(($writtenLength = TLSWrite($socketID, $writeBuffer[$socketID])) === false)
+                goto close;
+
+            if($writtenLength == -1) {
+                if(!in_array($requestSocket, $listenSocketsOrig)) {
+                    $listenSocketsOrig[] = $requestSocket;
+                }
+                goto clean;
+            }
+            
+            if($writtenLength == 0) {
+                if(!in_array($requestSocket, $liveWriteSocketsOrig))
+                    $liveWriteSocketsOrig[] = $requestSocket;
+                goto clean;
+            }
+        } else
+        #.endif
 
         // Write data to socket
         if(($writtenLength = @socket_write($requestSocket, $writeBuffer[$socketID])) === false)
@@ -877,7 +969,7 @@
         #.endif
         )) {
             // Event-based writing - In the time the client is still downloading we can process other requests
-            if(!@in_array($requestSocket, $liveWriteSocketsOrig))
+            if(!in_array($requestSocket, $liveWriteSocketsOrig))
                 $liveWriteSocketsOrig[] = $requestSocket;
             goto clean;
         }
@@ -886,6 +978,12 @@
 
         // Close socket
         if(!isset($requestObject) || $requestObject->answerHeaders["connection"] != 'keep-alive') {
+            #.ifdef 'SUPPORT_TLS'
+            if(isset($TLSConnections[$socketID])) {
+                unset($TLSConnections[$socketID]);
+                TLSShutdown($socketID);
+            }
+            #.endif
             @socket_shutdown($requestSocket);
             socket_close($requestSocket);
 

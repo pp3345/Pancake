@@ -35,6 +35,7 @@
         				. serialize(Config::get('vhosts'))
         				. serialize(Config::get('fastcgi'))
         				. serialize(Config::get('ajp13'))
+                        . serialize(Config::get('tls'))
         				. md5_file('vHostInterface.class.php')
         				. md5_file('threads/single/requestWorker.thread.php')
         				. md5_file('natives/Moody/' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '.cphp')

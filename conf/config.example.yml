@@ -48,3 +48,8 @@ AJP13:                                                          # AJP13 upstream
 #    address: 127.0.0.1
 #    port: 1030
 #    maxconcurrent: 100
+TLS:                                                            # HTTPS TLS/SSL (Transport Layer Security)
+#  CertificateChain: /etc/ssl/certs/myCert.crt                  # SSL/TLS Certificate chain 
+#  PrivateKey: /etc/ssl/private/myKey.key                       # Private key
+#  Ports:                                                       # Ports used for SSL/TLS connections
+#    - 443
