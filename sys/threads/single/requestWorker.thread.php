@@ -192,6 +192,7 @@
     LoadModule('tls', true);
     #.certificateChain = #.Pancake\Config::get 'tls.certificatechain'
     #.privateKey = #.Pancake\Config::get 'tls.privatekey'
+    #.cipherList = #.Pancake\Config::get 'tls.cipherlist'
     #.longDefine 'EVAL_CODE'
         /* From ssl.h */
         define('SSL_OP_MICROSOFT_SESS_ID_BUG',            0x00000001);
@@ -236,7 +237,7 @@
         return $options;
     #.endLongDefine
     #.options = #.eval EVAL_CODE false
-    TLSCreateContext(/* .certificateChain */, /* .privateKey */, /* .options */);
+    TLSCreateContext(/* .certificateChain */, /* .privateKey */, /* .cipherList */, /* .options */);
     #.endif
 
     unset($id, $vHost, $address);

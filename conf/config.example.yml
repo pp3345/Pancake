@@ -51,7 +51,9 @@ AJP13:                                                          # AJP13 upstream
 TLS:                                                            # HTTPS TLS/SSL (Transport Layer Security)
 #  CertificateChain: /etc/ssl/certs/myCert.crt                  # SSL/TLS Certificate chain 
 #  PrivateKey: /etc/ssl/private/myKey.key                       # Private key
+#  CipherList: ECDHE-RSA-AES128-SHA256:AES128-GCM-SHA256:RC4:HIGH:!MD5:!aNULL:!EDH # List of allowed ciphers (see man ciphers(1))
 #  Options:                                                     # Options for OpenSSL library
 #    - SSL_OP_NO_COMPRESSION                                    # You should disable SSL compression in order to prevent CRIME attacks
+#    - SSL_OP_CIPHER_SERVER_PREFERENCE                          # This setting will cause Pancake to honor the cipher list order
 #  Ports:                                                       # Ports used for SSL/TLS connections
 #    - 443

@@ -64,11 +64,11 @@ PHP_RSHUTDOWN_FUNCTION(PancakeTLS) {
 }
 
 PHP_FUNCTION(TLSCreateContext) {
-	char *certificateChainFile, *privateKeyFile;
-	int certificateChainFile_len, privateKeyFile_len;
+	char *certificateChainFile, *privateKeyFile, *cipherList;
+	int certificateChainFile_len, privateKeyFile_len, cipherList_len;
 	long options;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ssl", &certificateChainFile, &certificateChainFile_len, &privateKeyFile, &privateKeyFile_len, &options) == FAILURE) {
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sssl", &certificateChainFile, &certificateChainFile_len, &privateKeyFile, &privateKeyFile_len, &cipherList, &cipherList_len, &options) == FAILURE) {
 		RETURN_FALSE;
 	}
 
@@ -94,6 +94,12 @@ PHP_FUNCTION(TLSCreateContext) {
 
 	if(options)
 		SSL_CTX_set_options(PANCAKE_TLS_GLOBALS(context), options);
+
+	if(cipherList_len) {
+		if(!SSL_CTX_set_cipher_list(PANCAKE_TLS_GLOBALS(context), cipherList)) {
+			zend_error(E_WARNING, "Failed setting custom TLS cipher list");
+		}
+	}
 
 	RETURN_TRUE;
 }
