@@ -66,8 +66,9 @@ PHP_RSHUTDOWN_FUNCTION(PancakeTLS) {
 PHP_FUNCTION(TLSCreateContext) {
 	char *certificateChainFile, *privateKeyFile;
 	int certificateChainFile_len, privateKeyFile_len;
+	long options;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &certificateChainFile, &certificateChainFile_len, &privateKeyFile, &privateKeyFile_len) == FAILURE) {
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ssl", &certificateChainFile, &certificateChainFile_len, &privateKeyFile, &privateKeyFile_len, &options) == FAILURE) {
 		RETURN_FALSE;
 	}
 
@@ -90,6 +91,9 @@ PHP_FUNCTION(TLSCreateContext) {
 		free(PANCAKE_TLS_GLOBALS(context));
 		RETURN_FALSE;
 	}
+
+	if(options)
+		SSL_CTX_set_options(PANCAKE_TLS_GLOBALS(context), options);
 
 	RETURN_TRUE;
 }

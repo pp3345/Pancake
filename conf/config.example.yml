@@ -51,5 +51,7 @@ AJP13:                                                          # AJP13 upstream
 TLS:                                                            # HTTPS TLS/SSL (Transport Layer Security)
 #  CertificateChain: /etc/ssl/certs/myCert.crt                  # SSL/TLS Certificate chain 
 #  PrivateKey: /etc/ssl/private/myKey.key                       # Private key
+#  Options:                                                     # Options for OpenSSL library
+#    - SSL_OP_NO_COMPRESSION                                    # You should disable SSL compression in order to prevent CRIME attacks
 #  Ports:                                                       # Ports used for SSL/TLS connections
 #    - 443
