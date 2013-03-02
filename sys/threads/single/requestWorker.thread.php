@@ -890,7 +890,11 @@
 	    $writeBuffer[$socketID] .= /* .ANSWER_BODY */;
 
         // Output request information
-        out('REQ './* .ANSWER_CODE */.' './* .REMOTE_IP */.': './* .REQUEST_LINE */.' on vHost '.((/* .VHOST */) ? /* .VHOST_NAME */ : null).' (via './* .GET_REQUEST_HEADER '"host"' */.' from './* .GET_REQUEST_HEADER "'referer'" */.') - './* .GET_REQUEST_HEADER '"user-agent"' */, OUTPUT_REQUEST | OUTPUT_LOG);
+        out('REQ './* .ANSWER_CODE */.' './* .REMOTE_IP */.': './* .REQUEST_LINE */.' on vHost '.((/* .VHOST */) ? /* .VHOST_NAME */ : null).' (via './* .GET_REQUEST_HEADER '"host"' */.' from './* .GET_REQUEST_HEADER "'referer'" */.') - './* .GET_REQUEST_HEADER '"user-agent"' */
+        #.ifdef 'SUPPORT_TLS'
+        . (isset($TLSConnections[$socketID]) ? " - " . TLSCipherName($socketID) : "")
+        #.endif
+        , OUTPUT_REQUEST | OUTPUT_LOG);
 
 	    // Check if user wants keep-alive connection
         if($requestObject->answerHeaders["connection"] == 'keep-alive')
