@@ -82,7 +82,6 @@ zval *PancakeFastReadProperty(zval *object, zval *member, ulong hashValue, const
 
 void PancakeFastWriteProperty(zval *object, zval *member, zval *value, const zend_literal *key TSRMLS_DC) {
 	zend_object *zobj = Z_OBJ_P(object);
-	zval *tmp_member = NULL;
 	zval **variable_ptr;
 	zend_property_info *property_info;
 
@@ -92,6 +91,42 @@ void PancakeFastWriteProperty(zval *object, zval *member, zval *value, const zen
 		zend_hash_quick_find(&zobj->ce->properties_info, Z_STRVAL_P(member), Z_STRLEN_P(member) + 1, key->hash_value, (void**) &property_info);
 		CACHE_POLYMORPHIC_PTR(key->cache_slot, zobj->ce, property_info);
 	}
+
+	if(zobj->properties) {
+		variable_ptr = (zval**) zobj->properties_table[property_info->offset];
+	} else {
+		variable_ptr = &zobj->properties_table[property_info->offset];
+	}
+
+	if (EXPECTED(*variable_ptr != value)) {
+		if (UNEXPECTED(PZVAL_IS_REF(*variable_ptr))) {
+			zval garbage = **variable_ptr;
+
+			Z_TYPE_PP(variable_ptr) = Z_TYPE_P(value);
+			(*variable_ptr)->value = value->value;
+			if (Z_REFCOUNT_P(value) > 0) {
+				zval_copy_ctor(*variable_ptr);
+			}
+			zval_dtor(&garbage);
+		} else {
+			zval *garbage = *variable_ptr;
+
+			Z_ADDREF_P(value);
+			if (PZVAL_IS_REF(value)) {
+				SEPARATE_ZVAL(&value);
+			}
+			*variable_ptr = value;
+			zval_ptr_dtor(&garbage);
+		}
+	}
+}
+
+void PancakeQuickWriteProperty(zval *object, zval *value, char *name, int name_len, ulong h TSRMLS_DC) {
+	zend_object *zobj = Z_OBJ_P(object);
+	zval **variable_ptr;
+	zend_property_info *property_info;
+
+	zend_hash_quick_find(&zobj->ce->properties_info, name, name_len, h, (void**) &property_info);
 
 	if(zobj->properties) {
 		variable_ptr = (zval**) zobj->properties_table[property_info->offset];

@@ -381,6 +381,28 @@ PANCAKE_API zval *PancakeMIMEType(char *filePath, int filePath_len TSRMLS_DC);
 char *PancakeBuildAnswerHeaders(zval *answerHeaderArray, uint *answerHeader_len);
 zval *PancakeFastReadProperty(zval *object, zval *member, ulong hashValue, const zend_literal *key TSRMLS_DC);
 void PancakeFastWriteProperty(zval *object, zval *member, zval *value, const zend_literal *key TSRMLS_DC);
+void PancakeQuickWriteProperty(zval *object, zval *value, char *name, int name_len, ulong h TSRMLS_DC);
+
+#define QUICK_WRITE_VALUE \
+		zval *__value;\
+		ALLOC_ZVAL(__value);\
+		Z_UNSET_ISREF_P(__value);\
+		Z_SET_REFCOUNT_P(__value, 0);
+
+#define PancakeQuickWritePropertyString(object, name, name_len, h, string, string_len, duplicate) {\
+	QUICK_WRITE_VALUE\
+	Z_TYPE_P(__value) = IS_STRING;\
+	Z_STRVAL_P(__value) = duplicate ? estrndup(string, string_len) : string;\
+	Z_STRLEN_P(__value) = string_len;\
+	PancakeQuickWriteProperty(object, __value, name, name_len, h TSRMLS_CC);\
+}
+
+#define PancakeQuickWritePropertyLong(object, name, name_len, h, lval) {\
+	QUICK_WRITE_VALUE\
+	Z_TYPE_P(__value) = IS_LONG;\
+	Z_LVAL_P(__value) = lval;\
+	PancakeQuickWriteProperty(object, __value, name, name_len, h TSRMLS_CC);\
+}
 
 #define Z_OBJ_P(zval_p) \
 	((zend_object*)(EG(objects_store).object_buckets[Z_OBJ_HANDLE_P(zval_p)].bucket.obj.object))
@@ -447,5 +469,9 @@ static int PancakeFastHasProperty(zval *object, zval *member, int has_set_exists
 #define HASH_OF_content_encoding 6922690342783561268U
 #define HASH_OF_friendlyName 1253487734700793347U
 #define HASH_OF_GLOBALS 7571012008160073U
+#define HASH_OF_requestLine 15717763264407600342U
+#define HASH_OF_rangeFrom 8246858675655630822U
+#define HASH_OF_rangeTo 7572872980415061U
+#define HASH_OF_mimeType 249898115869584303U
 
 #endif	/* PANCAKE_H */

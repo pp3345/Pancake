@@ -178,42 +178,39 @@ char *PancakeBuildAnswerHeaders(zval *answerHeaderArray, uint *answerHeader_len)
 }
 
 PHP_METHOD(HTTPRequest, __construct) {
-	zval *remoteIP, *localIP, *remotePort, *localPort;
+	zval *remoteIP, *localIP, *remotePort, *localPort, *answerHeaderArray;
 
 	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzzz", &remoteIP, &remotePort, &localIP, &localPort) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
-	zend_update_property(HTTPRequest_ce, this_ptr, "remoteIP", sizeof("remoteIP") - 1, remoteIP TSRMLS_CC);
-	zend_update_property(HTTPRequest_ce, this_ptr, "remotePort", sizeof("remotePort") - 1, remotePort TSRMLS_CC);
-	zend_update_property(HTTPRequest_ce, this_ptr, "localIP", sizeof("localIP") - 1, localIP TSRMLS_CC);
-	zend_update_property(HTTPRequest_ce, this_ptr, "localPort", sizeof("localPort") - 1, localPort TSRMLS_CC);
+	PancakeQuickWriteProperty(this_ptr, remoteIP, "remoteIP", sizeof("remoteIP"), HASH_OF_remoteIP TSRMLS_CC);
+	PancakeQuickWriteProperty(this_ptr, remotePort, "remotePort", sizeof("remotePort"), HASH_OF_remotePort TSRMLS_CC);
+	PancakeQuickWriteProperty(this_ptr, localIP, "localIP", sizeof("localIP"), HASH_OF_localIP TSRMLS_CC);
+	PancakeQuickWriteProperty(this_ptr, localPort, "localPort", sizeof("localPort"), HASH_OF_localPort TSRMLS_CC);
 
 	/* Set default virtual host */
-	zend_update_property(HTTPRequest_ce, this_ptr, "vHost", sizeof("vHost") - 1, PANCAKE_GLOBALS(defaultVirtualHost) TSRMLS_CC);
+	PancakeQuickWriteProperty(this_ptr, PANCAKE_GLOBALS(defaultVirtualHost), "vHost", sizeof("vHost"), HASH_OF_vHost TSRMLS_CC);
 
 	/* Set answer header array to empty array */
-	zval *answerHeaderArray;
-
 	MAKE_STD_ZVAL(answerHeaderArray);
 	array_init(answerHeaderArray);
-	zend_update_property(HTTPRequest_ce, this_ptr, "answerHeaders", sizeof("answerHeaders") - 1, answerHeaderArray TSRMLS_CC);
+	PancakeQuickWriteProperty(this_ptr, answerHeaderArray, "answerHeaders", sizeof("answerHeaders"), HASH_OF_answerHeaders TSRMLS_CC);
+
 	zval_ptr_dtor(&answerHeaderArray);
 }
 
 PHP_METHOD(HTTPRequest, init) {
-	char *requestHeader;
-	int requestHeader_len;
+	char *requestHeader, *ptr1, *ptr2, *ptr3, *requestHeader_dupe, *requestLine;
+	char **firstLine = ecalloc(3, sizeof(char*));
+	int requestHeader_len, i, requestLine_len;
 
 	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &requestHeader, &requestHeader_len) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
-	char *ptr1, *ptr2, *ptr3;
-	int i, requestLine_len;
-	char **firstLine = ecalloc(3, sizeof(char*));
-	char *requestHeader_dupe = estrndup(requestHeader, requestHeader_len);
-	char *requestLine = strtok_r(requestHeader_dupe, "\r\n", &ptr1);
+	requestHeader_dupe = estrndup(requestHeader, requestHeader_len);
+	requestLine = strtok_r(requestHeader_dupe, "\r\n", &ptr1);
 
 	if(EXPECTED(requestLine != NULL)) {
 		requestLine_len = strlen(requestLine);
@@ -225,7 +222,7 @@ PHP_METHOD(HTTPRequest, init) {
 		return;
 	}
 
-	zend_update_property_stringl(HTTPRequest_ce, this_ptr, "requestLine", sizeof("requestLine") - 1, requestLine, requestLine_len TSRMLS_CC);
+	PancakeQuickWritePropertyString(this_ptr, "requestLine", sizeof("requestLine"), HASH_OF_requestLine, requestLine, requestLine_len, 1);
 
 	for(i = 0;i < 3;i++) {
 		firstLine[i] = strtok_r(i ? NULL : requestLine, " ", &ptr2);
@@ -238,9 +235,9 @@ PHP_METHOD(HTTPRequest, init) {
 		}
 	}
 
-	if(EXPECTED(!strcmp(firstLine[2], "HTTP/1.1")))
-		zend_update_property_stringl(HTTPRequest_ce, this_ptr, "protocolVersion", sizeof("protocolVersion") - 1, "1.1", 3 TSRMLS_CC);
-	else if(UNEXPECTED(strcmp(firstLine[2], "HTTP/1.0"))) {
+	if(EXPECTED(!strcmp(firstLine[2], "HTTP/1.1"))) {
+		PancakeQuickWritePropertyString(this_ptr, "protocolVersion", sizeof("protocolVersion"), HASH_OF_protocolVersion, "1.1", 3, 1);
+	} else if(UNEXPECTED(strcmp(firstLine[2], "HTTP/1.0"))) {
 		PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("Unsupported protocol", sizeof("Unsupported protocol") - 1, 400, requestHeader, requestHeader_len);
 		efree(requestHeader_dupe);
 		efree(firstLine);
@@ -262,7 +259,7 @@ PHP_METHOD(HTTPRequest, init) {
 
 	if(strcmp(firstLine[0], "GET")) {
 		// GET is the default value
-		zend_update_property_string(HTTPRequest_ce, this_ptr, "requestType", sizeof("requestType") - 1, firstLine[0] TSRMLS_CC);
+		PancakeQuickWritePropertyString(this_ptr, "requestType", sizeof("requestType"), HASH_OF_requestType, firstLine[0], strlen(firstLine[0]), 1);
 	}
 
 	if(UNEXPECTED((!strcmp(firstLine[0], "HEAD") && PANCAKE_GLOBALS(allowHEAD) == 0)
@@ -333,7 +330,7 @@ PHP_METHOD(HTTPRequest, init) {
 				acceptedCompression = strtok_r(NULL, ",", &ptr4);
 			}
 
-			zend_update_property(HTTPRequest_ce, this_ptr, "acceptedCompressions", sizeof("acceptedCompressions") - 1, acceptedCompressions TSRMLS_CC);
+			PancakeQuickWriteProperty(this_ptr, acceptedCompressions, "acceptedCompressions", sizeof("acceptedCompressions"), HASH_OF_acceptedCompressions TSRMLS_CC);
 			zval_ptr_dtor(&acceptedCompressions);
 		} else if(!strcmp(headerName, "authorization")) {
 			authorization = estrdup(headerValue);
@@ -360,8 +357,8 @@ PHP_METHOD(HTTPRequest, init) {
 				Z_STRVAL_P(rangeTo) = estrndup(to, Z_STRLEN_P(rangeTo));
 				convert_to_long_base(rangeTo, 10);
 
-				zend_update_property(HTTPRequest_ce, this_ptr, "rangeFrom", sizeof("rangeFrom") - 1, rangeFrom TSRMLS_CC);
-				zend_update_property(HTTPRequest_ce, this_ptr, "rangeTo", sizeof("rangeTo") - 1, rangeTo TSRMLS_CC);
+				PancakeQuickWriteProperty(this_ptr, rangeFrom, "rangeFrom", sizeof("rangeFrom"), HASH_OF_rangeFrom TSRMLS_CC);
+				PancakeQuickWriteProperty(this_ptr, rangeTo, "rangeTo", sizeof("rangeTo"), HASH_OF_rangeTo TSRMLS_CC);
 
 				zval_ptr_dtor(&rangeFrom);
 				zval_ptr_dtor(&rangeTo);
@@ -369,7 +366,7 @@ PHP_METHOD(HTTPRequest, init) {
 		}
 	}
 
-	zend_update_property(HTTPRequest_ce, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, headerArray TSRMLS_CC);
+	PancakeQuickWriteProperty(this_ptr, headerArray, "requestHeaders", sizeof("requestHeaders"), HASH_OF_requestHeaders TSRMLS_CC);
 	zval_ptr_dtor(&headerArray);
 
 	efree(requestHeader_dupe);
@@ -396,7 +393,7 @@ PHP_METHOD(HTTPRequest, init) {
 		}
 	} else if(zend_hash_find(Z_ARRVAL_P(PANCAKE_GLOBALS(virtualHostArray)), host, strlen(host) + 1, (void**) &newvHost) == SUCCESS && Z_OBJ_HANDLE_PP(newvHost) != Z_OBJ_HANDLE_P(PANCAKE_GLOBALS(defaultVirtualHost))) {
 		vHost = newvHost;
-		zend_update_property(HTTPRequest_ce, this_ptr, "vHost", sizeof("vHost") - 1, *vHost TSRMLS_CC);
+		PancakeQuickWriteProperty(this_ptr, *vHost, "vHost", sizeof("vHost"), HASH_OF_vHost TSRMLS_CC);
 	} else {
 		vHost = &PANCAKE_GLOBALS(defaultVirtualHost);
 	}
@@ -433,7 +430,7 @@ PHP_METHOD(HTTPRequest, init) {
 		Z_STRVAL_P(contentTypeZval) = estrndup("message/http", 12);
 		Z_STRLEN_P(contentTypeZval) = 12;
 
-		zend_update_property_stringl(HTTPRequest_ce, this_ptr, "answerBody", sizeof("answerBody") - 1, requestHeader, requestHeader_len TSRMLS_CC);
+		PancakeQuickWritePropertyString(this_ptr, "answerBody", sizeof("answerBody"), HASH_OF_answerBody, requestHeader, requestHeader_len, 1);
 		PancakeSetAnswerHeader(this_ptr, "content-type", sizeof("content-type"), contentTypeZval, 1, 14553278787112811407U TSRMLS_CC);
 		efree(firstLine);
 		efree(host);
@@ -447,7 +444,7 @@ PHP_METHOD(HTTPRequest, init) {
 	FAST_READ_PROPERTY(documentRootz, *vHost, "documentRoot", sizeof("documentRoot") - 1, HASH_OF_documentRoot);
 	char *documentRoot = Z_STRVAL_P(documentRootz);
 
-	zend_update_property_string(HTTPRequest_ce, this_ptr, "originalRequestURI", sizeof("originalRequestURI") - 1, firstLine[1] TSRMLS_CC);
+	PancakeQuickWritePropertyString(this_ptr, "originalRequestURI", sizeof("originalRequestURI"), HASH_OF_originalRequestURI, firstLine[1], strlen(firstLine[1]), 1);
 
 	/* Apply rewrite rules */
 	zval *rewriteRules;
@@ -611,7 +608,7 @@ PHP_METHOD(HTTPRequest, init) {
 		}
 	}
 
-	zend_update_property_string(HTTPRequest_ce, this_ptr, "requestURI", sizeof("requestURI") - 1, firstLine[1] TSRMLS_CC);
+	PancakeQuickWritePropertyString(this_ptr, "requestURI", sizeof("requestURI"), HASH_OF_requestURI, firstLine[1], strlen(firstLine[1]), 1);
 
 	char *uriptr, *requestFilePath, *queryString;
 	int requestFilePath_len;
@@ -975,10 +972,10 @@ PHP_METHOD(HTTPRequest, init) {
 		queryString = "";
 	}
 
-	zend_update_property_string(HTTPRequest_ce, this_ptr, "queryString", sizeof("queryString") - 1, queryString TSRMLS_CC);
-	zend_update_property_stringl(HTTPRequest_ce, this_ptr, "requestFilePath", sizeof("requestFilePath") - 1, requestFilePath, requestFilePath_len TSRMLS_CC);
-	zend_update_property(HTTPRequest_ce, this_ptr, "mimeType", sizeof("mimeType") - 1, mimeType TSRMLS_CC);
-	zend_update_property_long(HTTPRequest_ce, this_ptr, "requestTime", sizeof("requestTime") - 1, time(NULL) TSRMLS_CC);
+	PancakeQuickWritePropertyString(this_ptr, "queryString", sizeof("queryString"), HASH_OF_queryString, queryString, strlen(queryString), 1);
+	PancakeQuickWritePropertyString(this_ptr, "requestFilePath", sizeof("requestFilePath"), HASH_OF_requestFilePath, requestFilePath, requestFilePath_len, 1);
+	PancakeQuickWriteProperty(this_ptr, mimeType, "mimeType", sizeof("mimeType"), HASH_OF_mimeType TSRMLS_CC);
+	PancakeQuickWritePropertyLong(this_ptr, "requestTime", sizeof("requestTime"), HASH_OF_requestTime, time(NULL));
 
 	efree(firstLine);
 	efree(requestLine);
