@@ -26,6 +26,7 @@
 #include "ext/standard/base64.h"
 #include "ext/standard/url.h"
 #include "ext/session/php_session.h"
+#include <signal.h>
 
 extern zend_module_entry Pancake_module_entry;
 #define phpext_Pancake_ptr &Pancake_module_entry
@@ -69,6 +70,12 @@ PHP_FUNCTION(makeSID);
 PHP_FUNCTION(loadModule);
 PHP_FUNCTION(makeFastClass);
 PHP_FUNCTION(disableModuleLoader);
+
+PHP_FUNCTION(sigwaitinfo);
+PHP_FUNCTION(fork);
+PHP_FUNCTION(wait);
+PHP_FUNCTION(sigprocmask);
+PHP_FUNCTION(waitpid);
 
 PHP_METHOD(HTTPRequest, __construct);
 PHP_METHOD(HTTPRequest, init);

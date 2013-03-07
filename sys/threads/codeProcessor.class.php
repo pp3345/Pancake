@@ -37,9 +37,9 @@
 		public function run() {
 			$this->start();
 
-			pcntl_sigprocmask(\SIG_BLOCK, array(\SIGCHLD));
-			pcntl_sigwaitinfo(array(\SIGCHLD), $info);
-			pcntl_wait($x, \WNOHANG);
+			SigProcMask(\SIG_BLOCK, array(\SIGCHLD));
+			SigWaitInfo(array(\SIGCHLD), $info);
+			Wait($x, \WNOHANG);
 
 			$this->running = false;
 

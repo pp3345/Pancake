@@ -296,7 +296,7 @@
     $Pancake_currentThread->parentSignal(/* .constant 'SIGUSR1' */);
 
     // Set blocking for signals
-    pcntl_sigprocmask(/* .constant 'SIG_BLOCK' */, array(/* .constant 'SIGINT' */, /* .constant 'SIGHUP' */));
+    SigProcMask(/* .constant 'SIG_BLOCK' */, array(/* .constant 'SIGINT' */, /* .constant 'SIGHUP' */));
 
 	//dt_debug_objects_store();
 

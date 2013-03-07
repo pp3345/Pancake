@@ -55,7 +55,7 @@
     	abort();
     }
 
-    foreach(array("posix", "pcntl", "sockets", "tokenizer", "ctype") as $extension) {
+    foreach(array("posix", "sockets", "tokenizer", "ctype") as $extension) {
         if(!extension_loaded($extension)) {
             $missingExtensions++;
             if($missingExtensions > 1) {
@@ -192,7 +192,7 @@
     if(isset($startOptions['daemon'])) {
         ignore_user_abort(true);
 
-		$pid = pcntl_fork();
+		$pid = Fork();
 		
 		if($pid == -1) {
 			out('Failed to daemonize', OUTPUT_SYSTEM);
@@ -315,7 +315,7 @@
 
     $Pancake_vHosts = $vHosts;
 
-    pcntl_sigprocmask(\SIG_BLOCK, array(\SIGUSR1));
+    SigProcMask(\SIG_BLOCK, array(\SIGUSR1));
 
     // We're doing this in two steps so that all vHosts will be displayed in phpinfo()
     foreach($vHosts as $vHost) {
@@ -333,7 +333,7 @@
                 goto do_exit;
             }
             if(Config::get('main.waitphpworkerboot')) {
-	            pcntl_sigtimedwait(array(\SIGUSR1), $x, Config::get('main.workerboottime'));
+	            SigWaitInfo(array(\SIGUSR1), $x, (int) Config::get('main.workerboottime'));
 	            if(!$x) {
 	                $thread->kill();
 	                out('Failed to boot ' . $thread->friendlyName . ' in time - Aborting');
@@ -357,7 +357,7 @@
         $thread = new RequestWorker();
         if($thread->start() === "THREAD_EXIT")
         	goto do_exit;
-        pcntl_sigtimedwait(array(\SIGUSR1), $x, Config::get('main.workerboottime'));
+        SigWaitInfo(array(\SIGUSR1), $x, (int) Config::get('main.workerboottime'));
         if(!$x) {
             $thread->kill();
             out('Failed to boot ' . $thread->friendlyName . ' in time - Aborting');
@@ -376,20 +376,20 @@
     gc_collect_cycles();
 
     // Set blocking mode for some signals
-    pcntl_sigprocmask(\SIG_BLOCK, array(\SIGCHLD, \SIGINT, \SIGUSR2, \SIGTERM, \SIGHUP));
+    SigProcMask(\SIG_BLOCK, array(\SIGCHLD, \SIGINT, \SIGUSR2, \SIGTERM, \SIGHUP));
 
     // Don't do anything except if one of the children died or Pancake gets the signal to shutdown
     while(true) {
-        pcntl_sigwaitinfo(array(\SIGCHLD, \SIGINT, \SIGUSR2, \SIGTERM, \SIGHUP), $info);
+        SigWaitInfo(array(\SIGCHLD, \SIGINT, \SIGUSR2, \SIGTERM, \SIGHUP), $info);
 
-        // pcntl_sigwaitinfo() might be interrupted in some cases
+        // SigWaitInfo() might be interrupted in some cases
         if(!$info)
             continue;
 
         switch($info['signo']) {
             case \SIGCHLD:
                 // Destroy zombies
-                pcntl_wait($x, \WNOHANG);
+                Wait($x, \WNOHANG);
 
                 $thread = Thread::get($info['pid']);
                 if(socket_read($thread->localSocket, 17) == "EXPECTED_SHUTDOWN") {

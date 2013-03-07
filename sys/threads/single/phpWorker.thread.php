@@ -277,7 +277,7 @@
         vars::$listenArray = vars::$listenArrayOrig = array(vars::$Pancake_currentThread->vHost->phpSocket, vars::$Pancake_currentThread->socket);
 
         // Set blocking for signals
-        pcntl_sigprocmask(/* .constant 'SIG_BLOCK' */, array(/* .constant 'SIGINT' */, /* .constant 'SIGHUP' */));
+        SigProcMask(/* .constant 'SIG_BLOCK' */, array(/* .constant 'SIGINT' */, /* .constant 'SIGHUP' */));
 
 	    // Set user and group
 	    setUser();

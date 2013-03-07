@@ -58,7 +58,7 @@
                 return false;
             
             $this->ppid = posix_getpid();
-            $this->pid = pcntl_fork();
+            $this->pid = Fork();
            
             if($this->pid == -1)                // On error
                 return false;
@@ -69,7 +69,7 @@
                 $this->running = true;
                 return true;
             } else {                            // Child
-                pcntl_sigprocmask(\SIG_SETMASK, array());
+                SigProcMask(\SIG_SETMASK, array());
                 $this->running = true;
                 $this->pid = posix_getpid();
                 global $Pancake_currentThread;
@@ -141,12 +141,12 @@
         * 
         */
         public final function waitForExit() {
-            if(pcntl_waitpid($this->pid, $x, \WNOHANG) === 0) {
+            if(WaitPID($this->pid, $x, \WNOHANG) === 0) {
                 out('Waiting for ' . $this->friendlyName . ' to stop');
                 // Sleep up to 2 seconds
-                for($i = 0;$i < 200 && pcntl_waitpid($this->pid, $x, \WNOHANG) === 0; $i++)
+                for($i = 0;$i < 200 && WaitPID($this->pid, $x, \WNOHANG) === 0; $i++)
                     usleep(10000);
-                if(pcntl_waitpid($this->pid, $x, \WNOHANG) === 0) {
+                if(WaitPID($this->pid, $x, \WNOHANG) === 0) {
                     out('Killing worker');
                     $this->kill();
                 }
