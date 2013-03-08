@@ -39,7 +39,7 @@ PHP_FUNCTION(sigwaitinfo) {
 		timeout.tv_sec = seconds;
 		timeout.tv_nsec = 0;
 		signal = sigtimedwait(&set, &siginfo, &timeout);
-	} while(signal == - 1 && (errno == EAGAIN || errno == EINTR));
+	} while(signal == - 1 && ((errno == EAGAIN && seconds == 99999999) || errno == EINTR));
 
 	if(signal == -1) {
 		zend_error(E_WARNING, "%s", strerror(errno));
