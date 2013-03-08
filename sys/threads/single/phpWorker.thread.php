@@ -172,16 +172,6 @@
 
 	    chdir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */);
 
-	    #.ifdef 'STDOUT'
-	   		dt_remove_constant('STDOUT');
-	    #.endif
-	    #.ifdef 'STDIN'
-	    	dt_remove_constant('STDIN');
-	    #.endif
-	    #.ifdef 'STDERR'
-	    	dt_remove_constant('STDERR');
-	    #.endif
-
 	    memory_get_usage(null, true);
 	    memory_get_peak_usage(null, true);
 
@@ -286,6 +276,16 @@
 
         // Set blocking for signals
         SigProcMask(/* .constant 'SIG_BLOCK' */, array(/* .constant 'SIGINT' */, /* .constant 'SIGHUP' */));
+
+        #.ifdef 'STDOUT'
+            dt_remove_constant('STDOUT');
+        #.endif
+        #.ifdef 'STDIN'
+            dt_remove_constant('STDIN');
+        #.endif
+        #.ifdef 'STDERR'
+            dt_remove_constant('STDERR');
+        #.endif
 
 	    // Set user and group
 	    setUser();
