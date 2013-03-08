@@ -15,6 +15,14 @@
 
 #define PANCAKE_DEBUG 1
 
+/* What the hell is Linux doing with FD_SETSIZE? */
+#define _BITS_TYPES_H
+#include <bits/typesizes.h>
+#undef __FD_SETSIZE
+#define __FD_SETSIZE 131072
+#undef _BITS_TYPES_H
+#include <sys/types.h>
+
 #include "php.h"
 #include "ext/standard/info.h"
 #include "ext/date/php_date.h"
@@ -30,7 +38,6 @@
 #include <signal.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
-#include <sys/types.h>
 #include <sys/un.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
