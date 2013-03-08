@@ -26,7 +26,16 @@
 #include "ext/standard/base64.h"
 #include "ext/standard/url.h"
 #include "ext/session/php_session.h"
+#include "main/php_network.h"
 #include <signal.h>
+#include <sys/socket.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <sys/fcntl.h>
+#include <arpa/inet.h>
 
 extern zend_module_entry Pancake_module_entry;
 #define phpext_Pancake_ptr &Pancake_module_entry
@@ -76,6 +85,23 @@ PHP_FUNCTION(fork);
 PHP_FUNCTION(wait);
 PHP_FUNCTION(sigprocmask);
 PHP_FUNCTION(waitpid);
+
+PHP_FUNCTION(socket);
+PHP_FUNCTION(reuseaddress);
+PHP_FUNCTION(bind);
+PHP_FUNCTION(listen);
+PHP_FUNCTION(setBlocking);
+PHP_FUNCTION(write);
+PHP_FUNCTION(writeBuffer);
+PHP_FUNCTION(read);
+PHP_FUNCTION(accept);
+PHP_FUNCTION(keepAlive);
+PHP_FUNCTION(connect);
+PHP_FUNCTION(close);
+PHP_FUNCTION(getSockName);
+PHP_FUNCTION(getPeerName);
+PHP_FUNCTION(select);
+PHP_FUNCTION(adjustSendBufferSize);
 
 PHP_METHOD(HTTPRequest, __construct);
 PHP_METHOD(HTTPRequest, init);

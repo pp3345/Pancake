@@ -66,13 +66,13 @@
             $this->doGracefulExit = true;
 
             $this->socketName = Config::get('main.tmppath') . mt_rand() . "_rworker_local";
-            $this->socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
-            socket_bind($this->socket, $this->socketName);
-            socket_listen($this->socket);
-            $this->localSocket = socket_create(AF_UNIX, SOCK_STREAM, 0);
-            socket_connect($this->localSocket, $this->socketName);
-			socket_set_nonblock($this->localSocket);
-            $this->socket = socket_accept($this->socket);
+            $this->socket = Socket(\AF_UNIX, \SOCK_STREAM, 0);
+            Bind($this->socket, \AF_UNIX, $this->socketName);
+            Listen($this->socket);
+            $this->localSocket = Socket(\AF_UNIX, \SOCK_STREAM, 0);
+            Connect($this->localSocket, \AF_UNIX, $this->socketName);
+			SetBlocking($this->localSocket, false);
+            $this->socket = Accept($this->socket);
 
             $this->codeFile = 'compilecache/requestWorker.thread.cphp';
             $this->friendlyName = 'RequestWorker #' . ($this->id + 1);

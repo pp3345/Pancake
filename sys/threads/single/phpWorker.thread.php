@@ -265,8 +265,6 @@
 
 	    #.if BENCHMARK === true
 	    	benchmarkFunction('gc_collect_cycles');
-	    	benchmarkFunction('socket_read');
-	    	benchmarkFunction('socket_write');
 	    	benchmarkFunction('Pancake\cleanGlobals');
 	    	benchmarkFunction('Pancake\recursiveClearObjects');
 			benchmarkFunction('serialize');
@@ -283,11 +281,9 @@
 	    setUser();
 
 	    // Wait for requests
-	    while(socket_select(vars::$listenArray, $x, $x, null) !== false) {
-	    	unset($x);
-
-            if(current(vars::$listenArray) == vars::$Pancake_currentThread->socket) {
-                switch(socket_read(vars::$Pancake_currentThread->socket, 512)) {
+	    while(Select(vars::$listenArray) !== false) {
+            if(isset(vars::$listenArray[vars::$Pancake_currentThread->socket])) {
+                switch(Read(vars::$Pancake_currentThread->socket, 512)) {
                     case "GRACEFUL_SHUTDOWN":
                         break 2;
                     case "LOAD_FILE_POINTERS":
@@ -296,23 +292,23 @@
                 }
             }
 
-            vars::$requestSocket = socket_accept(vars::$listenArray[0]);
-			socket_set_block(vars::$requestSocket);
+            vars::$requestSocket = Accept(vars::$listenArray[vars::$Pancake_currentThread->vHost->phpSocket]);
+			SetBlocking(vars::$requestSocket, true);
 
 	    	// Get request object from RequestWorker
-	    	$packages = hexdec(socket_read(vars::$requestSocket, 8));
-	    	$length = hexdec(socket_read(vars::$requestSocket, 8));
+	    	$packages = hexdec(Read(vars::$requestSocket, 8));
+	    	$length = hexdec(Read(vars::$requestSocket, 8));
 
 	    	if($packages > 1) {
 	    		$sockData = "";
 
 	    		while($packages--)
-	    			$sockData .= socket_read(vars::$requestSocket, $length);
+	    			$sockData .= Read(vars::$requestSocket, $length);
 
 	    		vars::$Pancake_request = unserialize($sockData);
 	    		unset($sockData);
 	    	} else
-	    		vars::$Pancake_request = unserialize(socket_read(vars::$requestSocket, $length));
+	    		vars::$Pancake_request = unserialize(Read(vars::$requestSocket, $length));
 
 	    	unset($length);
 	    	unset($packages);
@@ -513,21 +509,17 @@
 	        $data = serialize($object);
 	        $packages = array();
 
-	      	if(strlen($data) > (socket_get_option(vars::$requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_SNDBUF' */) - 1024)
-	      	&& (socket_set_option(vars::$requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_SNDBUF' */, strlen($data) + 1024) + 1)
-	        && strlen($data) > (socket_get_option(vars::$requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_SNDBUF' */) - 1024)) {
-	      		$packageSize = socket_get_option(vars::$requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_SNDBUF' */) - 1024;
-
+	      	if($packageSize = AdjustSendBufferSize(vars::$requestSocket, strlen($data))) {
 	      		for($i = 0;$i < ceil(strlen($data) / $packageSize);$i++)
 	      			$packages[] = substr($data, $i * $packageSize, $packageSize);
 	      	} else
 	      		$packages[] = $data;
 
 	        // First transmit the length of the serialized object, then the object itself
-	        socket_write(vars::$requestSocket, dechex(count($packages)));
-	        socket_write(vars::$requestSocket, dechex(strlen($packages[0])));
+	        Write(vars::$requestSocket, dechex(count($packages)));
+	        Write(vars::$requestSocket, dechex(strlen($packages[0])));
 	        foreach($packages as $data)
-	        	socket_write(vars::$requestSocket, $data);
+	        	Write(vars::$requestSocket, $data);
 
 	        // Clean
 	        PHPFunctions\OutputBuffering\endClean();
@@ -583,7 +575,7 @@
 	        (vars::$Pancake_processedRequests >= /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpWorkerLimit;' false */) ||
 	        #.endif
 	        vars::$workerExit) {
-	        	socket_write(vars::$Pancake_currentThread->socket, "EXPECTED_SHUTDOWN");
+	        	Write(vars::$Pancake_currentThread->socket, "EXPECTED_SHUTDOWN");
 	        	exit;
 	        }
 

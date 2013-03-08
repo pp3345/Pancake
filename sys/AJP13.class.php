@@ -65,36 +65,35 @@
 
 			switch($this->type) {
 				case 'ipv6':
-					$socket = socket_create(/* .constant 'AF_INET6' */, /* .constant 'SOCK_STREAM' */, /* .constant 'SOL_TCP' */);
-					if(!socket_connect($socket, $this->address, $this->port)) {
+					$socket = Socket(/* .constant 'AF_INET6' */, /* .constant 'SOCK_STREAM' */, /* .constant 'SOL_TCP' */);
+					if(Connect($socket, /* .AF_INET6 */, $this->address, $this->port)) {
 						trigger_error('Unable to connect to AJP13 upstream server at ipv6:' . $this->address . ':' . $this->port, /* .constant 'E_USER_ERROR' */);
 						return false;
 					}
 					break;
 				case 'ipv4':
-					$socket = socket_create(/* .constant 'AF_INET' */, /* .constant 'SOCK_STREAM' */, /* .constant 'SOL_TCP' */);
-					if(!socket_connect($socket, $this->address, $this->port)) {
+					$socket = Socket(/* .constant 'AF_INET' */, /* .constant 'SOCK_STREAM' */, /* .constant 'SOL_TCP' */);
+					if(Connect($socket, /* .AF_INET */, $this->address, $this->port)) {
 						trigger_error('Unable to connect to AJP13 upstream server at ipv4:' . $this->address . ':' . $this->port, /* .constant 'E_USER_ERROR' */);
 						return false;
 					}
 					break;
 				default:
-					$socket = socket_create(/* .constant 'AF_UNIX' */, /* .constant 'SOCK_STREAM' */, 0);
-					if(!socket_connect($socket, $this->address)) {
+					$socket = Socket(/* .constant 'AF_UNIX' */, /* .constant 'SOCK_STREAM' */, 0);
+					if(Connect($socket, /* .AF_UNIX */, $this->address)) {
 						trigger_error('Unable to connect to AJP13 upstream server at unix:' . $this->address, /* .constant 'E_USER_ERROR' */);
 						return false;
 					}
 			}
 
-			socket_set_option($socket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_KEEPALIVE' */, 1);
-			$this->sockets[(int) $socket] = $socket;
+			$this->sockets[$socket] = $socket;
 			return $socket;
 		}
 
 		public function makeRequest(HTTPRequest $requestObject, $requestSocket) {
 			if($this->freeSockets) {
-				foreach($this->freeSockets as $id => $socket) {
-					unset($this->freeSockets[$id]);
+				foreach($this->freeSockets as $socket) {
+					unset($this->freeSockets[$socket]);
 					break;
 				}
 			} else if(!($socket = $this->connect())) {
@@ -193,11 +192,11 @@
 			$strlenBody = strlen($body) + 2;
 
 			doWrite:
-			if(socket_write($socket, "\x12\x34" . chr($strlenBody >> 8) . chr($strlenBody) . "\x02" . $body . "\xff") === false) {
-				unset($this->sockets[(int) $socket]);
+			if(Write($socket, "\x12\x34" . chr($strlenBody >> 8) . chr($strlenBody) . "\x02" . $body . "\xff") === false) {
+				unset($this->sockets[$socket]);
 				if($this->freeSockets) {
-					foreach($this->freeSockets as $id => $socket) {
-						unset($this->freeSockets[$id]);
+					foreach($this->freeSockets as $socket) {
+						unset($this->freeSockets[$socket]);
 						break;
 					}
 					goto doWrite;
@@ -210,19 +209,18 @@
 			if($requestObject->rawPOSTData) {
 				$string = substr($requestObject->rawPOSTData, 0, 8186);
 				$strlen = strlen($string);
-				socket_write($socket, "\x12\x34" . chr(($strlen + 2) >> 8) . chr($strlen + 2) . chr($strlen >> 8) . chr($strlen) . $string);
+				Write($socket, "\x12\x34" . chr(($strlen + 2) >> 8) . chr($strlen + 2) . chr($strlen >> 8) . chr($strlen) . $string);
 				$requestObject->rawPOSTData = substr($requestObject->rawPOSTData, $strlen);
 			}
 
-			$this->requests[(int) $socket] = $requestObject;
-			$this->requestSockets[(int) $socket] = $requestSocket;
+			$this->requests[$socket] = $requestObject;
+			$this->requestSockets[$socket] = $requestSocket;
 
 			return $socket;
 		}
 
 		public function upstreamRecord($data, $socket) {
-			$socketID = (int) $socket;
-			$requestObject = $this->requests[$socketID];
+			$requestObject = $this->requests[$socket];
 
 			if($data === "") {
 				/* Upstream server closed connection */
@@ -230,9 +228,9 @@
 				if($requestObject) {
 					$requestObject->invalidRequest(new invalidHTTPRequestException("The AJP13 upstream server unexpectedly closed the network connection.", 502));
 
-					$retval = array($this->requestSockets[$socketID], $requestObject);
-					unset($this->requestSockets[$socketID], $this->requests[$socketID]);
-					unset($this->sockets[$socketID], $this->freeSockets[$socketID]);
+					$retval = array($this->requestSockets[$socket], $requestObject);
+					unset($this->requestSockets[$socket], $this->requests[$socket]);
+					unset($this->sockets[$socket], $this->freeSockets[$socket]);
 					return $retval;
 				}
 
@@ -254,10 +252,10 @@
 					if($requestObject->rawPOSTData) {
 						$string = substr($requestObject->rawPOSTData, 0, $length);
 						$strlen = strlen($string);
-						socket_write($socket, "\x12\x34" . chr(($strlen + 2) >> 8) . chr($strlen + 2) . chr($strlen >> 8) . chr($strlen) . $string);
+						Write($socket, "\x12\x34" . chr(($strlen + 2) >> 8) . chr($strlen + 2) . chr($strlen >> 8) . chr($strlen) . $string);
 						$requestObject->rawPOSTData = substr($requestObject->rawPOSTData, $strlen);
 					} else
-						socket_write($socket, "\x12\x34\x0\x0");
+						Write($socket, "\x12\x34\x0\x0");
                     
 					return 5;
 				case /* .AJP13_SEND_BODY_CHUNK */:
@@ -265,14 +263,13 @@
 					return 5;
 				case /* .AJP13_END_RESPONSE */:
 					if($data[5] == "\x01") {
-						$this->freeSockets[$socketID] = $socket;
+						$this->freeSockets[$socket] = $socket;
 					} else {
-						@socket_shutdown($socket);
-						socket_close($socket);
-						unset($this->sockets[$socketID]);
+						Close($socket);
+						unset($this->sockets[$socket]);
 					}
-					$retval = array($this->requestSockets[$socketID], $requestObject);
-					unset($this->requestSockets[$socketID], $this->requests[$socketID]);
+					$retval = array($this->requestSockets[$socket], $requestObject);
+					unset($this->requestSockets[$socket], $this->requests[$socket]);
 					return $retval;
 				case /* .AJP13_SEND_HEADERS */:
 					// Get HTTP status code

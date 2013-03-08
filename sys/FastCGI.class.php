@@ -75,28 +75,27 @@
 
 			switch($this->type) {
 				case 'ipv6':
-					$this->socket = socket_create(/* .constant 'AF_INET6' */, /* .constant 'SOCK_STREAM' */, /* .constant 'SOL_TCP' */);
-					if(!socket_connect($this->socket, $this->address, $this->port)) {
-						trigger_error('Unable to connect to FastCGI upstream server at ipv6:' . $this->address . ':' . $this->port, /* .constant 'E_USER_ERROR' */);
+					$this->socket = Socket(/* .constant 'AF_INET6' */, /* .constant 'SOCK_STREAM' */, /* .constant 'SOL_TCP' */);
+					if(Connect($this->socket, /* .constant 'AF_INET6' */, $this->address, $this->port)) {
+					   trigger_error('Unable to connect to FastCGI upstream server at ipv6:' . $this->address . ':' . $this->port, /* .constant 'E_USER_ERROR' */);
 						return false;
 					}
 					break;
 				case 'ipv4':
-					$this->socket = socket_create(/* .constant 'AF_INET' */, /* .constant 'SOCK_STREAM' */, /* .constant 'SOL_TCP' */);
-					if(!socket_connect($this->socket, $this->address, $this->port)) {
+					$this->socket = Socket(/* .constant 'AF_INET' */, /* .constant 'SOCK_STREAM' */, /* .constant 'SOL_TCP' */);
+					if(Connect($this->socket, /* .AF_INET */, $this->address, $this->port)) {
 						trigger_error('Unable to connect to FastCGI upstream server at ipv4:' . $this->address . ':' . $this->port, /* .constant 'E_USER_ERROR' */);
 						return false;
 					}
 					break;
 				default:
-					$this->socket = socket_create(/* .constant 'AF_UNIX' */, /* .constant 'SOCK_STREAM' */, 0);
-					if(!socket_connect($this->socket, $this->address)) {
+					$this->socket = Socket(/* .constant 'AF_UNIX' */, /* .constant 'SOCK_STREAM' */, 0);
+					if(Connect($this->socket, /* .AF_UNIX */, $this->address)) {
 						trigger_error('Unable to connect to FastCGI upstream server at unix:' . $this->address, /* .constant 'E_USER_ERROR' */);
 						return false;
 					}
 			}
 
-			socket_set_option($this->socket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_KEEPALIVE' */, 1);
 			return true;
 		}
 
@@ -113,12 +112,12 @@
 				$this->connect();
 
 			/* VERSION . TYPE . REQUEST_ID (2) . CONTENT_LENGTH (2) . PADDING_LENGTH . RESERVED . ROLE (2) . FLAG . RESERVED (5) */
-			if(!@socket_write($this->socket, "\1\1" .  $requestID . "\0\x8\0\0\0\1\1\0\0\0\0\0")) {
+			if(!@Write($this->socket, "\1\1" .  $requestID . "\0\x8\0\0\0\1\1\0\0\0\0\0")) {
 				if(!$this->connect()) {
 					$requestObject->invalidRequest(new invalidHTTPRequestException("Failed to connect to FastCGI upstream server", 502));
 					return false;
 				} else
-					socket_write($this->socket, "\1\1" .  $requestID . "\0\x8\0\0\0\1\1\0\0\0\0\0");
+					Write($this->socket, "\1\1" .  $requestID . "\0\x8\0\0\0\1\1\0\0\0\0\0");
 			}
 
 			/* FCGI_PARAMS */
@@ -163,10 +162,10 @@
 
 			$strlen = strlen($body);
 			$strlen = ($strlen < 256 ? ("\0" . chr($strlen)) : (chr($strlen >> 8) . chr($strlen)));
-			socket_write($this->socket, "\1\4" . $requestID . $strlen . "\0\0" . $body);
+			Write($this->socket, "\1\4" . $requestID . $strlen . "\0\0" . $body);
 
 			/* Empty FCGI_PARAMS */
-			socket_write($this->socket, "\1\4" . $requestID . "\0\0\0\0");
+			Write($this->socket, "\1\4" . $requestID . "\0\0\0\0");
 
 			if(/* .RAW_POST_DATA */) {
 				$rawPostData = str_split(/* .RAW_POST_DATA */, 65535);
@@ -175,11 +174,11 @@
 					/* FCGI_STDIN */
 					$strlen = strlen($recordData);
 					$contentLength = ($strlen < 256 ? ("\0" . chr($strlen)) : (chr($strlen >> 8) . chr($strlen)));
-					socket_write($this->socket, "\1\5" . $requestID . $contentLength . "\0\0" . $recordData);
+					Write($this->socket, "\1\5" . $requestID . $contentLength . "\0\0" . $recordData);
 				}
 
 				/* Empty FCGI_STDIN */
-				socket_write($this->socket, "\1\5" . $requestID . "\0\0\0\0");
+				Write($this->socket, "\1\5" . $requestID . "\0\0\0\0");
 			}
 
 			$requestObject->fCGISocket = (int) $this->socket;

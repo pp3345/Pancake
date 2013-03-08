@@ -116,21 +116,17 @@
         $data = serialize($object);
     	$packages = array();
 
-      	if(strlen($data) > (socket_get_option(vars::$requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_SNDBUF' */) - 1024)
-      	&& (socket_set_option(vars::$requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_SNDBUF' */, strlen($data) + 1024) + 1)
-        && strlen($data) > (socket_get_option(vars::$requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_SNDBUF' */) - 1024)) {
-      		$packageSize = socket_get_option(vars::$requestSocket, /* .constant 'SOL_SOCKET' */, /* .constant 'SO_SNDBUF' */) - 1024;
-
+      	if($packageSize = AdjustSendBufferSize(vars::$requestSocket, strlen($data))) {
       		for($i = 0;$i < ceil($data / $packageSize);$i++)
       			$packages[] = substr($data, $i * $packageSize, $i * $packageSize + $packageSize);
       	} else
       		$packages[] = $data;
 
         // First transmit the length of the serialized object, then the object itself
-        socket_write(vars::$requestSocket, dechex(count($packages)));
-        socket_write(vars::$requestSocket, dechex(strlen($packages[0])));
+        Write(vars::$requestSocket, dechex(count($packages)));
+        Write(vars::$requestSocket, dechex(strlen($packages[0])));
         foreach($packages as $data)
-        	socket_write(vars::$requestSocket, $data);
+        	Write(vars::$requestSocket, $data);
         
         // Clean uploaded files
         if(vars::$Pancake_request->uploadedFileTempNames) {
@@ -138,7 +134,7 @@
                 @unlink($file);
         }
 
-		socket_write(vars::$Pancake_currentThread->socket, "EXPECTED_SHUTDOWN");
+		Write(vars::$Pancake_currentThread->socket, "EXPECTED_SHUTDOWN");
     }
 
     #.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->phpDisabledFunctions;' false

@@ -55,7 +55,7 @@
     	abort();
     }
 
-    foreach(array("posix", "sockets", "tokenizer", "ctype") as $extension) {
+    foreach(array("posix", "tokenizer", "ctype") as $extension) {
         if(!extension_loaded($extension)) {
             $missingExtensions++;
             if($missingExtensions > 1) {
@@ -225,21 +225,21 @@
     foreach((array) Config::get('main.ipv6') as $interface) {
         foreach(\array_merge((array) Config::get('main.listenports'), (array) Config::get('tls.ports')) as $listenPort) {
             // Create socket
-            $socket = socket_create(\AF_INET6, \SOCK_STREAM, \SOL_TCP);
+            $socket = Socket(\AF_INET6, \SOCK_STREAM, \SOL_TCP);
 
             // Set option to reuse local address
-            socket_set_option($socket, \SOL_SOCKET, \SO_REUSEADDR, 1);
+            ReuseAddress($socket);
 
             // Bind to interface
-            if(!socket_bind($socket, $interface, $listenPort)) {
+            if(!Bind($socket, \AF_INET6, $interface, $listenPort)) {
                 trigger_error('Failed to create socket for ' . $interface . ' (IPv6) on port ' . $listenPort, \E_USER_WARNING);
                 continue;
             }
 
             // Start listening
-            socket_listen($socket, Config::get('main.socketbacklog'));
-            socket_set_nonblock($socket);
-            $Pancake_sockets[] = $socket;
+            Listen($socket, Config::get('main.socketbacklog'));
+            SetBlocking($socket, false);
+            $Pancake_sockets[$socket] = $socket;
         }
         if($interface == '::0' && $Pancake_sockets)
         	goto socketsCreated;
@@ -251,21 +251,21 @@
     foreach((array) Config::get('main.ipv4') as $interface) {
         foreach(\array_merge((array) Config::get('main.listenports'), (array) Config::get('tls.ports')) as $listenPort) {
             // Create socket
-            $socket = socket_create(\AF_INET, \SOCK_STREAM, \SOL_TCP);
+            $socket = Socket(\AF_INET, \SOCK_STREAM, \SOL_TCP);
 
             // Set option to reuse local address
-            socket_set_option($socket, \SOL_SOCKET, \SO_REUSEADDR, 1);
+            ReuseAddress($socket);
 
             // Bind to interface
-            if(!socket_bind($socket, $interface, $listenPort)) {
+            if(!Bind($socket, \AF_INET, $interface, $listenPort)) {
                 trigger_error('Failed to create socket for ' . $interface . ' (IPv4) on port ' . $listenPort, \E_USER_WARNING);
                 continue;
             }
 
             // Start listening
-            socket_listen($socket, Config::get('main.socketbacklog'));
-            socket_set_nonblock($socket);
-            $Pancake_sockets[] = $socket;
+            Listen($socket, Config::get('main.socketbacklog'));
+            SetBlocking($socket, false);
+            $Pancake_sockets[$socket] = $socket;
         }
     }
 
@@ -320,7 +320,7 @@
     // We're doing this in two steps so that all vHosts will be displayed in phpinfo()
     foreach($vHosts as $vHost) {
     	if($vHost->phpSocket)
-        	$Pancake_phpSockets[] = $vHost->phpSocket;
+        	$Pancake_phpSockets[$vHost->phpSocket] = $vHost->phpSocket;
 
         for($i = 0;$i < $vHost->phpWorkers;$i++) {
             cleanGlobals(array('i', 'vHosts', 'vHost', 'Pancake_phpSockets'));
@@ -392,7 +392,7 @@
                 Wait($x, \WNOHANG);
 
                 $thread = Thread::get($info['pid']);
-                if(socket_read($thread->localSocket, 17) == "EXPECTED_SHUTDOWN") {
+                if(Read($thread->localSocket, 17) == "EXPECTED_SHUTDOWN") {
                     out($thread->friendlyName . ' requested reboot', OUTPUT_DEBUG | OUTPUT_SYSTEM | OUTPUT_LOG);
                 } else
                     out('Detected crash of ' . $thread->friendlyName . ' - Rebooting worker');
@@ -418,7 +418,7 @@
                 loadFilePointers();
                 foreach(Thread::getAll() as $thread) {
                     if(isset($thread->localSocket))
-                        socket_write($thread->localSocket, "LOAD_FILE_POINTERS");
+                        Write($thread->localSocket, "LOAD_FILE_POINTERS");
                 }
         }
 

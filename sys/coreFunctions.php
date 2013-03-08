@@ -26,10 +26,10 @@
         out('Stopping...');
 
         foreach((array) $Pancake_sockets as $socket)
-            socket_close($socket);
+            Close($socket);
         foreach((array) $Pancake_phpSockets as $socket) {
-            socket_getsockname($socket, $addr);
-            socket_close($socket);
+            GetSockName($socket, $addr);
+            Close($socket);
             unlink($addr);
         }
 
@@ -43,7 +43,7 @@
 
             if(!$worker->running)
                 continue;
-            socket_write($worker->localSocket, "GRACEFUL_SHUTDOWN");
+            Write($worker->localSocket, "GRACEFUL_SHUTDOWN");
             unlink($worker->socketName);
             $worker->waitForExit();
         }

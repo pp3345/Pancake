@@ -194,9 +194,9 @@
             if($this->phpWorkers) {
                 $this->phpSocketName = Config::get('main.tmppath') . mt_rand() . '_' . $this->name . '_socket';
 
-                $this->phpSocket = socket_create(\AF_UNIX, \SOCK_SEQPACKET, 0);
-                socket_bind($this->phpSocket, $this->phpSocketName);
-                socket_listen($this->phpSocket, (int) $config['phpsocketbacklog']);
+                $this->phpSocket = Socket(\AF_UNIX, \SOCK_SEQPACKET, 0);
+                Bind($this->phpSocket, \AF_UNIX, $this->phpSocketName);
+                Listen($this->phpSocket, (int) $config['phpsocketbacklog']);
 
                 chown($this->phpSocketName, Config::get('main.user'));
                 chgrp($this->phpSocketName, Config::get('main.group'));

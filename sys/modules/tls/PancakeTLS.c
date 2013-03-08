@@ -105,19 +105,17 @@ PHP_FUNCTION(TLSCreateContext) {
 }
 
 PHP_FUNCTION(TLSInitializeConnection) {
-	zval *socket;
+	long socket;
 	php_socket *php_sock;
 	SSL *ssl = SSL_new(PANCAKE_TLS_GLOBALS(context));
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &socket) == FAILURE) {
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &socket) == FAILURE) {
 		RETURN_FALSE;
 	}
 
-	ZEND_FETCH_RESOURCE(php_sock, php_socket*, &socket, -1, "Socket", php_sockets_le_socket());
+	SSL_set_fd(ssl, socket);
 
-	SSL_set_fd(ssl, php_sock->bsd_socket);
-
-	zend_hash_index_update(PANCAKE_TLS_GLOBALS(TLSSessions), Z_LVAL_P(socket), (void*) &ssl, sizeof(SSL*), NULL);
+	zend_hash_index_update(PANCAKE_TLS_GLOBALS(TLSSessions), socket, (void*) &ssl, sizeof(SSL*), NULL);
 }
 
 PHP_FUNCTION(TLSAccept) {

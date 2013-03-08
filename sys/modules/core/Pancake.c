@@ -86,8 +86,25 @@ ZEND_BEGIN_ARG_INFO(arginfo_sigwaitinfo, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO(arginfo_wait, 0)
-	ZEND_ARG_INFO(1, status)
-	ZEND_ARG_INFO(0, options)
+	ZEND_ARG_INFO(1, "status")
+	ZEND_ARG_INFO(0, "options")
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO(arginfo_writeBuffer, 0)
+	ZEND_ARG_INFO(0, "fd")
+	ZEND_ARG_INFO(1, "buffer")
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO(arginfo_getnName, 0)
+	ZEND_ARG_INFO(0, "fd")
+	ZEND_ARG_INFO(1, "address")
+	ZEND_ARG_INFO(1, "port")
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO(arginfo_select, 0)
+	ZEND_ARG_INFO(1, "read")
+	ZEND_ARG_INFO(1, "write")
+	ZEND_ARG_INFO(0, "nanoseconds")
 ZEND_END_ARG_INFO()
 
 const zend_function_entry Pancake_functions[] = {
@@ -106,6 +123,22 @@ const zend_function_entry Pancake_functions[] = {
 	ZEND_NS_FE("Pancake", wait, arginfo_wait)
 	ZEND_NS_FE("Pancake", sigprocmask, NULL)
 	ZEND_NS_FE("Pancake", waitpid, NULL)
+	ZEND_NS_FE("Pancake", socket, NULL)
+	ZEND_NS_FE("Pancake", reuseaddress, NULL)
+	ZEND_NS_FE("Pancake", bind, NULL)
+	ZEND_NS_FE("Pancake", listen, NULL)
+	ZEND_NS_FE("Pancake", setBlocking, NULL)
+	ZEND_NS_FE("Pancake", write, NULL)
+	ZEND_NS_FE("Pancake", writeBuffer, arginfo_writeBuffer)
+	ZEND_NS_FE("Pancake", read, NULL)
+	ZEND_NS_FE("Pancake", accept, NULL)
+	ZEND_NS_FE("Pancake", keepAlive, NULL)
+	ZEND_NS_FE("Pancake", connect, NULL)
+	ZEND_NS_FE("Pancake", close, NULL)
+	ZEND_NS_FE("Pancake", getPeerName, arginfo_getnName)
+	ZEND_NS_FE("Pancake", getSockName, arginfo_getnName)
+	ZEND_NS_FE("Pancake", select, arginfo_select)
+	ZEND_NS_FE("Pancake", adjustSendBufferSize, NULL)
 	ZEND_FE_END
 };
 
@@ -233,6 +266,19 @@ PHP_MINIT_FUNCTION(Pancake)
 		REGISTER_LONG_CONSTANT("SIG_BLOCK",   SIG_BLOCK, CONST_CS | CONST_PERSISTENT);
 		REGISTER_LONG_CONSTANT("SIG_UNBLOCK", SIG_UNBLOCK, CONST_CS | CONST_PERSISTENT);
 		REGISTER_LONG_CONSTANT("SIG_SETMASK", SIG_SETMASK, CONST_CS | CONST_PERSISTENT);
+	}
+
+	if(!zend_hash_exists(&module_registry, "sockets", sizeof("sockets"))) {
+		REGISTER_LONG_CONSTANT("AF_UNIX",		AF_UNIX,		CONST_CS | CONST_PERSISTENT);
+		REGISTER_LONG_CONSTANT("AF_INET",		AF_INET,		CONST_CS | CONST_PERSISTENT);
+		REGISTER_LONG_CONSTANT("AF_INET6",		AF_INET6,		CONST_CS | CONST_PERSISTENT);
+		REGISTER_LONG_CONSTANT("SOCK_STREAM",	SOCK_STREAM,	CONST_CS | CONST_PERSISTENT);
+		REGISTER_LONG_CONSTANT("SOCK_DGRAM",	SOCK_DGRAM,		CONST_CS | CONST_PERSISTENT);
+		REGISTER_LONG_CONSTANT("SOCK_RAW",		SOCK_RAW,		CONST_CS | CONST_PERSISTENT);
+		REGISTER_LONG_CONSTANT("SOCK_SEQPACKET",SOCK_SEQPACKET, CONST_CS | CONST_PERSISTENT);
+		REGISTER_LONG_CONSTANT("SOL_SOCKET",	SOL_SOCKET,		CONST_CS | CONST_PERSISTENT);
+		REGISTER_LONG_CONSTANT("SOL_TCP",		IPPROTO_TCP,	CONST_CS | CONST_PERSISTENT);
+		REGISTER_LONG_CONSTANT("SOL_UDP",		IPPROTO_UDP,	CONST_CS | CONST_PERSISTENT);
 	}
 
 	INIT_NS_CLASS_ENTRY(http, "Pancake", "HTTPRequest", HTTPRequest_methods);
