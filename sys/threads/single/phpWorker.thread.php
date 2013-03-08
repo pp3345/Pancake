@@ -530,6 +530,8 @@
 	        Write(vars::$requestSocket, dechex(strlen($packages[0])));
 	        foreach($packages as $data)
 	        	Write(vars::$requestSocket, $data);
+            
+            Close(vars::$requestSocket);
 
 	        // Clean
 	        PHPFunctions\OutputBuffering\endClean();

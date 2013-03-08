@@ -128,6 +128,8 @@
         foreach($packages as $data)
         	Write(vars::$requestSocket, $data);
         
+        Close(vars::$requestSocket);
+        
         // Clean uploaded files
         if(vars::$Pancake_request->uploadedFileTempNames) {
             foreach(vars::$Pancake_request->uploadedFileTempNames as $file)
