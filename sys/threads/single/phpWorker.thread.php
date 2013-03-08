@@ -113,10 +113,14 @@
     	Thread::clearCache();
 
     	$Pancake_currentThread->vHost = new vHostInterface($Pancake_currentThread->vHost);
+        Close($Pancake_currentThread->localSocket);
     	setThread($Pancake_currentThread);
 	    vars::$Pancake_currentThread = $Pancake_currentThread;
 	    unset($Pancake_currentThread);
 
+        foreach($Pancake_sockets as $socket) {
+            Close($socket);
+        }
 	    unset($Pancake_sockets);
 
 	    #.ifdef 'SUPPORT_CODECACHE'
@@ -127,6 +131,12 @@
 		Config::workerDestroy();
 
 	    // Don't allow scripts to get information about other vHosts
+	    foreach($Pancake_vHosts as $vHost) {
+	        if($vHost->phpSocket && $vHost->id != vars::$Pancake_currentThread->vHost->id) {
+	           Close($vHost->phpSocket);
+               $vHost->phpSocket = 0;
+            }
+        }
 	    unset($Pancake_vHosts);
 
 	    // Clean

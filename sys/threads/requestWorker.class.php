@@ -72,10 +72,17 @@
             $this->localSocket = Socket(\AF_UNIX, \SOCK_STREAM, 0);
             Connect($this->localSocket, \AF_UNIX, $this->socketName);
 			SetBlocking($this->localSocket, false);
-            $this->socket = Accept($this->socket);
+            $socket = Accept($this->socket);
+            Close($this->socket);
+            $this->socket = $socket;
 
             $this->codeFile = 'compilecache/requestWorker.thread.cphp';
             $this->friendlyName = 'RequestWorker #' . ($this->id + 1);
+        }
+
+        public function __destruct() {
+            Close($this->socket);
+            Close($this->localSocket);
         }
     }
 ?>

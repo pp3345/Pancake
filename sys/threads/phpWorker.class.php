@@ -78,10 +78,17 @@
             $this->localSocket = Socket(\AF_UNIX, \SOCK_STREAM, 0);
             Connect($this->localSocket, \AF_UNIX, $this->socketName);
 			SetBlocking($this->localSocket, false);
-            $this->socket = Accept($this->socket);
+            $socket = Accept($this->socket);
+            Close($this->socket);
+            $this->socket = $socket;
 
             // Start worker
             $this->start(false);
+        }
+
+        public function __destruct() {
+            Close($this->localSocket);
+            Close($this->socket);
         }
     }
 ?>

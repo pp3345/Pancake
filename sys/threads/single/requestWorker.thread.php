@@ -13,7 +13,7 @@
     if(PANCAKE !== true)
         exit;
    	#.endif
-
+   	   	
    	#.if #.bool #.Pancake\Config::get 'tls'
     	#.SUPPORT_TLS = true
     	#.TLS_ACCEPT = 1
@@ -83,6 +83,13 @@
     #.if #.eval EVAL_CODE false
     	#.SUPPORT_GZIP_MIME_TYPE_LIMIT = true
     #.endif
+    
+    #.longDefine 'EVAL_CODE'
+    global $Pancake_sockets;
+    return count($Pancake_sockets);
+    #.endLongDefine
+    
+    #.LISTEN_SOCKET_COUNT = #.eval EVAL_CODE false
 
     #.if #.call 'Pancake\Config::get' 'main.waitslotwaitlimit'
     	#.ifdef 'SUPPORT_PHP'
@@ -169,6 +176,9 @@
     foreach($Pancake_vHosts as $id => &$vHost) {
     	if($vHost instanceof vHostInterface)
     		break;
+        if($vHost->phpSocket)
+           Close($vHost->phpSocket);
+        
     	$vHost = new vHostInterface($vHost);
     	#.ifdef 'SUPPORT_FASTCGI'
     		$vHost->initializeFastCGI();
@@ -181,6 +191,8 @@
     	foreach($vHost->listen as $address)
     		$Pancake_vHosts[$address] = $vHost;
     }
+
+    Close($this->localSocket);
 
     #.ifdef 'SUPPORT_AUTHENTICATION'
         setThread($Pancake_currentThread, vHostInterface::$defaultvHost, $Pancake_vHosts, /* .constant 'POST_MAX_SIZE' */, /* .constant 'SUPPORT_AUTHENTICATION' */);
@@ -246,7 +258,7 @@
 
     Config::workerDestroy();
 
-    $Pancake_sockets[] = $Pancake_currentThread->socket;
+    $Pancake_sockets[$Pancake_currentThread->socket] = $Pancake_currentThread->socket;
 
     $listenSockets = $listenSocketsOrig = $Pancake_sockets;
 
@@ -337,6 +349,12 @@
         foreach($listenSockets as $socket) {
         	unset($listenSockets[$socket]);
 
+#.ifdef 'SUPPORT_TLS'
+            if(isset($TLSConnections[$socket]) && $TLSConnections[$socket] == /* .TLS_WRITE */) {
+                goto liveWrite;
+            }
+#.endif
+            
             if(isset($liveReadSockets[$socket]) || KeepAlive($socket)) {
                 $requestObject = $requests[$socket];
                 if(!isset($socketData[$socket])) {
@@ -344,13 +362,7 @@
                 }
                 break;
             }
-
-            #.ifdef 'SUPPORT_TLS'
-            if(isset($TLSConnections[$socket]) && $TLSConnections[$socket] == /* .TLS_WRITE */) {
-                goto liveWrite;
-            }
-            #.endif
-
+            
         	#.ifdef 'SUPPORT_AJP13'
         	if(isset($ajp13Sockets[$socket])) {
         		$ajp13 = $ajp13Sockets[$socket];
@@ -1064,9 +1076,9 @@
         if($decliningNewRequests && /* .call 'Pancake\Config::get' 'main.maxconcurrent' */ > count($listenSocketsOrig))
             $listenSocketsOrig = array_merge($Pancake_sockets, $listenSocketsOrig);
 
-        if(/* .call 'Pancake\Config::get' 'main.maxconcurrent' */ < count($listenSocketsOrig) - count($Pancake_sockets)) {
-            foreach($Pancake_sockets as $index => $socket)
-                unset($listenSocketsOrig[$index]);
+        if(/* .call 'Pancake\Config::get' 'main.maxconcurrent' */ < count($listenSocketsOrig) - /* .LISTEN_SOCKET_COUNT */) {
+            foreach($Pancake_sockets as $socket)
+                unset($listenSocketsOrig[$socket]);
             $decliningNewRequests = true;
         }
         #.endif
