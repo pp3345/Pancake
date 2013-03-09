@@ -632,7 +632,8 @@ PHP_FUNCTION(select) {
 	zval *read, *write = NULL;
 	fd_set read_set, write_set;
 	long nanoseconds = 0;
-	struct timeval *time = NULL;
+	struct timeval time;
+	struct timeval *time_p = NULL;
 	int retval, max = 0;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|zl", &read, &write, &nanoseconds) == FAILURE) {
@@ -648,11 +649,12 @@ PHP_FUNCTION(select) {
 	}
 
 	if(nanoseconds) {
-		time->tv_sec = 0;
-		time->tv_usec = nanoseconds;
+		time.tv_sec = 0;
+		time.tv_usec = nanoseconds;
+		time_p = &time;
 	}
 
-	retval = select(max + 1, &read_set, &write_set, NULL, time);
+	retval = select(max + 1, &read_set, &write_set, NULL, time_p);
 
 	if(retval == -1) {
 		zend_error(E_WARNING, "%s", strerror(errno));
