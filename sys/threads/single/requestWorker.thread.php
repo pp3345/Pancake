@@ -319,15 +319,6 @@
     	// If there are jobs left in the queue at the end of the job-run, we're going to jump back to this point to execute the jobs that are left
     	cycle:
 
-    	#.ifdef 'SUPPORT_WAITSLOTS'
-    	// Check if there are requests waiting for a PHPWorker
-    	foreach($waitSlots as $socket) {
-			unset($waitSlots[$socket]);
-			$requestObject = $requests[$socket];
-    		goto load;
-    	}
-    	#.endif
-
     	// Upload to clients that are ready to receive
         foreach($liveWriteSockets as $socket) {
         	unset($liveWriteSockets[$socket]);
@@ -341,7 +332,16 @@
             #.endif
             goto liveWrite;
         }
-
+        
+#.ifdef 'SUPPORT_WAITSLOTS'
+        // Check if there are requests waiting for a PHPWorker
+        foreach($waitSlots as $socket) {
+            unset($waitSlots[$socket]);
+            $requestObject = $requests[$socket];
+            goto load;
+        }
+#.endif
+        
         // New connection, downloadable content from a client or the PHP-SAPI finished a request
         foreach($listenSockets as $socket) {
         	unset($listenSockets[$socket]);
