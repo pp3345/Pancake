@@ -1022,7 +1022,10 @@
 
             unset($listenSocketsOrig[$socket]);
         } else if($requestObject->answerHeaders["connection"] == 'keep-alive') {
-                $listenSocketsOrig[$socket] = $socket;
+            $listenSocketsOrig[$socket] = $socket;
+            if(isset($TLSConnections[$socket])) {
+                $TLSConnections[$socket] = /* .TLS_READ */;
+            }
         }
 
 
