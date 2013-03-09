@@ -16,11 +16,16 @@
 #define PANCAKE_DEBUG 1
 
 /* What the hell is Linux doing with FD_SETSIZE? */
-#define _BITS_TYPES_H
+#ifndef _BITS_TYPES_H
+#	define _BITS_TYPES_H
+#	define __RESET_BITS_TYPES_H
+#endif
 #include <bits/typesizes.h>
 #undef __FD_SETSIZE
 #define __FD_SETSIZE 131072
-#undef _BITS_TYPES_H
+#ifdef __RESET_BITS_TYPES_H
+#	undef _BITS_TYPES_H
+#endif
 #include <sys/types.h>
 
 #include "php.h"
@@ -44,8 +49,10 @@
 #include <sys/fcntl.h>
 #include <arpa/inet.h>
 
+#ifndef phpext_Pancake_ptr
 extern zend_module_entry Pancake_module_entry;
-#define phpext_Pancake_ptr &Pancake_module_entry
+#	define phpext_Pancake_ptr &Pancake_module_entry
+#endif
 
 #ifdef PHP_WIN32
 #	error "Microsoft Windows is not supported by Pancake"
