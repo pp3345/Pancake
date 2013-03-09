@@ -250,7 +250,7 @@
     #.endif
 
     unset($id, $vHost, $address);
-        
+
     disableModuleLoader();
 
     Config::workerDestroy();
@@ -315,7 +315,7 @@
     #.ifdef 'SUPPORT_WAITSLOTS'
     , $waitSlots ? /* .call 'Pancake\Config::get' 'main.waitslottime' */ : null
     #.endif
-    ) !== false) {
+    )) {
     	// If there are jobs left in the queue at the end of the job-run, we're going to jump back to this point to execute the jobs that are left
     	cycle:
 
@@ -375,6 +375,7 @@
         				unset($ajp13Sockets[$socket]);
         				unset($listenSocketsOrig[$socket]);
         				unset($result);
+                        unset($data);
         				goto clean;
         			}
         		} while($result & /* .AJP13_APPEND_DATA */);
@@ -411,6 +412,7 @@
         				unset($fastCGISockets[$socket]);
         				unset($listenSocketsOrig[$socket]);
         				unset($result);
+                        unset($data);
         				goto clean;
         			}
         		} while($result & /* .constant 'FCGI_APPEND_DATA' */);
@@ -497,13 +499,14 @@
             if($socket == $this->socket) {
                 switch(Read($this->socket, 128)) {
                     case "GRACEFUL_SHUTDOWN":
+                        // Stop listening for new connections
                     	foreach($Pancake_sockets as $socket)
                     		unset($listenSocketsOrig[$socket]);
 
                     	$doShutdown = true;
                     	goto clean;
                     case "LOAD_FILE_POINTERS":
-                        loadFilePointers();
+                        LoadFilePointers();
                         goto clean;
                 }
             }
@@ -600,6 +603,7 @@
            			$data = explode("\r\n\r\n", $socketData[$socket], 2);
                 	$socketData[$socket] = $data[0];
                     $postData[$socket] = $data[1];
+                    unset($data);
                 }
 
                 goto readData;
@@ -694,9 +698,8 @@
         #.endif
 
         #.if #.call 'ini_get' 'expose_php'
-        if(array_key_exists("", /* .GET_PARAMS */)) {
-            $_GET = /* .GET_PARAMS */;
-            switch($_GET[""]) {
+        if(isset(/* .GET_PARAMS*/[""])) {
+            switch(/* .GET_PARAMS*/[""]) {
                 case 'PHPE9568F34-D428-11d2-A769-00AA001ACF42':
                     $logo = file_get_contents('logo/php.gif');
                     $requestObject->setHeader('Content-Type', 'image/gif');
@@ -716,7 +719,7 @@
                     $logo = ob_get_contents();
                     PHPFunctions\OutputBuffering\endClean();
                 break;
-                #.if true === #.call 'Pancake\Config::get' 'main.exposepancake'
+                #.if #.call 'Pancake\Config::get' 'main.exposepancake'
                 case 'PAN8DF095AE-6639-4C6F-8831-5AB8FBD64D8B':
                     $logo = file_get_contents('logo/pancake.png');
                     $requestObject->setHeader('Content-Type', 'image/png');
@@ -727,7 +730,6 @@
             }
             /* .ANSWER_BODY */ = $logo;
             unset($logo);
-            unset($_GET);
             goto write;
         }
         #.endif
@@ -809,6 +811,7 @@
             	Write($psocket, $data);
 
             unset($packages);
+            unset($data);
 
             $listenSocketsOrig[$psocket] = $psocket;
             $phpSockets[$psocket] = $socket;
@@ -854,6 +857,7 @@
             	include 'php/directoryPageHandler.php';
 
             /* .ANSWER_BODY */ = ob_get_clean();
+            unset($files);
         } else {
 		#.endif
 			$requestObject->setHeader('Content-Type', /* .MIME_TYPE */);
@@ -1061,9 +1065,9 @@
 
         // Check if request-limit is reached
         #.if 0 < #.call 'Pancake\Config::get' 'main.requestworkerlimit'
-        if($processedRequests >= /* .call 'Pancake\Config::get' 'main.requestworkerlimit' */ && !$socketData && !$postData && !$requests) {
+        if($processedRequests >= /* .call 'Pancake\Config::get' 'main.requestworkerlimit' */) {
             Write($Pancake_currentThread->socket, "EXPECTED_SHUTDOWN");
-            exit;
+            $doShutdown = true;
         }
         #.endif
 
@@ -1080,11 +1084,9 @@
         }
         #.endif
 
-        // Clean old request-data
-        unset($data);
+        // Clean old data
         unset($bytes);
         unset($requestObject);
-        unset($socket);
 
         // If jobs are waiting, execute them before select()ing again
         if($listenSockets || $liveWriteSockets
@@ -1104,8 +1106,6 @@
         #.ifdef 'SUPPORT_WAITSLOTS'
         $waitSlots = $waitSlotsOrig;
         #.endif
-
-        gc_collect_cycles();
 
         // Reset statcache
         clearstatcache();
