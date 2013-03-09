@@ -99,7 +99,7 @@
 
             $this->phpCodeCache = (array) $config['phpcache'];
             $this->phpCodeCacheExcludes = (array) $config['phpcacheexclude'];
-            $this->phpWorkers = (int) $config['phpworkers'];
+            $this->phpWorkers = $this->AJP13 ? 0 : (int) $config['phpworkers'];
             $this->indexFiles = (array) $config['index'];
             $this->writeLimit = (int) $config['writelimit'];
             $this->allowDirectoryListings = (bool) $config['allowdirectorylistings'];
@@ -122,7 +122,7 @@
             $this->deletePredefinedConstantsAfterCodeCacheLoad = (bool) $config['phpdeletepredefinedconstantsaftercodecacheload'];
             $this->phpMaxExecutionTime = (int) $config['phpmaxexecutiontime'];
             $this->fixStaticMethodCalls = (!$this->phpCodeCache) || ($this->phpCodeCache && $config['phpfixstaticmethodcalls'] === false) ? false : true;
-            $this->fastCGI = (array) $config['fastcgi'];
+            $this->fastCGI = $this->AJP13 ? array() : (array) $config['fastcgi'];
             $this->exceptionPageHandler = $config['exceptionpagehandler'] && is_readable($config['exceptionpagehandler']) ? $config['exceptionpagehandler'] : getcwd() . '/php/exceptionPageHandler.php';
             $this->directoryPageHandler = $config['directorypagehandler'] && is_readable($config['directorypagehandler']) ? $config['directorypagehandler'] : getcwd() . '/php/directoryPageHandler.php';
             $this->gzipStatic = (bool) $config['gzipstatic'];

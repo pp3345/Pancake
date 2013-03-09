@@ -991,7 +991,7 @@ PHP_METHOD(HTTPRequest, init) {
 }
 
 PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
-	zval *vHost, *answerHeaderArray, *answerCodez, *answerBodyz, *protocolVersion, **contentLength, *requestHeaderArray, *connectionAnswer, **connection;
+	zval *vHost, *answerHeaderArray, *answerCodez, *answerBodyz, *protocolVersion, **contentLength, *requestHeaderArray, *connectionAnswer, **connection, *requestType;
 	long answerCode;
 	int answerBody_len;
 
@@ -999,6 +999,7 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 	FAST_READ_PROPERTY(answerCodez, this_ptr, "answerCode", sizeof("answerCode") - 1, HASH_OF_answerCode);
 	FAST_READ_PROPERTY(answerBodyz, this_ptr, "answerBody", sizeof("answerBody") - 1, HASH_OF_answerBody);
 	FAST_READ_PROPERTY(protocolVersion, this_ptr, "protocolVersion", sizeof("protocolVersion") - 1, HASH_OF_protocolVersion);
+	FAST_READ_PROPERTY(requestType, this_ptr, "requestType", sizeof("requestType") - 1, HASH_OF_requestType);
 	answerCode = Z_LVAL_P(answerCodez);
 	answerBody_len = Z_STRLEN_P(answerBodyz);
 
@@ -1093,6 +1094,10 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 
 	// This is ugly. But it is fast.
 	returnValue_len = sizeof("HTTP/1.1  \r\n\r\n") + answerCode_len + answerCodeString_len + answerHeader_len - 2; // 2 = null byte from answerHeaders + null byte from sizeof()
+	if(strcmp(Z_STRVAL_P(requestType), "HEAD")) {
+		returnValue_len += answerBody_len;
+	}
+
 	returnValue = emalloc(returnValue_len + 1);
 	memcpy(returnValue, "HTTP/", sizeof("HTTP/") - 1);
 	offset += sizeof("HTTP/") - 1;
@@ -1115,6 +1120,11 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 	returnValue[offset] = '\r';
 	offset++;
 	returnValue[offset] = '\n';
+	if(strcmp(Z_STRVAL_P(requestType), "HEAD") && answerBody_len) {
+		memmove(returnValue + offset + 1, Z_STRVAL_P(answerBodyz), Z_STRLEN_P(answerBodyz));
+		efree(Z_STRVAL_P(answerBodyz));
+		Z_TYPE_P(answerBodyz) = IS_NULL;
+	}
 	returnValue[returnValue_len] = '\0';
 
 	// old implementation

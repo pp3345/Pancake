@@ -22,10 +22,12 @@
     #.endif
 
     #.if #.bool #.call 'Pancake\Config::get' 'fastcgi'
+        #.macro 'VHOST_FASTCGI' '(isset(/* .VHOST */->fastCGI[/* .MIME_TYPE */]) ? /* .VHOST */->fastCGI[/* .MIME_TYPE */] : null)'
     	#.define 'SUPPORT_FASTCGI' true
     #.endif
 
     #.if #.bool #.Pancake\Config::get("ajp13")
+        #.macro 'VHOST_AJP13' '/* .VHOST */->AJP13'
     	#.SUPPORT_AJP13 = true
     #.endif
 
@@ -127,8 +129,7 @@
     #.macro 'LOCAL_PORT' '$requestObject->localPort'
     #.macro 'RAW_POST_DATA' '$requestObject->rawPOSTData'
     #.macro 'ACCEPTS_COMPRESSION' 'isset($requestObject->acceptedCompressions[$compression])' '$compression'
-    #.macro 'VHOST_FASTCGI' '(isset(/* .VHOST */->fastCGI[/* .MIME_TYPE */]) ? /* .VHOST */->fastCGI[/* .MIME_TYPE */] : null)'
-    #.macro 'VHOST_AJP13' '/* .VHOST */->AJP13'
+    
     #.macro 'VHOST_PHP_WORKERS' '/* .VHOST */->phpWorkers'
     #.macro 'VHOST_SOCKET_NAME' '/* .VHOST */->phpSocketName'
     #.macro 'VHOST_DOCUMENT_ROOT' '/* .VHOST */->documentRoot'
@@ -138,7 +139,7 @@
     #.macro 'VHOST_GZIP_LEVEL' '/* .VHOST */->gzipLevel'
     #.macro 'VHOST_WRITE_LIMIT' '/* .VHOST */->writeLimit'
     #.macro 'VHOST_NAME' '/* .VHOST */->name'
-
+        
     #.if Pancake\DEBUG_MODE === true
     	#.define 'BENCHMARK' false
     #.else
@@ -736,16 +737,20 @@
 
         load:
 
-        #.ifdef 'SUPPORT_AJP13'
+#.ifdef 'SUPPORT_AJP13'
+    #.ifdef 'SUPPORT_MULTIPLE_VHOSTS'
         if($ajp13 = /* .VHOST_AJP13 */) {
+    #.endif
         	$asocket = $ajp13->makeRequest($requestObject, $socket);
         	if($asocket === false)
         		goto write;
         	$listenSocketsOrig[$asocket] = $asocket;
         	$ajp13Sockets[$asocket] = $ajp13;
         	goto clean;
+    #.ifdef 'SUPPORT_MULTIPLE_VHOSTS'
         }
-        #.endif
+    #.endif
+#.endif
 
         #.ifdef 'SUPPORT_FASTCGI'
         	// FastCGI
@@ -760,7 +765,11 @@
 
        	#.ifdef 'SUPPORT_PHP'
         // Check for PHP
-        if(/* .MIME_TYPE */ == 'text/x-php' && /* .VHOST_PHP_WORKERS */) {
+        if(/* .MIME_TYPE */ == 'text/x-php'
+        #.ifdef 'SUPPORT_MULTIPLE_VHOSTS'
+         && /* .VHOST_PHP_WORKERS */
+        #.endif
+        ) {
             if(!($psocket = Socket(/* .constant 'AF_UNIX' */, /* .constant 'SOCK_SEQPACKET' */, 0))) {
             	$requestObject->invalidRequest(new invalidHTTPRequestException('Failed to create communication socket. Probably the server is overladed. Try again later.', 500));
             	goto write;
@@ -912,12 +921,6 @@
 
         // Get Answer Headers
         $writeBuffer[$socket] = /* .BUILD_ANSWER_HEADERS */;
-
-        #.if #.call 'Pancake\Config::get' 'main.allowhead'
-	        // Get answer body if set and request method isn't HEAD
-	        if(/* .REQUEST_TYPE */ != 'HEAD')
-	    #.endif
-	    $writeBuffer[$socket] .= /* .ANSWER_BODY */;
 
         // Output request information
         out('REQ './* .ANSWER_CODE */.' './* .REMOTE_IP */.': './* .REQUEST_LINE */.' on vHost '.((/* .VHOST */) ? /* .VHOST_NAME */ : null).' (via './* .GET_REQUEST_HEADER '"host"' */.' from './* .GET_REQUEST_HEADER "'referer'" */.') - './* .GET_REQUEST_HEADER '"user-agent"' */
