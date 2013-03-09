@@ -205,6 +205,7 @@ PHP_METHOD(HTTPRequest, init) {
 	char **firstLine = ecalloc(3, sizeof(char*));
 	int requestHeader_len, i, requestLine_len;
 
+
 	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &requestHeader, &requestHeader_len) == FAILURE)) {
 		RETURN_FALSE;
 	}
@@ -410,7 +411,7 @@ PHP_METHOD(HTTPRequest, init) {
 			return;
 		}
 
-		if(contentLength > PANCAKE_GLOBALS(postMaxSize)) {
+		if(contentLength > SG(post_max_size)) {
 			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("The uploaded content is too large.",
 					sizeof("The uploaded content is too large.") - 1, 413, requestHeader, requestHeader_len);
 			efree(firstLine);

@@ -273,7 +273,7 @@ PHP_FUNCTION(errorHandler)
 PHP_FUNCTION(setThread) {
 	zval *virtualHostArray = NULL;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o|oall", &PANCAKE_GLOBALS(currentThread), &PANCAKE_GLOBALS(defaultVirtualHost), &virtualHostArray, &PANCAKE_GLOBALS(postMaxSize), &PANCAKE_GLOBALS(enableAuthentication)) == FAILURE) {
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o|oal", &PANCAKE_GLOBALS(currentThread), &PANCAKE_GLOBALS(defaultVirtualHost), &virtualHostArray, &PANCAKE_GLOBALS(enableAuthentication)) == FAILURE) {
 		RETURN_FALSE;
 	}
 

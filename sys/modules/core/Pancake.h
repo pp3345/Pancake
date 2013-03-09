@@ -197,7 +197,6 @@ ZEND_BEGIN_MODULE_GLOBALS(Pancake)
 	int allowHEAD;
 	int allowTRACE;
 	int allowOPTIONS;
-	long postMaxSize;
 	zval *defaultVirtualHost;
 	zval *virtualHostArray;
 	HashTable *mimeTable;

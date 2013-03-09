@@ -148,9 +148,6 @@
     global $Pancake_sockets;
     global $Pancake_vHosts;
 
-    // Precalculate post_max_size in bytes
-   	#.define 'POST_MAX_SIZE' #.eval '$size = strtolower(ini_get("post_max_size")); if(strpos($size, "k")) $size = (int) $size * 1024; else if(strpos($size, "m")) $size = (int) $size * 1024 * 1024; else if(strpos($size, "g")) $size = (int) $size * 1024 * 1024 * 1024; return $size;' false
-
     #.ifdef 'SUPPORT_FASTCGI'
     	#.include 'FastCGI.class.php'
     #.endif
@@ -195,9 +192,9 @@
     Close($this->localSocket);
 
     #.ifdef 'SUPPORT_AUTHENTICATION'
-        setThread($Pancake_currentThread, vHostInterface::$defaultvHost, $Pancake_vHosts, /* .constant 'POST_MAX_SIZE' */, /* .constant 'SUPPORT_AUTHENTICATION' */);
+        setThread($Pancake_currentThread, vHostInterface::$defaultvHost, $Pancake_vHosts, /* .constant 'SUPPORT_AUTHENTICATION' */);
     #.else
-        setThread($Pancake_currentThread, vHostInterface::$defaultvHost, $Pancake_vHosts, /* .constant 'POST_MAX_SIZE' */, 0);
+        setThread($Pancake_currentThread, vHostInterface::$defaultvHost, $Pancake_vHosts, 0);
     #.endif
     
     #.ifdef 'SUPPORT_TLS'
