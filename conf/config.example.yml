@@ -30,6 +30,7 @@ main:
   waitSlotTime: 5000                                            # When there is no PHPWorker available to serve a PHP-request, Pancake will check after waitslottime µsec if a slot became available
   waitSlotWaitLimit: 0                                          # See above; this is the upper limit of wait-cycles until Pancake gives up on searching for a slot (for example: waitslottime = 5000; waitslotwaitlimit = 5 => Client will receive 500 Internal Server Error after 25 ms if no PHPWorker became available in those 25 ms)
   socketBacklog: 200                                            # Connection backlog for incoming requests
+  writeLimit: 1048576                                           # Limits the maximum data sent to the client at once - Low value = less RAM usage, but slower - High value = faster, but more RAM usage
 include:                                                        # Additional configuration-files to include
   - ../conf/vhosts/
   - ../conf/mime.yml

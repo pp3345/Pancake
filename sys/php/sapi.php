@@ -176,7 +176,6 @@
 		                        $pancakeAdd .= '<tr><td class="e">GZIP level</td><td class="v">' . $vHost->gzipLevel . '</td></tr>';
 		                    }
 
-		                    $pancakeAdd .= '<tr><td class="e">Per-Write Limit</td><td class="v">' . formatFilesize($vHost->writeLimit) . '</td></tr>';
 		                    $pancakeAdd .= '<tr><td class="e">Directory listings</td><td class="v">' . ($vHost->allowDirectoryListings ? 'enabled' : 'disabled') . '</td></tr>';
 		                    $pancakeAdd .= '<tr><td class="e">Index files</td><td class="v">';
 

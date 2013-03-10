@@ -130,6 +130,21 @@
     #.macro 'RAW_POST_DATA' '$requestObject->rawPOSTData'
     #.macro 'ACCEPTS_COMPRESSION' 'isset($requestObject->acceptedCompressions[$compression])' '$compression'
     
+    #.longDefine 'EVAL_CODE'
+    global $Pancake_vHosts;
+    
+    $writeLimit = \Pancake\Config::get('main.writelimit');
+    foreach($Pancake_vHosts as $vHost) {
+        if($vHost->writeLimit > $writeLimit) {
+            $writeLimit = $vHost->writeLimit;   
+        }
+    }
+    
+    return $writeLimit;
+    #.endLongDefine
+    
+    #.WRITE_LIMIT = #.eval EVAL_CODE false
+    
     #.macro 'VHOST_PHP_WORKERS' '/* .VHOST */->phpWorkers'
     #.macro 'VHOST_SOCKET_NAME' '/* .VHOST */->phpSocketName'
     #.macro 'VHOST_DOCUMENT_ROOT' '/* .VHOST */->documentRoot'
@@ -137,7 +152,6 @@
     #.macro 'VHOST_ALLOW_GZIP_COMPRESSION' '/* .VHOST */->allowGZIP'
     #.macro 'VHOST_GZIP_MINIMUM' '/* .VHOST */->gzipMinimum'
     #.macro 'VHOST_GZIP_LEVEL' '/* .VHOST */->gzipLevel'
-    #.macro 'VHOST_WRITE_LIMIT' '/* .VHOST */->writeLimit'
     #.macro 'VHOST_NAME' '/* .VHOST */->name'
         
     #.if Pancake\DEBUG_MODE === true
@@ -888,7 +902,7 @@
                 $requestedFileHandle = fopen(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */, 'r');
                 // Compress file
                 while(!feof($requestedFileHandle))
-                    gzwrite($gzipFileHandle, fread($requestedFileHandle, /* .VHOST_WRITE_LIMIT */));
+                    gzwrite($gzipFileHandle, fread($requestedFileHandle, /* .WRITE_LIMIT */));
                 // Close GZIP-resource and open normal file-resource
                 gzclose($gzipFileHandle);
                 $requestFileHandle[$socket] = fopen($gzipPath[$socket], 'r');
@@ -990,9 +1004,9 @@
        	)
         	$writeBuffer[$socket] .= fread($requestFileHandle[$socket],
         			#.if #.call 'Pancake\Config::get' 'main.writebuffersoftmaxconcurrent'
-        			(count($writeBuffer) > /* .call 'Pancake\Config::get' 'main.writebuffersoftmaxconcurrent' */ ? /* .call 'Pancake\Config::get' 'main.writebuffermin' */ : /* .VHOST_WRITE_LIMIT */)
+        			(count($writeBuffer) > /* .call 'Pancake\Config::get' 'main.writebuffersoftmaxconcurrent' */ ? /* .call 'Pancake\Config::get' 'main.writebuffermin' */ : /* .WRITE_LIMIT */)
 					#.else
-        			#.VHOST_WRITE_LIMIT
+        			#.WRITE_LIMIT
         			#.endif
         			- strlen($writeBuffer[$socket]));
 

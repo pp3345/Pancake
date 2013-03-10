@@ -26,6 +26,7 @@ main:
   waitslottime: 5000
   waitslotwaitlimit: 0
   socketbacklog: 200
+  writeLimit: 131072
 moody:
   deletewhitespaces: false
   deletecomments: true

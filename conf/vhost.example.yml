@@ -7,7 +7,6 @@ vhosts:
       - localhost
       - "[::1]"
     PHPWorkers: 2                                               # Amount of PHP-Workers to run
-    writeLimit: 1048576                                         # Limits the maximum data to be sent to the client at a time - Low value = less RAM-usage, but slower - High value = faster, but more RAM-usage
     gzipMin: 1048576                                            # Minimum static filesize to use GZIP-compression
     gzipLevel: 1                                                # Level of the GZIP-compression - Lower = bigger size, less CPU-usage
     enableGZIP: false                                           # Enable and disable GZIP-compression - We recommend leaving it disabled, it's better to precompress big files - GZIP-compression may produce very heavy CPU-load

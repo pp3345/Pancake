@@ -26,7 +26,6 @@
 			public $gzipMinimum = 0;
 			public $gzipLevel = -1;
 			public $allowGZIP = false;
-			public $writeLimit = 0;
 			public $isDefault = false;
         #.endif
         #.ifndef 'PHPWORKER'
