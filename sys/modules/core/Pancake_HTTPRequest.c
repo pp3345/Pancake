@@ -708,6 +708,7 @@ PHP_METHOD(HTTPRequest, init) {
 						requestFilePath = erealloc(requestFilePath, (requestFilePath_len + Z_STRLEN_PP(indexFile) + 1) * sizeof(char));
 						memcpy(requestFilePath + requestFilePath_len, Z_STRVAL_PP(indexFile), Z_STRLEN_PP(indexFile) + 1);
 						requestFilePath_len += Z_STRLEN_PP(indexFile);
+						stat(filePath, &st);
 						goto checkRead;
 					}
 				}
@@ -756,6 +757,7 @@ PHP_METHOD(HTTPRequest, init) {
 					Z_STRLEN_P(gzipStr) = 4;
 
 					PancakeSetAnswerHeader(this_ptr, "content-encoding", sizeof("content-encoding"), gzipStr, 1, HASH_OF_content_encoding TSRMLS_CC);
+					stat(filePath, &st);
 				}
 			}
 		}
@@ -796,6 +798,18 @@ PHP_METHOD(HTTPRequest, init) {
 		}
 
 		efree(filePath);
+
+		if(!S_ISREG(st.st_mode) && !S_ISDIR(st.st_mode) && !S_ISLNK(st.st_mode)) {
+			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("File is not a regular file or a directory.",
+									sizeof("File is not a regular file or a directory.") - 1, 404, requestHeader, requestHeader_len);
+			efree(firstLine);
+			efree(requestLine);
+			efree(requestFilePath);
+			efree(queryString);
+			if(authorization != NULL) efree(authorization);
+			if(if_unmodified_since != NULL) efree(if_unmodified_since);
+			return;
+		}
 
 		if(if_unmodified_since != NULL) {
 			if(st.st_mtime != php_parse_date(if_unmodified_since, NULL)) {
