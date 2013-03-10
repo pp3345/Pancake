@@ -28,7 +28,7 @@ main:
   writeBufferHardMaxConcurrent: 2000                            # Hard concurrent write buffer limit - When this limit is reached, Pancake will try not to allocate any buffers anymore
   waitPHPWorkerBoot: true                                       # Wait for PHP-Workers to boot (should be disabled in shared environments)
   waitSlotTime: 5000                                            # When there is no PHPWorker available to serve a PHP-request, Pancake will check after waitslottime µsec if a slot became available
-  waitSlotWaitLimit: 5                                          # See above; this is the upper limit of wait-cycles until Pancake gives up on searching for a slot (for example: waitslottime = 5000; waitslotwaitlimit = 5 => Client will receive 500 Internal Server Error after 25 ms if no PHPWorker became available in those 25 ms)
+  waitSlotWaitLimit: 0                                          # See above; this is the upper limit of wait-cycles until Pancake gives up on searching for a slot (for example: waitslottime = 5000; waitslotwaitlimit = 5 => Client will receive 500 Internal Server Error after 25 ms if no PHPWorker became available in those 25 ms)
   socketBacklog: 100                                            # Connection backlog for incoming requests
 include:                                                        # Additional configuration-files to include
   - ../conf/vhosts/
