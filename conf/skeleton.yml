@@ -16,7 +16,7 @@ main:
   allowhead: true
   allowtrace: true
   allowoptions: true
-  requestworkerlimit: 50000
+  requestworkerlimit: 250000
   maxconcurrent: 0
   workerboottime: 5
   writebuffermin: 10240
@@ -24,7 +24,7 @@ main:
   writebufferhardmaxconcurrent: 2000
   waitphpworkerboot: true
   waitslottime: 5000
-  waitslotwaitlimit: 5
+  waitslotwaitlimit: 0
   socketbacklog: 100
 moody:
   deletewhitespaces: false
