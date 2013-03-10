@@ -1023,9 +1023,11 @@
             unset($listenSocketsOrig[$socket]);
         } else if($requestObject->answerHeaders["connection"] == 'keep-alive') {
             $listenSocketsOrig[$socket] = $socket;
+#.ifdef 'SUPPORT_TLS'
             if(isset($TLSConnections[$socket])) {
                 $TLSConnections[$socket] = /* .TLS_READ */;
             }
+#.endif
         }
 
 
