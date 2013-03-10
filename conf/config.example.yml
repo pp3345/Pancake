@@ -18,8 +18,8 @@ main:
   exposePancake: true                                           # If true, Pancake will send a "Server"-Header with Information about Pancake
   sizePrefix: bin                                               # "si" or "bin" - SI: 1000 Byte = 1 Kilobyte - Binary: 1024 Byte = 1 Kibibyte
   allowHEAD: true                                               # Whether to allow the "HEAD"-requestmethod
-  allowTRACE: true                                              # Whether to allow the "TRACE"-requestmethod
-  allowOPTIONS: true                                            # Whether to allow the "OPTIONS"-requestmethod
+  allowTRACE: false                                              # Whether to allow the "TRACE"-requestmethod
+  allowOPTIONS: false                                            # Whether to allow the "OPTIONS"-requestmethod
   requestWorkerLimit: 250000                                     # Limit of requests a RequestWorker may process until it has to be restarted (0 for no limit)
   maxConcurrent: 0                                              # Limit of concurrent connections a RequestWorker may hold open (0 for no limit)
   workerBootTime: 5                                             # The upper timelimit for a worker to boot (raise this when you're for example caching files that take long to load)

@@ -14,8 +14,8 @@ main:
   exposepancake: true
   sizeprefix: bin
   allowhead: true
-  allowtrace: true
-  allowoptions: true
+  allowtrace: false
+  allowoptions: false
   requestworkerlimit: 250000
   maxconcurrent: 0
   workerboottime: 5
