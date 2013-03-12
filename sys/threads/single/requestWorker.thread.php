@@ -360,6 +360,7 @@
 
 #.ifdef 'SUPPORT_TLS'
             if(isset($TLSConnections[$socket]) && $TLSConnections[$socket] == /* .TLS_WRITE */) {
+                $requestObject = $requests[$socket];
                 goto liveWrite;
             }
 #.endif
