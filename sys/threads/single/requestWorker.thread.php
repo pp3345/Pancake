@@ -275,9 +275,6 @@
     $listenSockets = $listenSocketsOrig = $Pancake_sockets;
 
     // Initialize some variables
-    #.if #.call 'Pancake\Config::get' 'main.maxconcurrent'
-    $decliningNewRequests = false;
-    #.endif
     #.ifdef 'SUPPORT_TLS'
     $TLSConnections = array();
     #.endif
@@ -1096,8 +1093,10 @@
         clean:
 
         #.if #.call 'Pancake\Config::get' 'main.maxconcurrent'
-        if($decliningNewRequests && /* .call 'Pancake\Config::get' 'main.maxconcurrent' */ > count($listenSocketsOrig))
+        if(isset($decliningNewRequests) && /* .call 'Pancake\Config::get' 'main.maxconcurrent' */ > count($listenSocketsOrig)) {
             $listenSocketsOrig = array_merge($Pancake_sockets, $listenSocketsOrig);
+            unset($decliningNewRequests);
+        }
 
         if(/* .call 'Pancake\Config::get' 'main.maxconcurrent' */ < count($listenSocketsOrig) - /* .LISTEN_SOCKET_COUNT */) {
             foreach($Pancake_sockets as $socket)
