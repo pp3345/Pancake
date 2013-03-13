@@ -116,6 +116,7 @@ PHP_FUNCTION(getSockName);
 PHP_FUNCTION(getPeerName);
 PHP_FUNCTION(select);
 PHP_FUNCTION(adjustSendBufferSize);
+PHP_FUNCTION(nonBlockingAccept);
 
 PHP_METHOD(HTTPRequest, __construct);
 PHP_METHOD(HTTPRequest, init);

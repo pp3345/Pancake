@@ -400,6 +400,26 @@ PHP_FUNCTION(accept) {
 	RETURN_LONG(new_fd);
 }
 
+PHP_FUNCTION(nonBlockingAccept) {
+	long fd, new_fd;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &fd) == FAILURE) {
+		RETURN_FALSE;
+	}
+
+	new_fd = accept4(fd, NULL, NULL, SOCK_NONBLOCK);
+
+	if(new_fd == -1) {
+		if(errno != EAGAIN) {
+			zend_error(E_WARNING, "%s", strerror(errno));
+		}
+
+		RETURN_FALSE;
+	}
+
+	RETURN_LONG(new_fd);
+}
+
 PHP_FUNCTION(keepAlive) {
 	long fd;
 	long set = 0;

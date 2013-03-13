@@ -528,7 +528,7 @@
             #.if 0 != #.call 'Pancake\Config::get' 'main.maxconcurrent'
             /* .call 'Pancake\Config::get' 'main.maxconcurrent' */ < count($listenSocketsOrig) - count($Pancake_sockets) ||
             #.endif
-            !($socket = @Accept($socket)))
+            !($socket = @NonBlockingAccept($socket)))
                 goto clean;
 
             #.ifdef 'SUPPORT_TLS'
@@ -541,9 +541,6 @@
             #.endif
             
             $socketData[$socket] = "";
-
-            // Set O_NONBLOCK-flag
-            SetBlocking($socket, false);
             break;
         }
 
