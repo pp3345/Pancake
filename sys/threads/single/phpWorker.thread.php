@@ -303,7 +303,6 @@
             }
 
             vars::$requestSocket = Accept(vars::$listenArray[vars::$Pancake_currentThread->vHost->phpSocket]);
-			SetBlocking(vars::$requestSocket, true);
 
 	    	// Get request object from RequestWorker
 	    	$packages = hexdec(Read(vars::$requestSocket, 8));
