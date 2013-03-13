@@ -327,7 +327,6 @@
 
 	        // Set environment vars
 	     	vars::$Pancake_request->registerJITGlobals();
-	        $_FILES = vars::$Pancake_request->uploadedFiles;
 
 	        #.if #.call 'ini_get' 'expose_php'
 	        	vars::$Pancake_request->setHeader('X-Powered-By', /* .eval 'return "PHP/" . PHP_VERSION;' false */);
