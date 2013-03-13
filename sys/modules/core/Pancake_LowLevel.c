@@ -651,12 +651,12 @@ static inline void PancakeFDSetToHashTable(fd_set *set, HashTable **table) {
 PHP_FUNCTION(select) {
 	zval *read, *write = NULL;
 	fd_set read_set, write_set;
-	long nanoseconds = 0;
+	long microseconds = 0;
 	struct timeval time;
 	struct timeval *time_p = NULL;
 	int retval, max = 0;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|zl", &read, &write, &nanoseconds) == FAILURE) {
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|zl", &read, &write, &microseconds) == FAILURE) {
 		RETURN_FALSE;
 	}
 
@@ -668,9 +668,9 @@ PHP_FUNCTION(select) {
 		PancakeHashTableToFDSet(Z_ARRVAL_P(write), &write_set, &max);
 	}
 
-	if(nanoseconds) {
+	if(microseconds) {
 		time.tv_sec = 0;
-		time.tv_usec = nanoseconds;
+		time.tv_usec = microseconds;
 		time_p = &time;
 	}
 
