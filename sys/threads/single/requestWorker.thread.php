@@ -948,7 +948,6 @@
         #.endif
 
         // Clean some data now to improve RAM usage
-        unset($socketData[$socket]);
         unset($postData[$socket]);
         unset($liveReadSockets[$socket]);
 
