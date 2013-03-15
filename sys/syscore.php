@@ -103,6 +103,7 @@
     loadFilePointers();
 
     // Remove some PHP-functions and -constants in order to provide ability to run PHP under Pancake
+    dt_remove_class('Pancake\sfYamlParser');
     dt_remove_function('php_sapi_name');
     dt_remove_function('setcookie');
     dt_remove_function('setrawcookie');
