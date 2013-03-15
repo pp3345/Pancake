@@ -859,7 +859,13 @@
             	$isDir = is_dir(/* .VHOST_DOCUMENT_ROOT */ . $requestObject->requestFilePath . $file);
             	$files[] =
             	array('name' => $file,
-            			'address' => 'http://' . $requestObject->requestHeaders["host"] . $requestObject->requestFilePath . $file . ($isDir ? '/' : ''),
+            			'address' => 
+#.ifdef 'SUPPORT_TLS'
+                        (isset($TLSConnections[$socket]) ? 'https://' : 'http://')
+#.else
+            			'http://'
+#.endif 
+            			. $requestObject->requestHeaders["host"] . $requestObject->requestFilePath . $file . ($isDir ? '/' : ''),
             			'directory' => $isDir,
             			'type' => MIME::typeOf($file),
             			'modified' => filemtime(/* .VHOST_DOCUMENT_ROOT */ .  $requestObject->requestFilePath . $file),
