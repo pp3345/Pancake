@@ -1091,7 +1091,8 @@
 
         #.if #.call 'Pancake\Config::get' 'main.maxconcurrent'
         if(isset($decliningNewRequests) && /* .call 'Pancake\Config::get' 'main.maxconcurrent' */ > count($listenSocketsOrig)) {
-            $listenSocketsOrig = array_merge($Pancake_sockets, $listenSocketsOrig);
+            foreach($Pancake_sockets as $socket)
+                $listenSocketsOrig[$socket] = $socket;
             unset($decliningNewRequests);
         }
 
