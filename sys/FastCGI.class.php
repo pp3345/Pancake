@@ -121,27 +121,27 @@
 			}
 
 			/* FCGI_PARAMS */
-			$body = "\xf" . chr(strlen(/* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */)) . "SCRIPT_FILENAME" . /* .VHOST_DOCUMENT_ROOT */ . /* .REQUEST_FILE_PATH */;
-			$body .= "\xc" . chr(strlen(/* .QUERY_STRING */)) . "QUERY_STRING" . /* .QUERY_STRING */;
-			$body .= "\xe" . chr(strlen(/* .REQUEST_TYPE */)) . "REQUEST_METHOD" . /* .REQUEST_TYPE */;
-			$body .= "\xb" . chr(strlen(/* .REQUEST_FILE_PATH */)) . "SCRIPT_NAME" . /* .REQUEST_FILE_PATH */;
-			$body .= "\xf\x8SERVER_PROTOCOLHTTP/" . /* .PROTOCOL_VERSION */;
+			$body = "\xf" . chr(strlen(/* .VHOST_DOCUMENT_ROOT */ . $requestObject->requestFilePath)) . "SCRIPT_FILENAME" . /* .VHOST_DOCUMENT_ROOT */ . $requestObject->requestFilePath;
+			$body .= "\xc" . chr(strlen($requestObject->queryString)) . "QUERY_STRING" . $requestObject->queryString;
+			$body .= "\xe" . chr(strlen($requestObject->requestType)) . "REQUEST_METHOD" . $requestObject->requestType;
+			$body .= "\xb" . chr(strlen($requestObject->requestFilePath)) . "SCRIPT_NAME" . $requestObject->requestFilePath;
+			$body .= "\xf\x8SERVER_PROTOCOLHTTP/" . $requestObject->protocolVersion;
 			$body .= "\x11\x7GATEWAY_INTERFACECGI/1.1";
 			$body .= "\xb" . chr(strlen($requestObject->originalRequestURI)) . "REQUEST_URI" . $requestObject->originalRequestURI;
-			$body .= "\xc" . chr(strlen(/* .REQUEST_URI */)) . "DOCUMENT_URI" . /* .REQUEST_URI */;
-			$body .= "\xb" . chr(strlen(/* .REMOTE_IP */)) . "REMOTE_ADDR" . /* .REMOTE_IP */;
+			$body .= "\xc" . chr(strlen($requestObject->requestURI)) . "DOCUMENT_URI" . $requestObject->requestURI;
+			$body .= "\xb" . chr(strlen($requestObject->remoteIP)) . "REMOTE_ADDR" . $requestObject->remoteIP;
 			$body .= "\xb" . chr(strlen(/* .VHOST */->listen[0])) . "SERVER_NAME" . /* .VHOST */->listen[0];
-			$body .= "\xb" . chr(strlen(/* .LOCAL_PORT */)) . "SERVER_PORT" . /* .LOCAL_PORT */;
+			$body .= "\xb" . chr(strlen($requestObject->localPort)) . "SERVER_PORT" . $requestObject->localPort;
 			$body .= /* .eval 'return "\xf" . chr(strlen("Pancake/" . \Pancake\VERSION)) . "SERVER_SOFTWAREPancake/" . \Pancake\VERSION;' */;
-			$body .= "\xb" . chr(strlen(/* .LOCAL_IP */)) . "SERVER_ADDR" . /* .LOCAL_IP */;
+			$body .= "\xb" . chr(strlen($requestObject->localIP)) . "SERVER_ADDR" . $requestObject->localIP;
 			if($requestObject->pathInfo) {
 				$body .= "\x9" . chr(strlen($requestObject->pathInfo)) . "PATH_INFO" . $requestObject->pathInfo;
 				$body .= "\xf" . chr(strlen($requestObject->vHost->documentRoot . $requestObject->pathInfo)) . "PATH_TRANSLATED" . $requestObject->vHost->documentRoot . $requestObject->pathInfo;
 			}
 
-			if(/* .RAW_POST_DATA */) {
-				$body .= "\xc" . chr(strlen(/* .GET_REQUEST_HEADER '"content-type"' */)) . "CONTENT_TYPE" . /* .GET_REQUEST_HEADER '"content-type"' */;
-				$body .= "\xe" . chr(strlen(/* .GET_REQUEST_HEADER '"content-length"' */)) . "CONTENT_LENGTH" . /* .GET_REQUEST_HEADER '"content-length"' */;
+			if($requestObject->rawPOSTData) {
+				$body .= "\xc" . chr(strlen($requestObject->requestHeaders["content-type"])) . "CONTENT_TYPE" . $requestObject->requestHeaders["content-type"];
+				$body .= "\xe" . chr(strlen($requestObject->requestHeaders["content-length"])) . "CONTENT_LENGTH" . $requestObject->requestHeaders["content-length"];
 			}
 
 			// HTTP header data
@@ -167,8 +167,8 @@
 			/* Empty FCGI_PARAMS */
 			Write($this->socket, "\1\4" . $requestID . "\0\0\0\0");
 
-			if(/* .RAW_POST_DATA */) {
-				$rawPostData = str_split(/* .RAW_POST_DATA */, 65535);
+			if($requestObject->rawPOSTData) {
+				$rawPostData = str_split($requestObject->rawPOSTData, 65535);
 
 				foreach($rawPostData as $recordData) {
 					/* FCGI_STDIN */
@@ -231,18 +231,18 @@
 						foreach(explode("\r\n", $contentBody[0]) as $header) {
 							list($headerName, $headerValue) = explode(":", $header, 2);
 							if($headerName == 'Status') {
-								/* .ANSWER_CODE */ = (int) $headerValue;
+								$requestObject->answerCode = (int) $headerValue;
 								continue;
 							}
 							$requestObject->setHeader(trim($headerName), trim($headerValue), false);
 						}
 
 						if(isset($contentBody[1]))
-							/* .ANSWER_BODY */ .= $contentBody[1];
+							$requestObject->answerBody .= $contentBody[1];
 						return 8;
 					}
 
-					/* .ANSWER_BODY */ .= $data;
+					$requestObject->answerBody .= $data;
 
 					return 8;
 				case /* .constant 'FCGI_END_REQUEST' */:

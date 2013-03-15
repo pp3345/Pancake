@@ -1,13 +1,13 @@
 main:
   tmpPath: ../tmp/                                              # Path for temporary files
   logging:
-    system: ../log/system.log                                   # Path to System-Log
-    request: ../log/requests.log                                # Path to Request-Log
-    error: ../log/error.log                                     # Path to Error-Log
+    system: ../log/system.log                                   # Path to system log file
+    request: ../log/requests.log                                # Path to request log file
+    error: ../log/error.log                                     # Path to error log file
   dateFormat: 'd.m.y H:i:s'                                     # Format for timestamps - See php.net/date for more information
   debugMode: false                                              # Enable debugging (debugging can also be enabled for a single run by setting the option --debug)
-  user: www-data                                                # *NIX-User under which Pancake should run
-  group: www-data                                               # *NIX-Group under which Pancake should run
+  user: www-data                                                # *NIX user for Pancake
+  group: www-data                                               # *NIX group for Pancake
   listenPorts:                                                  # List of ports to listen on (Recommended for HTTP: 80)
     - 80
   IPv4:                                                         # IPv4 network interfaces to listen on (use 0 to listen on all available interfaces)
@@ -15,25 +15,25 @@ main:
   IPv6:                                                         # IPv6 network interfaces to listen on (use ::0 to listen on all available interfaces)
     - ::0
   requestWorkers: 2                                             # Amount of RequestWorkers to run
-  exposePancake: true                                           # If true, Pancake will send a "Server"-Header with Information about Pancake
+  exposePancake: true                                           # If true, Pancake will send a "Server" header with information about Pancake
   sizePrefix: bin                                               # "si" or "bin" - SI: 1000 Byte = 1 Kilobyte - Binary: 1024 Byte = 1 Kibibyte
-  allowHEAD: true                                               # Whether to allow the "HEAD"-requestmethod
-  allowTRACE: false                                              # Whether to allow the "TRACE"-requestmethod
-  allowOPTIONS: false                                            # Whether to allow the "OPTIONS"-requestmethod
-  requestWorkerLimit: 250000                                     # Limit of requests a RequestWorker may process until it has to be restarted (0 for no limit)
-  maxConcurrent: 0                                              # Limit of concurrent connections a RequestWorker may hold open (0 for no limit)
-  workerBootTime: 5                                             # The upper timelimit for a worker to boot (raise this when you're for example caching files that take long to load)
+  allowHEAD: true                                               # Whether to allow HEAD requests
+  allowTRACE: false                                              # Whether to allow TRACE requests
+  allowOPTIONS: false                                            # Whether to allow OPTIONS requests
+  requestWorkerLimit: 250000                                     # Limit of requests a RequestWorker may process until it will be restarted (0 for no limit)
+  maxConcurrent: 0                                              # Limit of concurrent connections a RequestWorker may keep open (0 for no limit)
+  workerBootTime: 5                                             # The upper time limit for a worker to boot (raise this when you're for example caching files that take long to load)
   writeBufferMin: 10240                                         # Minimum write buffer size that should be held in RAM
   writeBufferSoftMaxConcurrent: 50                              # Soft concurrent write buffer limit - When this limit is reached, Pancake won't allocate any buffers that are bigger than the minimum size anymore
   writeBufferHardMaxConcurrent: 2000                            # Hard concurrent write buffer limit - When this limit is reached, Pancake will try not to allocate any buffers anymore
-  waitPHPWorkerBoot: true                                       # Wait for PHP-Workers to boot (should be disabled in shared environments)
-  waitSlotTime: 5000                                            # When there is no PHPWorker available to serve a PHP-request, Pancake will check after waitslottime µsec if a slot became available
-  waitSlotWaitLimit: 0                                          # See above; this is the upper limit of wait-cycles until Pancake gives up on searching for a slot (for example: waitslottime = 5000; waitslotwaitlimit = 5 => Client will receive 500 Internal Server Error after 25 ms if no PHPWorker became available in those 25 ms)
+  waitPHPWorkerBoot: true                                       # Wait for PHPWorkers to boot (should be disabled in shared environments)
+  waitSlotTime: 5000                                            # When there is no PHPWorker available to serve a PHP request, Pancake will check after waitslottime µsec if a slot became available (you should not use this, set PHPSocketBacklog instead in the vHost configuration)
+  waitSlotWaitLimit: 0                                          # See above; this is the upper limit of wait-cycles until Pancake gives up on searching for a slot (for example: waitslottime = 5000; waitslotwaitlimit = 5 => Client will receive 500 Internal Server Error after 25 ms if no PHPWorker became available in those 25 ms) - Set this to 0 to completely deactivate wait slots
   socketBacklog: 200                                            # Connection backlog for incoming requests
   writeLimit: 1048576                                           # Limits the maximum data sent to the client at once - Low value = less RAM usage, but slower - High value = faster, but more RAM usage
   NaglesAlgorithm: false                                        # Enable or disable Nagle's algorithm (will set TCP_NODELAY when false)
   PreBuffer: 65536                                              # Buffer static file data in RAM before sending HTTP headers (can save one write cycle)
-include:                                                        # Additional configuration-files to include
+include:                                                        # Additional configuration files to include
   - ../conf/vhosts/
   - ../conf/mime.yml
 moody:
