@@ -934,6 +934,12 @@
 
         // Get Answer Headers
         $writeBuffer[$socket] = /* .BUILD_ANSWER_HEADERS */;
+        
+        #.if #.Pancake\Config::get("main.prebuffer", 0)
+        if(isset($requestFileHandle[$socket])) {
+            $writeBuffer[$socket] .= fread($requestFileHandle[$socket], /* .number #.Pancake\Config::get("main.prebuffer", 0)*/);
+        }
+        #.endif
 
         // Output request information
         out('REQ './* .ANSWER_CODE */.' './* .REMOTE_IP */.': './* .REQUEST_LINE */.' on vHost '.((/* .VHOST */) ? /* .VHOST_NAME */ : null).' (via './* .GET_REQUEST_HEADER '"host"' */.' from './* .GET_REQUEST_HEADER "'referer'" */.') - './* .GET_REQUEST_HEADER '"user-agent"' */

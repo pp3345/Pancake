@@ -32,6 +32,7 @@ main:
   socketBacklog: 200                                            # Connection backlog for incoming requests
   writeLimit: 1048576                                           # Limits the maximum data sent to the client at once - Low value = less RAM usage, but slower - High value = faster, but more RAM usage
   NaglesAlgorithm: false                                        # Enable or disable Nagle's algorithm (will set TCP_NODELAY when false)
+  PreBuffer: 65536                                              # Buffer static file data in RAM before sending HTTP headers (can save one write cycle)
 include:                                                        # Additional configuration-files to include
   - ../conf/vhosts/
   - ../conf/mime.yml

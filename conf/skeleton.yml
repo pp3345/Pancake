@@ -28,6 +28,7 @@ main:
   socketbacklog: 200
   writeLimit: 131072
   naglesalgorithm: 0
+  prebuffer: 65536
 moody:
   deletewhitespaces: false
   deletecomments: true
