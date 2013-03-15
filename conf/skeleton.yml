@@ -27,6 +27,7 @@ main:
   waitslotwaitlimit: 0
   socketbacklog: 200
   writeLimit: 131072
+  naglesalgorithm: 0
 moody:
   deletewhitespaces: false
   deletecomments: true

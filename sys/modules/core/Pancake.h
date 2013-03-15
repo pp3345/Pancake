@@ -48,6 +48,8 @@
 #include <netinet/ip.h>
 #include <sys/fcntl.h>
 #include <arpa/inet.h>
+#include <netdb.h>
+#include <netinet/tcp.h>
 
 #ifndef phpext_Pancake_ptr
 extern zend_module_entry Pancake_module_entry;
@@ -117,6 +119,7 @@ PHP_FUNCTION(getPeerName);
 PHP_FUNCTION(select);
 PHP_FUNCTION(adjustSendBufferSize);
 PHP_FUNCTION(nonBlockingAccept);
+PHP_FUNCTION(naglesAlgorithm);
 
 PHP_METHOD(HTTPRequest, __construct);
 PHP_METHOD(HTTPRequest, init);
@@ -223,6 +226,7 @@ ZEND_BEGIN_MODULE_GLOBALS(Pancake)
 	int enableAuthentication;
 	char *tmpDir;
 	int disableModuleLoader;
+	int naglesAlgorithm;
 ZEND_END_MODULE_GLOBALS(Pancake)
 extern ZEND_DECLARE_MODULE_GLOBALS(Pancake);
 

@@ -140,6 +140,7 @@ const zend_function_entry Pancake_functions[] = {
 	ZEND_NS_FE("Pancake", select, arginfo_select)
 	ZEND_NS_FE("Pancake", adjustSendBufferSize, NULL)
 	ZEND_NS_FE("Pancake", nonBlockingAccept, NULL)
+	ZEND_NS_FE("Pancake", naglesAlgorithm, NULL)
 	ZEND_FE_END
 };
 
@@ -213,6 +214,7 @@ void php_Pancake_init_globals(zend_Pancake_globals *Pancake_globals)
 	Pancake_globals->JIT_FILES = PG(auto_globals_jit);
 	Pancake_globals->JIT_ENV = PG(auto_globals_jit);
 	Pancake_globals->disableModuleLoader = 0;
+	Pancake_globals->naglesAlgorithm = 0;
 }
 
 PHP_MINIT_FUNCTION(Pancake)

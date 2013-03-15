@@ -417,6 +417,10 @@ PHP_FUNCTION(nonBlockingAccept) {
 		RETURN_FALSE;
 	}
 
+	if(!PANCAKE_GLOBALS(naglesAlgorithm)) {
+		setsockopt(new_fd, IPPROTO_TCP, TCP_NODELAY, &PANCAKE_GLOBALS(naglesAlgorithm), sizeof(PANCAKE_GLOBALS(naglesAlgorithm)));
+	}
+
 	RETURN_LONG(new_fd);
 }
 
@@ -709,4 +713,8 @@ PHP_FUNCTION(adjustSendBufferSize) {
 	}
 
 	RETURN_FALSE;
+}
+
+PHP_FUNCTION(naglesAlgorithm) {
+	zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "b", &PANCAKE_GLOBALS(naglesAlgorithm));
 }

@@ -310,6 +310,10 @@
     #.if BENCHMARK === true
     	benchmarkFunction("hexdec");
     #.endif
+    
+    #.if #.Pancake\Config::get("main.naglesalgorithm", 0)
+        NaglesAlgorithm(/*.bool #.Pancake\Config::get("main.naglesalgorithm", 0)*/);
+    #.endif
 
     // Ready
     $Pancake_currentThread->parentSignal(/* .constant 'SIGUSR1' */);
