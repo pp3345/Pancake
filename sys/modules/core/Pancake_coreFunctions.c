@@ -86,27 +86,29 @@ PANCAKE_API int PancakeLoadFilePointers(TSRMLS_D) {
 
 		zval_dtor(&retval);
 
-		switch(i) {
-			case 0:
-				if(flushedSystemLogStream) {
-					char *string = "Flushed system log stream";
-					PancakeOutput(&string, strlen(string), OUTPUT_SYSTEM | OUTPUT_LOG TSRMLS_CC);
-					efree(string);
-				}
-				break;
-			case 1:
-				if(flushedErrorLogStream) {
-					// Emit a dirty error
-					zend_error(E_WARNING, "Flushed error log stream");
-				}
-				break;
-			case 2:
-				if(flushedRequestLogStream) {
-					char *string = "Flushed request log stream";
-					PancakeOutput(&string, strlen(string), OUTPUT_REQUEST | OUTPUT_LOG TSRMLS_CC);
-					efree(string);
-				}
-				break;
+		if(!PANCAKE_GLOBALS(currentThread)) {
+			switch(i) {
+				case 0:
+					if(flushedSystemLogStream) {
+						char *string = "Flushed system log stream";
+						PancakeOutput(&string, strlen(string), OUTPUT_SYSTEM | OUTPUT_LOG TSRMLS_CC);
+						efree(string);
+					}
+					break;
+				case 1:
+					if(flushedErrorLogStream) {
+						// Emit a dirty error
+						zend_error(E_WARNING, "Flushed error log stream");
+					}
+					break;
+				case 2:
+					if(flushedRequestLogStream) {
+						char *string = "Flushed request log stream";
+						PancakeOutput(&string, strlen(string), OUTPUT_REQUEST | OUTPUT_LOG TSRMLS_CC);
+						efree(string);
+					}
+					break;
+			}
 		}
 	}
 
