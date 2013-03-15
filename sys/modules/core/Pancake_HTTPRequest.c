@@ -377,7 +377,8 @@ PHP_METHOD(HTTPRequest, init) {
 
 	if(UNEXPECTED(host == NULL)) {
 		if(UNEXPECTED(!strcmp(firstLine[2], "HTTP/1.1"))) {
-			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION("Missing required header: Host", 400, requestHeader, requestHeader_len);
+			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("Missing required header: Host",
+					sizeof("Missing required header: Host") - 1, 400, requestHeader, requestHeader_len);
 			if(authorization != NULL) efree(authorization);
 			if(if_unmodified_since != NULL) efree(if_unmodified_since);
 			efree(firstLine);
@@ -589,7 +590,7 @@ PHP_METHOD(HTTPRequest, init) {
 				php_pcre_match_impl(pcre, firstLine[1], strlen(firstLine[1]),  pcre_retval, matches, 0, 0, 0, 0 TSRMLS_CC);
 
 				if(EXPECTED(zend_hash_index_find(Z_ARRVAL_P(matches), 2, (void**) &match) == SUCCESS)) {
-					zend_update_property(HTTPRequest_ce, this_ptr, "pathInfo", sizeof("pathInfo") - 1, *match TSRMLS_CC);
+					PancakeQuickWriteProperty(this_ptr, *match, "pathInfo", sizeof("pathInfo"), HASH_OF_pathInfo TSRMLS_CC);
 				}
 
 				if(EXPECTED(zend_hash_index_find(Z_ARRVAL_P(matches), 1, (void**) &match) == SUCCESS)) {
@@ -1001,7 +1002,7 @@ PHP_METHOD(HTTPRequest, init) {
 
 	gettimeofday(&tp, NULL);
 
-	zend_update_property_double(HTTPRequest_ce, this_ptr, "requestMicrotime", sizeof("requestMicrotime") - 1, (double) (tp.tv_sec + tp.tv_usec / 1000000.00) TSRMLS_CC);
+	PancakeQuickWritePropertyDouble(this_ptr, "requestMicrotime", sizeof("requestMicrotime"), HASH_OF_requestMicrotime, (double) (tp.tv_sec + tp.tv_usec / 1000000.00));
 }
 
 PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
@@ -1092,7 +1093,7 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 		PancakeSetAnswerHeader(answerHeaderArray, "date", sizeof("date"), dateZval, 1, 210709757379U TSRMLS_CC);
 	}
 
-	zend_update_property_long(HTTPRequest_ce, this_ptr, "answerCode", sizeof("answerCode") - 1, answerCode TSRMLS_CC);
+	PancakeQuickWritePropertyLong(this_ptr, "answerCode", sizeof("answerCode"), HASH_OF_answerCode, answerCode);
 
 	char *returnValue;
 	char *answerCodeString;
@@ -1166,7 +1167,7 @@ PHP_METHOD(HTTPRequest, invalidRequest) {
 	FAST_READ_PROPERTY(vHost, this_ptr, "vHost", 5, HASH_OF_vHost);
 	FAST_READ_PROPERTY(exceptionPageHandler, vHost, "exceptionPageHandler", sizeof("exceptionPageHandler") - 1, HASH_OF_exceptionPageHandler);
 
-	zend_update_property(HTTPRequest_ce, this_ptr, "answerCode", sizeof("answerCode") - 1, answerCode TSRMLS_CC);
+	PancakeQuickWriteProperty(this_ptr, answerCode, "answerCode", sizeof("answerCode"), HASH_OF_answerCode);
 
 	mimeType = PancakeMIMEType(Z_STRVAL_P(exceptionPageHandler), Z_STRLEN_P(exceptionPageHandler) TSRMLS_CC);
 	Z_ADDREF_P(mimeType);
@@ -1246,7 +1247,7 @@ PHP_METHOD(HTTPRequest, invalidRequest) {
 	}
 
 	Z_DELREF_P(output);
-	zend_update_property(HTTPRequest_ce, this_ptr, "answerBody", sizeof("answerBody") - 1, output TSRMLS_CC);
+	PancakeQuickWriteProperty(this_ptr, output, "answerBody", sizeof("answerBody"), HASH_OF_answerBody);
 
 	efree(contents);
 }
@@ -1447,7 +1448,7 @@ zval *PancakeFetchGET(zval *this_ptr TSRMLS_DC) {
 			GETParameters = PancakeProcessQueryString(GETParameters, queryString, "&");
 		}
 
-		zend_update_property(HTTPRequest_ce, this_ptr, "GETParameters", sizeof("GETParameters") - 1, GETParameters TSRMLS_CC);
+		PancakeQuickWriteProperty(this_ptr, GETParameters, "GETParameters", sizeof("GETParameters"), HASH_OF_GETParameters);
 		Z_DELREF_P(GETParameters);
 	}
 
@@ -1672,9 +1673,9 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 
 		save:
 
-		zend_update_property(HTTPRequest_ce, this_ptr, "uploadedFiles", sizeof("uploadedFiles") - 1, files TSRMLS_CC);
-		zend_update_property(HTTPRequest_ce, this_ptr, "POSTParameters", sizeof("POSTParameters") - 1, POSTParameters TSRMLS_CC);
-		zend_update_property(HTTPRequest_ce, this_ptr, "uploadedFileTempNames", sizeof("uploadedFileTempNames") - 1, tempNames TSRMLS_CC);
+		PancakeQuickWriteProperty(this_ptr, files, "uploadedFiles", sizeof("uploadedFiles"), HASH_OF_uploadedFiles);
+		PancakeQuickWriteProperty(this_ptr, POSTParameters, "POSTParameters", sizeof("POSTParameters"), HASH_OF_POSTParameters);
+		PancakeQuickWriteProperty(this_ptr, tempNames, "uploadedFileTempNames", sizeof("uploadedFileTempNames"), HASH_OF_uploadedFileTempNames);
 		Z_DELREF_P(POSTParameters);
 		Z_DELREF_P(files);
 		Z_DELREF_P(tempNames);
@@ -1723,7 +1724,7 @@ zval *PancakeFetchCookies(zval *this_ptr TSRMLS_DC) {
 			cookies = PancakeProcessQueryString(cookies, *cookie, ";");
 		}
 
-		zend_update_property(HTTPRequest_ce, this_ptr, "cookies", sizeof("cookies") - 1, cookies TSRMLS_CC);
+		PancakeQuickWriteProperty(this_ptr, cookies, "cookies", sizeof("cookies"), HASH_OF_cookies);
 		Z_DELREF_P(cookies);
 	}
 

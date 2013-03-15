@@ -156,26 +156,14 @@ extern zend_class_entry *HTTPRequest_ce;
 extern zend_class_entry *invalidHTTPRequestException_ce;
 extern zend_class_entry *MIME_ce;
 
-#define PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION(message, code, header, header_len) { \
-	zval *exception; \
-	\
-	MAKE_STD_ZVAL(exception); \
-	object_init_ex(exception, invalidHTTPRequestException_ce); \
-	zend_update_property_string(invalidHTTPRequestException_ce, exception, "message", sizeof("message") - 1, message TSRMLS_CC); \
-	zend_update_property_long(invalidHTTPRequestException_ce, exception, "code", sizeof("code") - 1, code TSRMLS_CC); \
-	zend_update_property_stringl(invalidHTTPRequestException_ce, exception, "header", sizeof("header") - 1, header, header_len TSRMLS_CC); \
-	\
-	zend_throw_exception_object(exception TSRMLS_CC); \
-	}
-
 #define PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL(message, message_len, code, header, header_len) { \
 	zval *exception; \
 	\
 	MAKE_STD_ZVAL(exception); \
 	object_init_ex(exception, invalidHTTPRequestException_ce); \
-	zend_update_property_stringl(invalidHTTPRequestException_ce, exception, "message", sizeof("message") - 1, message, message_len TSRMLS_CC); \
-	zend_update_property_long(invalidHTTPRequestException_ce, exception, "code", sizeof("code") - 1, code TSRMLS_CC); \
-	zend_update_property_stringl(invalidHTTPRequestException_ce, exception, "header", sizeof("header") - 1, header, header_len TSRMLS_CC); \
+	PancakeQuickWritePropertyString(exception, "message", sizeof("message"), HASH_OF_message, message, message_len, 1);\
+	PancakeQuickWritePropertyLong(exception, "code", sizeof("code"), HASH_OF_code, code);\
+	PancakeQuickWritePropertyString(exception, "header", sizeof("header"), HASH_OF_header, header, header_len, 1);\
 	\
 	zend_throw_exception_object(exception TSRMLS_CC); \
 	}
@@ -185,8 +173,8 @@ extern zend_class_entry *MIME_ce;
 	\
 	MAKE_STD_ZVAL(exception); \
 	object_init_ex(exception, invalidHTTPRequestException_ce); \
-	zend_update_property_stringl(invalidHTTPRequestException_ce, exception, "message", sizeof("message") - 1, message, message_len TSRMLS_CC); \
-	zend_update_property_long(invalidHTTPRequestException_ce, exception, "code", sizeof("code") - 1, code TSRMLS_CC); \
+	PancakeQuickWritePropertyString(exception, "message", sizeof("message"), HASH_OF_message, message, message_len, 1);\
+	PancakeQuickWritePropertyLong(exception, "code", sizeof("code"), HASH_OF_code, code);\
 	\
 	zend_throw_exception_object(exception TSRMLS_CC); \
 	}
@@ -455,6 +443,13 @@ void PancakeQuickWriteProperty(zval *object, zval *value, char *name, int name_l
 	PancakeQuickWriteProperty(object, __value, name, name_len, h TSRMLS_CC);\
 }
 
+#define PancakeQuickWritePropertyDouble(object, name, name_len, h, dval) {\
+	QUICK_WRITE_VALUE\
+	Z_TYPE_P(__value) = IS_DOUBLE;\
+	Z_DVAL_P(__value) = dval;\
+	PancakeQuickWriteProperty(object, __value, name, name_len, h TSRMLS_CC);\
+}
+
 #define Z_OBJ_P(zval_p) \
 	((zend_object*)(EG(objects_store).object_buckets[Z_OBJ_HANDLE_P(zval_p)].bucket.obj.object))
 
@@ -524,5 +519,7 @@ static int PancakeFastHasProperty(zval *object, zval *member, int has_set_exists
 #define HASH_OF_rangeFrom 8246858675655630822U
 #define HASH_OF_rangeTo 7572872980415061U
 #define HASH_OF_mimeType 249898115869584303U
+#define HASH_OF_message 7572665263856682U
+#define HASH_OF_header 229468225744494U
 
 #endif	/* PANCAKE_H */

@@ -15,11 +15,11 @@ PHP_METHOD(invalidHTTPRequestException, __construct) {
 		RETURN_FALSE;
 	}
 
-	zend_update_property(invalidHTTPRequestException_ce, this_ptr, "message", sizeof("message") - 1, message TSRMLS_CC);
-	zend_update_property(invalidHTTPRequestException_ce, this_ptr, "code", sizeof("code") - 1, code TSRMLS_CC);
+	PancakeQuickWriteProperty(this_ptr, message, "message", sizeof("message"), HASH_OF_message TSRMLS_CC);
+	PancakeQuickWriteProperty(this_ptr, code, "code", sizeof("code"), HASH_OF_code TSRMLS_CC);
 
 	if(header != NULL) {
-		zend_update_property(invalidHTTPRequestException_ce, this_ptr, "header", sizeof("header") - 1, header TSRMLS_CC);
+		PancakeQuickWriteProperty(this_ptr, header, "header", sizeof("header"), HASH_OF_header TSRMLS_CC);
 	}
 }
 
