@@ -394,5 +394,7 @@ PHP_RSHUTDOWN_FUNCTION(Pancake)
 		efree(PANCAKE_GLOBALS(dateFormat));
 	}
 
+	fflush(NULL);
+
 	return SUCCESS;
 }

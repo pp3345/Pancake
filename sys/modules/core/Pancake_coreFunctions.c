@@ -12,6 +12,9 @@ PANCAKE_API int PancakeLoadFilePointers(TSRMLS_D) {
 	int flushedSystemLogStream = 0;
 	int flushedErrorLogStream = 0;
 	int flushedRequestLogStream = 0;
+
+	fflush(NULL);
+
 	if(PANCAKE_GLOBALS(systemLogStream) != NULL) {
 		flushedSystemLogStream = 1;
 		fclose(PANCAKE_GLOBALS(systemLogStream));
@@ -200,7 +203,6 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 			if((!PANCAKE_GLOBALS(systemLogStream) && PancakeLoadFilePointers(TSRMLS_C))
 			|| PANCAKE_GLOBALS(systemLogStream)) {
 				fwrite(outputString, outputString_len, 1, PANCAKE_GLOBALS(systemLogStream));
-				fflush(PANCAKE_GLOBALS(systemLogStream));
 			}
 		}
 
@@ -208,7 +210,6 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 			if((!PANCAKE_GLOBALS(requestLogStream) && PancakeLoadFilePointers(TSRMLS_C))
 			|| PANCAKE_GLOBALS(requestLogStream)) {
 				fwrite(outputString, outputString_len, 1, PANCAKE_GLOBALS(requestLogStream));
-				fflush(PANCAKE_GLOBALS(requestLogStream));
 			}
 		}
 	}
