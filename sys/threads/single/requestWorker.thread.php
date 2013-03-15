@@ -445,10 +445,10 @@
                 $packages = hexdec(Read($socket, 8));
 				if(!$packages) {
 					unset($listenSocketsOrig[$socket]);
-                	unset($phpSockets[$socket]);
                 	Close($socket);
                     
                 	$socket = $phpSockets[$socket];
+                    unset($phpSockets[$socket]);
                     $requestObject = $requests[$socket];
 					$requestObject->invalidRequest(new invalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
 					goto write;
