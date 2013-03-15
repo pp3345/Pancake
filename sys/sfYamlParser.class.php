@@ -31,25 +31,9 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-/**
- * sfYamlInline implements a YAML parser/dumper for the YAML inline syntax.
- *
- * @package symfony
- * @subpackage yaml
- * @author Fabien Potencier <fabien.potencier@symfony-project.com>
- * @version SVN: $Id: sfYamlInline.class.php 16177 2009-03-11 08:32:48Z fabien $
- */
 class sfYamlInline {
 	const REGEX_QUOTED_STRING = '(?:"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"|\'([^\']*(?:\'\'[^\']*)*)\')';
 	
-	/**
-	 * Convert a YAML string to a PHP array.
-	 *
-	 * @param string $value
-	 *        	A YAML string
-	 *        	
-	 * @return array A PHP array representing the YAML string
-	 */
 	static public function load($value) {
 		$value = trim ( $value );
 		
@@ -80,17 +64,6 @@ class sfYamlInline {
 		return $result;
 	}
 	
-	/**
-	 * Parses a scalar to a YAML string.
-	 *
-	 * @param scalar $scalar        	
-	 * @param string $delimiters        	
-	 * @param array $stringDelimiter        	
-	 * @param integer $i        	
-	 * @param boolean $evaluate        	
-	 *
-	 * @return string A YAML string
-	 */
 	static public function parseScalar($scalar, $delimiters = null, $stringDelimiters = array('"', "'"), &$i = 0, $evaluate = true) {
 		if (in_array ( $scalar [$i], $stringDelimiters )) {
 			// quoted scalar
@@ -118,14 +91,6 @@ class sfYamlInline {
 		return $output;
 	}
 	
-	/**
-	 * Parses a quoted scalar to YAML.
-	 *
-	 * @param string $scalar        	
-	 * @param integer $i        	
-	 *
-	 * @return string A YAML string
-	 */
 	static protected function parseQuotedScalar($scalar, &$i) {
 		if (! preg_match ( '/' . self::REGEX_QUOTED_STRING . '/Au', substr ( $scalar, $i ), $match )) {
 			throw new \InvalidArgumentException ( sprintf ( 'Malformed inline YAML string (%s).', substr ( $scalar, $i ) ) );
@@ -154,14 +119,6 @@ class sfYamlInline {
 		return $output;
 	}
 	
-	/**
-	 * Parses a sequence to a YAML string.
-	 *
-	 * @param string $sequence        	
-	 * @param integer $i        	
-	 *
-	 * @return string A YAML string
-	 */
 	static protected function parseSequence($sequence, &$i = 0) {
 		$output = array ();
 		$len = strlen ( $sequence );
@@ -216,14 +173,6 @@ class sfYamlInline {
 		throw new \InvalidArgumentException ( sprintf ( 'Malformed inline YAML string %s', $sequence ) );
 	}
 	
-	/**
-	 * Parses a mapping to a YAML string.
-	 *
-	 * @param string $mapping        	
-	 * @param integer $i        	
-	 *
-	 * @return string A YAML string
-	 */
 	static protected function parseMapping($mapping, &$i = 0) {
 		$output = array ();
 		$len = strlen ( $mapping );
@@ -289,13 +238,6 @@ class sfYamlInline {
 		throw new \InvalidArgumentException ( sprintf ( 'Malformed inline YAML string %s', $mapping ) );
 	}
 	
-	/**
-	 * Evaluates scalars and replaces magic values.
-	 *
-	 * @param string $scalar        	
-	 *
-	 * @return string A YAML string
-	 */
 	static protected function evaluateScalar($scalar) {
 		$scalar = trim ( $scalar );
 		
@@ -358,38 +300,13 @@ EOF;
 	}
 }
 
-/**
- * sfYamlParser parses YAML strings to convert them to PHP arrays.
- *
- * @package symfony
- * @subpackage yaml
- * @author Fabien Potencier <fabien.potencier@symfony-project.com>
- * @version SVN: $Id: sfYamlParser.class.php 10832 2008-08-13 07:46:08Z fabien $
- */
 class sfYamlParser {
 	protected $offset = 0, $lines = array (), $currentLineNb = - 1, $currentLine = '', $refs = array ();
 	
-	/**
-	 * Constructor
-	 *
-	 * @param integer $offset
-	 *        	The offset of YAML document (used for line numbers in error
-	 *        	messages)
-	 */
 	public function __construct($offset = 0) {
 		$this->offset = $offset;
 	}
 	
-	/**
-	 * Parses a YAML string to a PHP value.
-	 *
-	 * @param string $value
-	 *        	A YAML string
-	 *        	
-	 * @return mixed A PHP value
-	 *        
-	 * @throws InvalidArgumentException If the YAML is not valid
-	 */
 	public function parse($value) {
 		$this->currentLineNb = - 1;
 		$this->currentLine = '';
@@ -564,33 +481,14 @@ class sfYamlParser {
 		return empty ( $data ) ? null : $data;
 	}
 	
-	/**
-	 * Returns the current line number (takes the offset into account).
-	 *
-	 * @return integer The current line number
-	 */
 	protected function getRealCurrentLineNb() {
 		return $this->currentLineNb + $this->offset;
 	}
 	
-	/**
-	 * Returns the current line indentation.
-	 *
-	 * @return integer The current line indentation
-	 */
 	protected function getCurrentLineIndentation() {
 		return strlen ( $this->currentLine ) - strlen ( ltrim ( $this->currentLine, ' ' ) );
 	}
 	
-	/**
-	 * Returns the next embed block of YAML.
-	 *
-	 * @param integer $indentation
-	 *        	The indent level at which the block is to be read, or null for
-	 *        	default
-	 *        	
-	 * @return string A YAML string
-	 */
 	protected function getNextEmbedBlock($indentation = null) {
 		$this->moveToNextLine ();
 		
@@ -636,9 +534,6 @@ class sfYamlParser {
 		return implode ( "\n", $data );
 	}
 	
-	/**
-	 * Moves the parser to the next line.
-	 */
 	protected function moveToNextLine() {
 		if ($this->currentLineNb >= count ( $this->lines ) - 1) {
 			return false;
@@ -649,21 +544,10 @@ class sfYamlParser {
 		return true;
 	}
 	
-	/**
-	 * Moves the parser to the previous line.
-	 */
 	protected function moveToPreviousLine() {
 		$this->currentLine = $this->lines [-- $this->currentLineNb];
 	}
 	
-	/**
-	 * Parses a YAML value.
-	 *
-	 * @param string $value
-	 *        	A YAML value
-	 *        	
-	 * @return mixed A PHP value
-	 */
 	protected function parseValue($value) {
 		if ('*' === substr ( $value, 0, 1 )) {
 			if (false !== $pos = strpos ( $value, '#' )) {
@@ -687,20 +571,6 @@ class sfYamlParser {
 		}
 	}
 	
-	/**
-	 * Parses a folded scalar.
-	 *
-	 * @param string $separator
-	 *        	The separator that was used to begin this folded scalar (| or
-	 *        	>)
-	 * @param string $indicator
-	 *        	The indicator that was used to begin this folded scalar (+ or
-	 *        	-)
-	 * @param integer $indentation
-	 *        	The indentation that was used to begin this folded scalar
-	 *        	
-	 * @return string The text value
-	 */
 	protected function parseFoldedScalar($separator, $indicator = '', $indentation = 0) {
 		$separator = '|' == $separator ? "\n" : ' ';
 		$text = '';
@@ -765,12 +635,6 @@ class sfYamlParser {
 		return $text;
 	}
 	
-	/**
-	 * Returns true if the next line is indented.
-	 *
-	 * @return Boolean Returns true if the next line is indented, false
-	 *         otherwise
-	 */
 	protected function isNextLineIndented() {
 		$currentIndentation = $this->getCurrentLineIndentation ();
 		$notEOF = $this->moveToNextLine ();
@@ -793,32 +657,14 @@ class sfYamlParser {
 		return $ret;
 	}
 	
-	/**
-	 * Returns true if the current line is blank or if it is a comment line.
-	 *
-	 * @return Boolean Returns true if the current line is empty or if it is a
-	 *         comment line, false otherwise
-	 */
 	protected function isCurrentLineEmpty() {
 		return $this->isCurrentLineBlank () || $this->isCurrentLineComment ();
 	}
 	
-	/**
-	 * Returns true if the current line is blank.
-	 *
-	 * @return Boolean Returns true if the current line is blank, false
-	 *         otherwise
-	 */
 	protected function isCurrentLineBlank() {
 		return '' == trim ( $this->currentLine, ' ' );
 	}
 	
-	/**
-	 * Returns true if the current line is a comment line.
-	 *
-	 * @return Boolean Returns true if the current line is a comment line, false
-	 *         otherwise
-	 */
 	protected function isCurrentLineComment() {
 		// checking explicitly the first char of the trim is faster than loops
 		// or strpos
@@ -826,14 +672,6 @@ class sfYamlParser {
 		return $ltrimmedLine [0] === '#';
 	}
 	
-	/**
-	 * Cleanups a YAML string to be parsed.
-	 *
-	 * @param string $value
-	 *        	The input YAML string
-	 *        	
-	 * @return string A cleaned up YAML string
-	 */
 	protected function cleanup($value) {
 		$value = str_replace ( array (
 				"\r\n",
