@@ -221,6 +221,9 @@
 	// Set thread title
     dt_set_proctitle('Pancake HTTP Server ' . VERSION);
 
+    // Write version to file (might need this later on for updates)
+    file_put_contents("compilecache/version", VERSION);
+
     // Create sockets
     // IPv6
     foreach((array) Config::get('main.ipv6') as $interface) {
