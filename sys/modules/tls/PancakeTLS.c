@@ -106,7 +106,6 @@ PHP_FUNCTION(TLSCreateContext) {
 
 PHP_FUNCTION(TLSInitializeConnection) {
 	long socket;
-	php_socket *php_sock;
 	SSL *ssl = SSL_new(PANCAKE_TLS_GLOBALS(context));
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &socket) == FAILURE) {
