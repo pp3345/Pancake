@@ -631,7 +631,7 @@ static inline void PancakeHashTableToFDSet(HashTable *table, fd_set *set, int *m
 		zend_hash_get_current_data(table, (void**) &data) == SUCCESS;
 		zend_hash_move_forward(table)) {
 		if(Z_LVAL_PP(data) > FD_SETSIZE) // Protect from overflow
-			return;
+			continue;
 
 		FD_SET(Z_LVAL_PP(data), set);
 
@@ -652,7 +652,7 @@ static inline void PancakeFDSetToHashTable(fd_set *set, HashTable **table) {
 		zend_hash_get_current_data(*table, (void**) &data) == SUCCESS;
 		zend_hash_move_forward(*table)) {
 		if(Z_LVAL_PP(data) > FD_SETSIZE)
-			return;
+			continue;
 
 		if(FD_ISSET(Z_LVAL_PP(data), set)) {
 			Z_ADDREF_PP(data);
