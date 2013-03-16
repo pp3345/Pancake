@@ -707,21 +707,22 @@ PHP_FUNCTION(select) {
 }
 
 PHP_FUNCTION(adjustSendBufferSize) {
-	long fd, goalSize, actualSize;
+	long fd, goalSize, actualSize = 2048;
 	socklen_t size = sizeof(long);
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ll", &fd, &goalSize) == FAILURE) {
 		RETURN_FALSE;
 	}
 
-	goalSize += 1024; // 1024 byte overhead for protocol headers
+	goalSize += 768; // 768 byte overhead for protocol headers
 
 	getsockopt(fd, SOL_SOCKET, SO_SNDBUF, &actualSize, &size);
+
 	if(actualSize < goalSize) {
 		setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &goalSize, size);
 		getsockopt(fd, SOL_SOCKET, SO_SNDBUF, &actualSize, &size);
 		if(actualSize < goalSize) {
-			RETURN_LONG(actualSize - 1024);
+			RETURN_LONG(actualSize - 768);
 		}
 	}
 
