@@ -402,12 +402,19 @@ PHP_FUNCTION(accept) {
 
 PHP_FUNCTION(nonBlockingAccept) {
 	long fd, new_fd;
+#ifndef __linux__
+	int flags;
+#endif
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &fd) == FAILURE) {
 		RETURN_FALSE;
 	}
 
+#ifdef __linux__
 	new_fd = accept4(fd, NULL, NULL, SOCK_NONBLOCK);
+#else
+	new_fd = accept(fd, NULL, NULL);
+#endif
 
 	if(new_fd == -1) {
 		if(errno != EAGAIN) {
@@ -416,6 +423,12 @@ PHP_FUNCTION(nonBlockingAccept) {
 
 		RETURN_FALSE;
 	}
+
+#ifndef __linux__
+	flags = fcntl(new_fd, F_GETFL);
+	flags |= O_NONBLOCK;
+	fcntl(new_fd, F_SETFL, flags);
+#endif
 
 	if(!PANCAKE_GLOBALS(naglesAlgorithm)) {
 		setsockopt(new_fd, IPPROTO_TCP, TCP_NODELAY, &PANCAKE_GLOBALS(naglesAlgorithm), sizeof(PANCAKE_GLOBALS(naglesAlgorithm)));
