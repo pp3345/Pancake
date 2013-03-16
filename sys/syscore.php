@@ -86,7 +86,7 @@
     if(extension_loaded('suhosin'))
     	out('It seems that your server is running Suhosin. Although everything should work fine, Suhosin is not officially supported by Pancake. If you encounter any errors, please try deactivating Suhosin.', OUTPUT_SYSTEM);
 
-    // Check for root-user
+    // Check for root user
     if(posix_getuid() !== 0) {
         out('You need to run Pancake as root.', OUTPUT_SYSTEM);
         abort();
@@ -102,7 +102,7 @@
     // Open log files
     loadFilePointers();
 
-    // Remove some PHP-functions and -constants in order to provide ability to run PHP under Pancake
+    // Remove some PHP functions and constants as these will be replaced by the Pancake PHP SAPI
     dt_remove_class('Pancake\sfYamlParser');
     dt_remove_function('php_sapi_name');
     dt_remove_function('setcookie');
@@ -159,13 +159,13 @@
     // Set PANCAKE_DEBUG_MODE
     if(isset($startOptions['debug']) || Config::get('main.debugmode') === true) {
         define('Pancake\DEBUG_MODE', true);
-        out('Debugging enabled', OUTPUT_SYSTEM | OUTPUT_LOG | OUTPUT_DEBUG);
+        out('Debugging enabled', OUTPUT_SYSTEM | OUTPUT_LOG);
     } else
         define('Pancake\DEBUG_MODE', false);
 
     // Check if configured user exists
     if(posix_getpwnam(Config::get('main.user')) === false || posix_getgrnam(Config::get('main.group')) === false) {
-        out('The configured user/group doesn\'t exist.');
+        out('The configured user or the configured group doesn\'t exist.');
         abort();
     }
 
@@ -175,9 +175,9 @@
         abort();
     }
 
-    // Check if configured worker-amounts are OK
+    // Check if configured worker amounts are OK
     if(Config::get('main.requestworkers') < 1) {
-        out('You need to specify an amount of request-workers greater or equal to 1.');
+        out('You need to specify an amount of RequestWorkers greater or equal to 1.');
         abort();
     }
 
