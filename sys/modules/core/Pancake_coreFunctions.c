@@ -205,6 +205,7 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 			if((!PANCAKE_GLOBALS(systemLogStream) && PancakeLoadFilePointers(TSRMLS_C))
 			|| PANCAKE_GLOBALS(systemLogStream)) {
 				fwrite(outputString, outputString_len, 1, PANCAKE_GLOBALS(systemLogStream));
+				fflush(PANCAKE_GLOBALS(systemLogStream));
 			}
 		}
 
