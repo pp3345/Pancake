@@ -69,6 +69,10 @@
 	global $Pancake_currentThread;
 	if(isset($Pancake_currentThread->vHost->phpINISettings["session.name"]))
 		\Pancake\PHPFunctions\setINI("session.name", $Pancake_currentThread->vHost->phpINISettings["session.name"]);
+    if(isset($Pancake_currentThread->vHost->phpINISettings["error_reporting"]))
+        \Pancake\PHPFunctions\setINI("error_reporting", defined($Pancake_currentThread->vHost->phpINISettings["error_reporting"])
+                                                        ? constant($Pancake_currentThread->vHost->phpINISettings["error_reporting"])
+                                                        : $Pancake_currentThread->vHost->phpINISettings["error_reporting"]);
 	return (bool) $Pancake_currentThread->vHost->phpINISettings;
 	#.endLongDefine
 
