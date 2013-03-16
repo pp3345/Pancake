@@ -46,7 +46,7 @@
             			. md5_file('threads/single/phpWorker.thread.php')
             			. md5_file('php/sapi.php')
             			. md5_file('php/util.php')
-            			. md5_file('natives/Moody/' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '.cphp')
+            			. md5_file('natives/Moody/' . \PHP_MAJOR_VERSION . \PHP_MINOR_VERSION . '.cphp')
             			. md5_file('workerFunctions.php')
             			. \PHP_MINOR_VERSION
             			. \PHP_RELEASE_VERSION
@@ -55,7 +55,7 @@
                         . extension_loaded("session")
                         . extension_loaded("filter")
                         . ini_get("expose_php")
-                        . ini_get("error_reporting")
+                        . ORIGINAL_ERROR_REPORTING
                         . ini_get("session.name"));
             	if(!(file_exists('compilecache/phpWorker.thread.' . $vHost->name . '.hash')
             	&& file_get_contents('compilecache/phpWorker.thread.' . $vHost->name . '.hash') == $hash)) {

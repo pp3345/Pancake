@@ -18,6 +18,7 @@
     }
 
     const PANCAKE = true;
+    define('Pancake\ORIGINAL_ERROR_REPORTING', ini_get('error_reporting'));
 
     // Include files necessary to run Pancake
     require_once 'sfYamlParser.class.php';

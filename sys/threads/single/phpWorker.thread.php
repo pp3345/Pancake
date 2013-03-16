@@ -64,7 +64,9 @@
 	#.if #.extension_loaded 'filter'
 	   #.HAVE_FILTER_EXTENSION = true
 	#.endif
-
+	
+	#.SAPI_ERROR_REPORTING = #.Pancake\ORIGINAL_ERROR_REPORTING
+	
 	#.longDefine 'EVAL_CODE'
 	global $Pancake_currentThread;
 	if(isset($Pancake_currentThread->vHost->phpINISettings["session.name"]))
@@ -79,6 +81,15 @@
 	#.if #.eval EVAL_CODE false
 		#.HAVE_INI_SETTINGS = true
 	#.endif
+	
+	#.longDefine 'EVAL_CODE'
+	global $Pancake_currentThread;
+    if(isset($Pancake_currentThread->vHost->phpINISettings["error_reporting"]))
+        return ini_get('error_reporting');
+    return \Pancake\ORIGINAL_ERROR_REPORTING;
+	#.endLongDefine
+	
+	#.SAPI_ERROR_REPORTING = #.eval EVAL_CODE false
 	
 	#.longDefine 'EVAL_CODE'
 	global $Pancake_currentThread;
@@ -342,7 +353,7 @@
 	        ob_start();
 
 	        // Set error handling
-	        error_reporting(/* .call 'ini_get' 'error_reporting' */);
+	        error_reporting(/* .SAPI_ERROR_REPORTING */);
 	        PHPFunctions\setErrorHandler('Pancake\PHPErrorHandler');
 
 	        // Execute script and protect Pancake from exit() and Exceptions

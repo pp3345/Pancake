@@ -38,7 +38,7 @@
                         . serialize(Config::get('tls'))
         				. md5_file('vHostInterface.class.php')
         				. md5_file('threads/single/requestWorker.thread.php')
-        				. md5_file('natives/Moody/' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '.cphp')
+        				. md5_file('natives/Moody/' . \PHP_MAJOR_VERSION . \PHP_MINOR_VERSION . '.cphp')
         				. md5_file('FastCGI.class.php')
         				. md5_file('workerFunctions.php')
         				. md5_file('authenticationFile.class.php')
