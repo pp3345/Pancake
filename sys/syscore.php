@@ -163,8 +163,6 @@
     } else
         define('Pancake\DEBUG_MODE', false);
 
-    out('Basic configuration initialized', OUTPUT_SYSTEM | OUTPUT_LOG | OUTPUT_DEBUG);
-
     // Check if configured user exists
     if(posix_getpwnam(Config::get('main.user')) === false || posix_getgrnam(Config::get('main.group')) === false) {
         out('The configured user/group doesn\'t exist.');
@@ -311,12 +309,6 @@
         abort();
     }
 
-    // Set vHosts by Names
-    /*foreach($vHosts as $vHost) {
-        foreach($vHost->listen as $address)
-            $Pancake_vHosts[$address] = $vHost;
-    }*/
-
     $Pancake_vHosts = $vHosts;
 
     SigProcMask(\SIG_BLOCK, array(\SIGUSR1));
@@ -349,9 +341,6 @@
         }
     }
 
-    // Debug-output
-    out('Loaded '.count($vHosts).' vHosts', OUTPUT_SYSTEM | OUTPUT_LOG | OUTPUT_DEBUG);
-
     cleanGlobals(array('Pancake_phpSockets'));
 
     require_once 'threads/requestWorker.class.php';
@@ -370,8 +359,6 @@
         if(DEBUG_MODE === true)
                 out('PID of ' . $thread->friendlyName . ': ' . $thread->pid);
     }
-
-    out('Created '.Config::get('main.requestworkers').' RequestWorkers', OUTPUT_SYSTEM | OUTPUT_LOG | OUTPUT_DEBUG);
 
     out('Ready');
 
