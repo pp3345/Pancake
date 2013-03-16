@@ -41,7 +41,7 @@
         			out('Loading example vHost', OUTPUT_SYSTEM);
 
         			if(!file_exists(self::DEFAULT_VHOST_INCLUDE_DIR))
-        				mkdir(self::DEFAULT_VHOST_INCLUDE_DIR, 0644);
+        				mkdir(self::DEFAULT_VHOST_INCLUDE_DIR);
 
         			copy(self::VHOST_EXAMPLE_PATH, self::DEFAULT_VHOST_INCLUDE_DIR . 'default.yml');
         		}
