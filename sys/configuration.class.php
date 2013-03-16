@@ -44,8 +44,6 @@
         				mkdir(self::DEFAULT_VHOST_INCLUDE_DIR, 0644);
 
         			copy(self::VHOST_EXAMPLE_PATH, self::DEFAULT_VHOST_INCLUDE_DIR . 'default.yml');
-
-        			self::loadFile(self::VHOST_EXAMPLE_PATH);
         		}
 
         		$firstStart = true;
