@@ -865,7 +865,7 @@
 #.else
             			'http://'
 #.endif 
-            			. $requestObject->requestHeaders["host"] . $requestObject->requestFilePath . $file . ($isDir ? '/' : ''),
+            			. (isset($requestObject->requestHeaders["host"]) ? $requestObject->requestHeaders["host"] : $requestObject->vHost->listen[0]) . $requestObject->requestFilePath . $file . ($isDir ? '/' : ''),
             			'directory' => $isDir,
             			'type' => MIME::typeOf($file),
             			'modified' => filemtime(/* .VHOST_DOCUMENT_ROOT */ .  $requestObject->requestFilePath . $file),
