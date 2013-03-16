@@ -15,17 +15,22 @@
 
 #define PANCAKE_DEBUG 1
 
+#include <sys/param.h>
+
 /* What the hell is Linux doing with FD_SETSIZE? */
-#ifndef _BITS_TYPES_H
-#	define _BITS_TYPES_H
-#	define __RESET_BITS_TYPES_H
+#if defined(__linux__)
+#	ifndef _BITS_TYPES_H
+#	   define _BITS_TYPES_H
+#		define __RESET_BITS_TYPES_H
+#	endif
+#	include <bits/typesizes.h>
+#	undef __FD_SETSIZE
+#	define __FD_SETSIZE 131072
+#	ifdef __RESET_BITS_TYPES_H
+#		undef _BITS_TYPES_H
+#	endif
 #endif
-#include <bits/typesizes.h>
-#undef __FD_SETSIZE
-#define __FD_SETSIZE 131072
-#ifdef __RESET_BITS_TYPES_H
-#	undef _BITS_TYPES_H
-#endif
+
 #include <sys/types.h>
 
 #include "php.h"
