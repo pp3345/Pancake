@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 #   /****************************************************************/
 #   /* Pancake                                                      */
@@ -43,12 +43,15 @@ then
 	exit 6
 fi
 
-if test $ARCH == "i386" || test $ARCH == "i486" || test $ARCH == "i586" || test $ARCH == "i686"
+if test $ARCH = "i386" || test $ARCH = "i486" || test $ARCH = "i586" || test $ARCH = "i686"
 then
-        ARCH=x86
-elif test $ARCH == "armv6l" || test $ARCH == "armv7l"
+    ARCH=x86
+elif test $ARCH = "armv6l" || test $ARCH = "armv7l"
 then
-        ARCH=armhf
+    ARCH=armhf
+elif test $ARCH = "amd64"
+then
+	ARCH=x86_64
 fi
 
 if [ -d ./natives ];
@@ -56,7 +59,7 @@ then
         chmod -R +x ./natives/*
 fi
 
-if [ -n "$1" ] && test $1 == "--use-malloc"
+if [ -n "$1" ] && test $1 = "--use-malloc"
 then
         USE_ZEND_ALLOC_SET=1
         export USE_ZEND_ALLOC=0
