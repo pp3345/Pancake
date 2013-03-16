@@ -78,6 +78,7 @@ PHP_FUNCTION(sigwaitinfo) {
 }
 
 PHP_FUNCTION(fork) {
+	fflush(NULL);
 	pid_t id = fork();
 
 	if(id == -1) {
