@@ -62,7 +62,7 @@ PANCAKE_API void PancakeSetAnswerHeader(zval *answerHeaderArray, char *name, uin
 			zval *array;
 
 			MAKE_STD_ZVAL(array);
-			array_init(array);
+			array_init_size(array, 2);
 
 			Z_ADDREF_PP(answerHeader);
 
@@ -194,7 +194,7 @@ PHP_METHOD(HTTPRequest, __construct) {
 
 	/* Set answer header array to empty array */
 	MAKE_STD_ZVAL(answerHeaderArray);
-	array_init(answerHeaderArray);
+	array_init_size(answerHeaderArray, 6);
 	PancakeQuickWriteProperty(this_ptr, answerHeaderArray, "answerHeaders", sizeof("answerHeaders"), HASH_OF_answerHeaders TSRMLS_CC);
 
 	zval_ptr_dtor(&answerHeaderArray);
@@ -281,7 +281,7 @@ PHP_METHOD(HTTPRequest, init) {
 	char *host = NULL, *authorization = NULL, *if_unmodified_since = NULL;
 
 	MAKE_STD_ZVAL(headerArray);
-	array_init(headerArray);
+	array_init_size(headerArray, 8);
 
 	char *header;
 
@@ -316,7 +316,7 @@ PHP_METHOD(HTTPRequest, init) {
 			acceptedCompression = strtok_r(headerValue, ",", &ptr4);
 
 			MAKE_STD_ZVAL(acceptedCompressions);
-			array_init(acceptedCompressions);
+			array_init_size(acceptedCompressions, 2);
 
 			while(acceptedCompression != NULL) {
 				int acceptedCompression_len = strlen(acceptedCompression);
@@ -838,7 +838,7 @@ PHP_METHOD(HTTPRequest, init) {
 		zval *callArray, authData, *arg;
 
 		MAKE_STD_ZVAL(callArray);
-		array_init(callArray);
+		array_init_size(callArray, 2);
 		Z_ADDREF_PP(vHost);
 		add_next_index_zval(callArray, *vHost);
 		add_next_index_stringl(callArray, "requiresAuthentication", sizeof("requiresAuthentication") - 1, 1);
@@ -1292,7 +1292,7 @@ static zval *PancakeRecursiveResolveParameterRun(char *part, zval *value, zval *
 			newDestination = *data;
 		} else {
 			MAKE_STD_ZVAL(newDestination);
-			array_init(newDestination);
+			array_init_size(newDestination, 1);
 		}
 
 		newDestination = PancakeRecursiveResolveParameterRun(begin + 1, value, newDestination);
@@ -1442,7 +1442,7 @@ zval *PancakeFetchGET(zval *this_ptr TSRMLS_DC) {
 		FAST_READ_PROPERTY(queryString, this_ptr, "queryString", sizeof("queryString") - 1, HASH_OF_queryString);
 
 		MAKE_STD_ZVAL(GETParameters);
-		array_init(GETParameters);
+		array_init_size(GETParameters, 2);
 
 		if(Z_STRLEN_P(queryString)) {
 			GETParameters = PancakeProcessQueryString(GETParameters, queryString, "&");
@@ -1479,7 +1479,7 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 		FAST_READ_PROPERTY(rawPOSTData, this_ptr, "rawPOSTData", sizeof("rawPOSTData") - 1, HASH_OF_rawPOSTData);
 
 		MAKE_STD_ZVAL(POSTParameters);
-		array_init(POSTParameters);
+		array_init_size(POSTParameters, 2);
 
 		MAKE_STD_ZVAL(files);
 		array_init(files);
@@ -1718,7 +1718,7 @@ zval *PancakeFetchCookies(zval *this_ptr TSRMLS_DC) {
 		FAST_READ_PROPERTY(requestHeaders, this_ptr, "requestHeaders", sizeof("requestHeaders") - 1, HASH_OF_requestHeaders);
 
 		MAKE_STD_ZVAL(cookies);
-		array_init(cookies);
+		array_init_size(cookies, 2);
 
 		if(zend_hash_quick_find(Z_ARRVAL_P(requestHeaders), "cookie", sizeof("cookie"), 229462176616959U, (void**) &cookie) == SUCCESS) {
 			cookies = PancakeProcessQueryString(cookies, *cookie, ";");
@@ -1901,7 +1901,7 @@ zend_bool PancakeJITFetchREQUEST(const char *name, uint name_len TSRMLS_DC) {
 	char *p;
 
 	MAKE_STD_ZVAL(REQUEST);
-	array_init(REQUEST);
+	array_init_size(REQUEST, 3);
 
 	if (PG(request_order) != NULL) {
 		p = PG(request_order);
