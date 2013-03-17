@@ -638,6 +638,10 @@
             // Create request object and process headers
             try {
                 $requestObject = $requests[$socket] = new HTTPRequest($ip, $port, $lip, $lport);
+#.ifdef 'SUPPORT_TLS'
+                if(isset($TLSConnections[$socket]))
+                    $requestObject->TLS = true;
+#.endif
                 $requestObject->init($socketData[$socket]);
                 
                 unset($socketData[$socket]);

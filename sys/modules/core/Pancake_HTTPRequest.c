@@ -1748,7 +1748,7 @@ PHP_METHOD(HTTPRequest, getCookies) {
 zval *PancakeFetchSERVER(zval *this_ptr TSRMLS_DC) {
 	zval *server, *requestTime, *requestMicrotime, *requestMethod, *protocolVersion, *requestFilePath,
 		*originalRequestURI, *requestURI, *vHost, *documentRoot, *remoteIP, *remotePort, *queryString,
-		*localIP, *localPort, *requestHeaderArray, **data, *pathInfo;
+		*localIP, *localPort, *requestHeaderArray, **data, *pathInfo, *TLS;
 
 	MAKE_STD_ZVAL(server);
 	array_init_size(server, 20); // 17 basic elements + 3 overhead for headers (faster init; low overhead when not needed)
@@ -1824,6 +1824,11 @@ zval *PancakeFetchSERVER(zval *this_ptr TSRMLS_DC) {
 	FAST_READ_PROPERTY(localPort, this_ptr, "localPort", sizeof("localPort") - 1, HASH_OF_localPort);
 	Z_ADDREF_P(localPort);
 	add_assoc_zval_ex(server, "SERVER_PORT", sizeof("SERVER_PORT"), localPort);
+
+	FAST_READ_PROPERTY(TLS, this_ptr, "TLS", sizeof("TLS") - 1, HASH_OF_TLS);
+	if(Z_LVAL_P(TLS)) {
+		add_assoc_long_ex(server, "HTTPS", sizeof("HTTPS"), 1);
+	}
 
 	FAST_READ_PROPERTY(pathInfo, this_ptr, "pathInfo", sizeof("pathInfo") - 1, HASH_OF_pathInfo);
 	if(Z_TYPE_P(pathInfo) == IS_STRING && Z_STRLEN_P(pathInfo)) {

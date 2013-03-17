@@ -526,5 +526,6 @@ static int PancakeFastHasProperty(zval *object, zval *member, int has_set_exists
 #define HASH_OF_mimeType 249898115869584303U
 #define HASH_OF_message 7572665263856682U
 #define HASH_OF_header 229468225744494U
+#define HASH_OF_TLS 6384545112U
 
 #endif	/* PANCAKE_H */
