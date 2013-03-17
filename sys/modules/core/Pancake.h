@@ -15,12 +15,10 @@
 
 #define PANCAKE_DEBUG 1
 
-#include <sys/param.h>
-
 /* What the hell is Linux doing with FD_SETSIZE? */
 #if defined(__linux__)
 #	ifndef _BITS_TYPES_H
-#	   define _BITS_TYPES_H
+#	   	define _BITS_TYPES_H
 #		define __RESET_BITS_TYPES_H
 #	endif
 #	include <bits/typesizes.h>
