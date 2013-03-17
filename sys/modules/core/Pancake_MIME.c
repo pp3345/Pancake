@@ -49,7 +49,7 @@ PHP_METHOD(MIME, load) {
 
 	/* Fetch allowHEAD */
 	MAKE_STD_ZVAL(array);
-	array_init(array);
+	array_init_size(array, 2);
 	add_next_index_stringl(array, "Pancake\\Config", sizeof("Pancake\\Config") - 1, 1);
 	add_next_index_stringl(array, "get", 3, 1);
 
@@ -58,7 +58,7 @@ PHP_METHOD(MIME, load) {
 	Z_STRLEN_P(arg) = 4;
 	Z_STRVAL_P(arg) = estrndup("mime", 4);
 
-	call_user_function(CG(function_table), NULL, array, &retval, 1, &arg);
+	call_user_function(CG(function_table), NULL, array, &retval, 1, &arg TSRMLS_CC);
 
 	if(Z_TYPE(retval) != IS_ARRAY) {
 		zend_error(E_ERROR, "Bad MIME type array - Please check Pancake MIME type configuration");

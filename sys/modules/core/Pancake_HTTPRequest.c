@@ -674,7 +674,7 @@ PHP_METHOD(HTTPRequest, init) {
 				Z_TYPE_P(redirectValue) = IS_STRING;
 				Z_STRLEN_P(redirectValue) = spprintf(&Z_STRVAL_P(redirectValue), 0, "http://%s%s/?%s", host, requestFilePath, queryString ? queryString : "");
 
-				PancakeSetAnswerHeader(this_ptr, "location", sizeof("location"), redirectValue, 1, 249896952137776350U);
+				PancakeSetAnswerHeader(this_ptr, "location", sizeof("location"), redirectValue, 1, 249896952137776350U TSRMLS_CC);
 				PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("Redirecting...", sizeof("Redirecting...") - 1, 301);
 				efree(filePath);
 				efree(host);
@@ -705,7 +705,7 @@ PHP_METHOD(HTTPRequest, init) {
 					memcpy(filePath + Z_STRLEN_P(documentRootz), requestFilePath, requestFilePath_len);
 					memcpy(filePath + Z_STRLEN_P(documentRootz) + requestFilePath_len, Z_STRVAL_PP(indexFile), Z_STRLEN_PP(indexFile) + 1);
 
-					if(!virtual_access(filePath, F_OK | R_OK)) {
+					if(!virtual_access(filePath, F_OK | R_OK TSRMLS_CC)) {
 						requestFilePath = erealloc(requestFilePath, (requestFilePath_len + Z_STRLEN_PP(indexFile) + 1) * sizeof(char));
 						memcpy(requestFilePath + requestFilePath_len, Z_STRVAL_PP(indexFile), Z_STRLEN_PP(indexFile) + 1);
 						requestFilePath_len += Z_STRLEN_PP(indexFile);
@@ -745,7 +745,7 @@ PHP_METHOD(HTTPRequest, init) {
 				memcpy(filePath + Z_STRLEN_P(documentRootz), requestFilePath, requestFilePath_len);
 				memcpy(filePath + Z_STRLEN_P(documentRootz) + requestFilePath_len, ".gz", 4);
 
-				if(!virtual_access(filePath, F_OK | R_OK)) {
+				if(!virtual_access(filePath, F_OK | R_OK TSRMLS_CC)) {
 					mimeType = PancakeMIMEType(requestFilePath, requestFilePath_len TSRMLS_CC);
 					requestFilePath = erealloc(requestFilePath, requestFilePath_len + 4);
 					memcpy(requestFilePath + requestFilePath_len, ".gz", 4);
@@ -1032,7 +1032,7 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 		Z_TYPE_PP(contentLength) = IS_LONG;
 		Z_LVAL_PP(contentLength) = answerBody_len;
 
-		PancakeSetAnswerHeader(answerHeaderArray, "content-length", sizeof("content-length"), *contentLength, 1, 2767439838230162255U);
+		PancakeSetAnswerHeader(answerHeaderArray, "content-length", sizeof("content-length"), *contentLength, 1, 2767439838230162255U TSRMLS_CC);
 	}
 
 	if(answerCode < 100 || answerCode > 599) {
@@ -1167,7 +1167,7 @@ PHP_METHOD(HTTPRequest, invalidRequest) {
 	FAST_READ_PROPERTY(vHost, this_ptr, "vHost", 5, HASH_OF_vHost);
 	FAST_READ_PROPERTY(exceptionPageHandler, vHost, "exceptionPageHandler", sizeof("exceptionPageHandler") - 1, HASH_OF_exceptionPageHandler);
 
-	PancakeQuickWriteProperty(this_ptr, answerCode, "answerCode", sizeof("answerCode"), HASH_OF_answerCode);
+	PancakeQuickWriteProperty(this_ptr, answerCode, "answerCode", sizeof("answerCode"), HASH_OF_answerCode TSRMLS_CC);
 
 	mimeType = PancakeMIMEType(Z_STRVAL_P(exceptionPageHandler), Z_STRLEN_P(exceptionPageHandler) TSRMLS_CC);
 	Z_ADDREF_P(mimeType);
@@ -1247,7 +1247,7 @@ PHP_METHOD(HTTPRequest, invalidRequest) {
 	}
 
 	Z_DELREF_P(output);
-	PancakeQuickWriteProperty(this_ptr, output, "answerBody", sizeof("answerBody"), HASH_OF_answerBody);
+	PancakeQuickWriteProperty(this_ptr, output, "answerBody", sizeof("answerBody"), HASH_OF_answerBody TSRMLS_CC);
 
 	efree(contents);
 }
@@ -1448,7 +1448,7 @@ zval *PancakeFetchGET(zval *this_ptr TSRMLS_DC) {
 			GETParameters = PancakeProcessQueryString(GETParameters, queryString, "&");
 		}
 
-		PancakeQuickWriteProperty(this_ptr, GETParameters, "GETParameters", sizeof("GETParameters"), HASH_OF_GETParameters);
+		PancakeQuickWriteProperty(this_ptr, GETParameters, "GETParameters", sizeof("GETParameters"), HASH_OF_GETParameters TSRMLS_CC);
 		Z_DELREF_P(GETParameters);
 	}
 
@@ -1673,9 +1673,9 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 
 		save:
 
-		PancakeQuickWriteProperty(this_ptr, files, "uploadedFiles", sizeof("uploadedFiles"), HASH_OF_uploadedFiles);
-		PancakeQuickWriteProperty(this_ptr, POSTParameters, "POSTParameters", sizeof("POSTParameters"), HASH_OF_POSTParameters);
-		PancakeQuickWriteProperty(this_ptr, tempNames, "uploadedFileTempNames", sizeof("uploadedFileTempNames"), HASH_OF_uploadedFileTempNames);
+		PancakeQuickWriteProperty(this_ptr, files, "uploadedFiles", sizeof("uploadedFiles"), HASH_OF_uploadedFiles TSRMLS_CC);
+		PancakeQuickWriteProperty(this_ptr, POSTParameters, "POSTParameters", sizeof("POSTParameters"), HASH_OF_POSTParameters TSRMLS_CC);
+		PancakeQuickWriteProperty(this_ptr, tempNames, "uploadedFileTempNames", sizeof("uploadedFileTempNames"), HASH_OF_uploadedFileTempNames TSRMLS_CC);
 		Z_DELREF_P(POSTParameters);
 		Z_DELREF_P(files);
 		Z_DELREF_P(tempNames);
@@ -1724,7 +1724,7 @@ zval *PancakeFetchCookies(zval *this_ptr TSRMLS_DC) {
 			cookies = PancakeProcessQueryString(cookies, *cookie, ";");
 		}
 
-		PancakeQuickWriteProperty(this_ptr, cookies, "cookies", sizeof("cookies"), HASH_OF_cookies);
+		PancakeQuickWriteProperty(this_ptr, cookies, "cookies", sizeof("cookies"), HASH_OF_cookies TSRMLS_CC);
 		Z_DELREF_P(cookies);
 	}
 

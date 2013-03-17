@@ -47,6 +47,10 @@ PANCAKE_API void TLSFree(SSL **ssl) {
 }
 
 PHP_MINIT_FUNCTION(PancakeTLS) {
+#ifdef ZTS
+	ZEND_INIT_MODULE_GLOBALS(PancakeTLS, NULL, NULL);
+#endif
+
 	SSL_library_init();
 	OpenSSL_add_all_algorithms();
 	ALLOC_HASHTABLE(PANCAKE_TLS_GLOBALS(TLSSessions));

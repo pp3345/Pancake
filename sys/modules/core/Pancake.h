@@ -155,7 +155,7 @@ zend_bool PancakeJITFetchENV(const char *name, uint name_len TSRMLS_DC);
 
 static zend_bool CodeCacheJITFetch(const char *name, uint name_len TSRMLS_DC);
 
-PANCAKE_API int PancakeLoadFilePointers(TSRMLS_C);
+PANCAKE_API int PancakeLoadFilePointers(TSRMLS_D);
 
 extern zend_class_entry *HTTPRequest_ce;
 extern zend_class_entry *invalidHTTPRequestException_ce;
