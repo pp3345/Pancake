@@ -748,18 +748,14 @@
         load:
 
 #.ifdef 'SUPPORT_AJP13'
-    #.ifdef 'SUPPORT_MULTIPLE_VHOSTS'
         if($ajp13 = /* .VHOST_AJP13 */) {
-    #.endif
         	$asocket = $ajp13->makeRequest($requestObject, $socket);
         	if($asocket === false)
         		goto write;
         	$listenSocketsOrig[$asocket] = $asocket;
         	$ajp13Sockets[$asocket] = $ajp13;
         	goto clean;
-    #.ifdef 'SUPPORT_MULTIPLE_VHOSTS'
         }
-    #.endif
 #.endif
 
 #.ifdef 'SUPPORT_FASTCGI'
