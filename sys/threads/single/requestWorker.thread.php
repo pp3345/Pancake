@@ -942,6 +942,8 @@
         }
 #.endif
 
+        #.OUTPUT_TYPE = Pancake\OUTPUT_REQUEST | Pancake\OUTPUT_LOG
+        
         // Output request information
         out('REQ ' 
         . $requestObject->answerCode . ' ' 
@@ -954,7 +956,7 @@
 #.ifdef 'SUPPORT_TLS'
         . (isset($TLSConnections[$socket]) ? " - " . TLSCipherName($socket) : "")
 #.endif
-        , OUTPUT_REQUEST | OUTPUT_LOG);
+        , /* .OUTPUT_TYPE */);
 
 	    // Check if user wants keep-alive connection
         if($requestObject->answerHeaders["connection"] == 'keep-alive')
