@@ -43,8 +43,10 @@
 
 			$this->running = false;
 
-			if($info["status"] !== 1)
+			if($info["status"] !== 1) {
+			    trigger_error("Failed to compile sources, please report this error to the Pancake support", \E_USER_ERROR);
 				abort();
+            }
 		}
 	}
 ?>
