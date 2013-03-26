@@ -220,7 +220,11 @@
         define('Pancake\DAEMONIZED', false);
 		
 	// Set thread title
-    dt_set_proctitle('Pancake HTTP Server ' . VERSION);
+	if(PHP_MINOR_VERSION == 5)
+        cli_set_process_title('Pancake HTTP Server ' . VERSION);
+    else
+        dt_set_proctitle('Pancake HTTP Server ' . VERSION);
+        
 
     // Write version to file (might need this later on for updates)
     file_put_contents("compilecache/version", VERSION);
