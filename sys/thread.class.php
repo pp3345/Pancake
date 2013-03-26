@@ -36,6 +36,8 @@
                 
                 self::$threadCache[$this->pid] = $this;
                 $this->running = true;
+                
+                out('PID of ' . $this->friendlyName . ': ' . $this->pid, OUTPUT_SYSTEM | OUTPUT_DEBUG);
                 return true;
             } else {                            // Child
                 global $Pancake_currentThread;

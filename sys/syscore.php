@@ -337,8 +337,6 @@
 	                abort();
 	            }
             }
-            if(DEBUG_MODE === true)
-                out('PID of ' . $thread->friendlyName . ': ' . $thread->pid);
         }
     }
 
@@ -357,8 +355,6 @@
             out('Failed to boot ' . $thread->friendlyName . ' in time - Aborting');
             abort();
         }
-        if(DEBUG_MODE === true)
-                out('PID of ' . $thread->friendlyName . ': ' . $thread->pid);
     }
 
     out('Ready');
@@ -398,8 +394,6 @@
                     }
                 } else if($thread->start() === "THREAD_EXIT")
                 	break 2;
-
-                out('New PID of ' . $thread->friendlyName . ': ' . $thread->pid, OUTPUT_DEBUG | OUTPUT_SYSTEM);
                 break;
             case \SIGINT:
             case \SIGTERM:
