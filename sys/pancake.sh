@@ -69,7 +69,7 @@ if [ -x ./natives/DeepTrace/$ARCH\_$PHPMAJOR$PHPMINOR.so ];
 then
     if [ -x ./natives/core/$ARCH\_$PHPMAJOR$PHPMINOR.so ];
     then
-        $PHPCOMMAND -d zend_extension=$DIRNAME/natives/DeepTrace/$ARCH\_$PHPMAJOR$PHPMINOR.so -d extension=$DIRNAME/natives/core/$ARCH\_$PHPMAJOR$PHPMINOR.so $DIRNAME/syscore.php $1 $2 $3
+        $PHPCOMMAND -d zend_extension=$DIRNAME/natives/DeepTrace/$ARCH\_$PHPMAJOR$PHPMINOR.so -d extension=$DIRNAME/natives/core/$ARCH\_$PHPMAJOR$PHPMINOR.so -d opcache.enable=0 $DIRNAME/syscore.php $1 $2 $3
         [ $? != 0 ] && exit 2
     else
         echo "No compiled Pancake natives found (looking for ./natives/core/$ARCH""_$PHPMAJOR$PHPMINOR.so) - Please compile Pancake for your system and make sure it is executable" >&2
