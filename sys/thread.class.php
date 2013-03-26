@@ -48,7 +48,7 @@
                 $this->pid = posix_getpid();
 
                 if(PHP_MINOR_VERSION == 5)
-                    cli_set_process_title('Pancake' . $this->friendlyName); 
+                    cli_set_process_title('Pancake ' . $this->friendlyName); 
                 else {
                     dt_set_proctitle('Pancake ' . $this->friendlyName);
                     dt_remove_function('dt_set_proctitle');
