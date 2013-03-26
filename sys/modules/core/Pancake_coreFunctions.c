@@ -483,11 +483,11 @@ PHP_FUNCTION(loadModule) {
 		char *pancakePath = get_current_dir_name();
 
 #ifdef PANCAKE_X86_64
-		spprintf(&modulePath, 0, "%s/natives/%s/x86_64_54.so", pancakePath, name);
+		spprintf(&modulePath, 0, "%s/natives/%s/x86_64_5" PHP_MINOR_VERSION_STRING ".so", pancakePath, name);
 #elif defined(PANCAKE_X86)
-		spprintf(&modulePath, 0, "%s/natives/%s/x86_54.so", pancakePath, name);
+		spprintf(&modulePath, 0, "%s/natives/%s/x86_5" PHP_MINOR_VERSION_STRING ".so", pancakePath, name);
 #elif defined(PANCAKE_ARMHF)
-		spprintf(&modulePath, 0, "%s/natives/%s/armhf_54.so", pancakePath, name);
+		spprintf(&modulePath, 0, "%s/natives/%s/armhf_5" PHP_MINOR_VERSION_STRING ".so", pancakePath, name);
 #endif
 
 		free(pancakePath);

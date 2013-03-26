@@ -83,6 +83,14 @@ extern zend_module_entry Pancake_module_entry;
 #include "TSRM.h"
 #endif
 
+#if PHP_MINOR_VERSION == 4
+#	define PHP_MINOR_VERSION_STRING "4"
+#elif PHP_MINOR_VERSION == 5
+#	define PHP_MINOR_VERSION_STRING "5"
+#else
+#	error "Unsupported PHP version"
+#endif
+
 PHP_MINIT_FUNCTION(Pancake);
 PHP_MSHUTDOWN_FUNCTION(Pancake);
 PHP_RINIT_FUNCTION(Pancake);
