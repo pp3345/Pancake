@@ -163,6 +163,8 @@
         out('Debugging enabled', OUTPUT_SYSTEM | OUTPUT_LOG);
     } else
         define('Pancake\DEBUG_MODE', false);
+    
+    out('PID of Master: ' . posix_getpid(), OUTPUT_SYSTEM | OUTPUT_DEBUG);
 
     // Check if configured user exists
     if(posix_getpwnam(Config::get('main.user')) === false || posix_getgrnam(Config::get('main.group')) === false) {
