@@ -323,7 +323,7 @@ PHP_METHOD(HTTPRequest, init) {
 				int acceptedCompression_len = strlen(acceptedCompression);
 				php_strtolower(acceptedCompression, acceptedCompression_len);
 				LEFT_TRIM(acceptedCompression);
-				add_next_index_stringl(acceptedCompressions, acceptedCompression, acceptedCompression_len, 1);
+				add_assoc_stringl(acceptedCompressions, acceptedCompression, acceptedCompression, acceptedCompression_len, 1);
 
 				if(!strcmp(acceptedCompression, "gzip")) {
 					acceptGZIP = 1;

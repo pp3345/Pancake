@@ -889,7 +889,7 @@
             // Check if GZIP compression should be used
             if(isset($requestObject->acceptedCompressions["gzip"]) && /* .VHOST_ALLOW_GZIP_COMPRESSION */ === true && filesize(/* .VHOST_DOCUMENT_ROOT */ . $requestObject->requestFilePath) >= /* .VHOST_GZIP_MINIMUM */
 #.ifdef 'SUPPORT_GZIP_MIME_TYPE_LIMIT'
-            && /* .VHOST */->gzipMimeTypes && in_array($requestObject->mimeType, /* .VHOST */->gzipMimeTypes)
+            && ((/* .VHOST */->gzipMimeTypes && in_array($requestObject->mimeType, /* .VHOST */->gzipMimeTypes)) || !/* .VHOST */->gzipMimeTypes)
 #.endif
             ) {
                 // Set encoding header
