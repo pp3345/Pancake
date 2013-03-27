@@ -10,8 +10,9 @@ Pancake can also handle very high concurrency loads. Try it out!
 ## System requirements
 
 * Linux
-* PHP 5.4.0 or newer
+* PHP 5.4.0 or newer (PHP 5.4.10 or newer recommended)
 * i686 or x86_64 processor or Raspberry Pi (no *official* support for other ARM architectures)
+* OpenSSL 0.9.8 or newer required for HTTPS
 
 ## Installation
 
