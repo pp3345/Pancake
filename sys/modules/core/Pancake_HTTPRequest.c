@@ -91,6 +91,7 @@ PHP_METHOD(HTTPRequest, setHeader) {
 	ALLOC_ZVAL(nvalue);
 	INIT_PZVAL_COPY(nvalue, value);
 	zval_copy_ctor(nvalue);
+	convert_to_string(nvalue);
 
 	php_strtolower(name, name_len);
 	name_len++;
