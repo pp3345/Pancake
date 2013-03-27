@@ -13,8 +13,6 @@
 #include "config.h"
 #endif
 
-#define PANCAKE_DEBUG 1
-
 /* What the hell is Linux doing with FD_SETSIZE? */
 #if defined(__linux__)
 #	ifndef _BITS_TYPES_H
