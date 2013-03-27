@@ -21,7 +21,7 @@
 #	endif
 #	include <bits/typesizes.h>
 #	undef __FD_SETSIZE
-#	define __FD_SETSIZE 131072
+#	define __FD_SETSIZE 262144
 #	ifdef __RESET_BITS_TYPES_H
 #		undef _BITS_TYPES_H
 #	endif
