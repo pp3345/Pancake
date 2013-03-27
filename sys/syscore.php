@@ -236,6 +236,11 @@
             // Create socket
             $socket = Socket(\AF_INET6, \SOCK_STREAM, \SOL_TCP);
 
+            if($socket === false) {
+                trigger_error('It seems that your operating system does not support IPv6 - will fallback to IPv4', \E_USER_WARNING);
+                break 2;
+            }
+
             // Set option to reuse local address
             ReuseAddress($socket);
 
