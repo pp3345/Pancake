@@ -697,7 +697,8 @@
 
             $body = 'Received Headers:' . "\r\n";
             $body .= $requestObject->requestLine . "\r\n";
-            $body .= $requestObject->getRequestHeaders() . "\r\n";
+            foreach($requestObject->requestHeaders as $name => $value)
+                $body .= $name . ": " . $value . "\r\n";
             $body .= 'Received POST content:' . "\r\n";
             $body .= $postData[$socket] . "\r\n\r\n";
             $body .= 'Dump of RequestObject:' . "\r\n";
