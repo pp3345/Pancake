@@ -16,11 +16,11 @@ PHP_FUNCTION(sigwaitinfo) {
 	int signal;
 	long seconds = 99999999;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a|zl", &uset, &usiginfo, &seconds) == FAILURE) {
+	if (UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a|zl", &uset, &usiginfo, &seconds) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
-	if(sigemptyset(&set)) {
+	if(UNEXPECTED(sigemptyset(&set))) {
 		zend_error(E_WARNING, "%s", strerror(errno));
 		RETURN_FALSE;
 	}
@@ -41,7 +41,7 @@ PHP_FUNCTION(sigwaitinfo) {
 		signal = sigtimedwait(&set, &siginfo, &timeout);
 	} while(signal == - 1 && ((errno == EAGAIN && seconds == 99999999) || errno == EINTR));
 
-	if(signal == -1) {
+	if(UNEXPECTED(signal == -1)) {
 		zend_error(E_WARNING, "%s", strerror(errno));
 		RETURN_FALSE;
 	} else {
@@ -81,7 +81,7 @@ PHP_FUNCTION(fork) {
 	fflush(NULL);
 	pid_t id = fork();
 
-	if(id == -1) {
+	if(UNEXPECTED(id == -1)) {
 		zend_error(E_WARNING, "%s", strerror(errno));
 	}
 
@@ -94,7 +94,7 @@ PHP_FUNCTION(wait) {
 	int status;
 	pid_t child_id;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|l", &z_status, &options) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|l", &z_status, &options) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
@@ -116,11 +116,11 @@ PHP_FUNCTION(sigprocmask) {
 	zval *uset, **data;
 	sigset_t set;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "la|z", &how, &uset) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "la|z", &how, &uset) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
-	if(sigemptyset(&set)) {
+	if(UNEXPECTED(sigemptyset(&set))) {
 		zend_error(E_WARNING, "%s", strerror(errno));
 		RETURN_FALSE;
 	}
@@ -134,7 +134,7 @@ PHP_FUNCTION(sigprocmask) {
 		}
 	}
 
-	if(sigprocmask(how, &set, NULL)) {
+	if(UNEXPECTED(sigprocmask(how, &set, NULL))) {
 		zend_error(E_WARNING, "%s", strerror(errno));
 		RETURN_FALSE;
 	}
@@ -148,13 +148,13 @@ PHP_FUNCTION(waitpid) {
 	int status;
 	pid_t child_id;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lz|l", &pid, &z_status, &options) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lz|l", &pid, &z_status, &options) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
 	child_id = waitpid((pid_t) pid, &status, options);
 
-	if (child_id < 0 && errno != ECHILD) {
+	if (UNEXPECTED(child_id < 0 && errno != ECHILD)) {
 		zend_error(E_WARNING, "%s", strerror(errno));
 		RETURN_FALSE;
 	}
@@ -170,13 +170,13 @@ PHP_FUNCTION(socket) {
 	long domain, type, protocol;
 	int fd;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lll", &domain, &type, &protocol) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lll", &domain, &type, &protocol) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
 	fd = socket(domain, type, protocol);
 
-	if(fd == -1) {
+	if(UNEXPECTED(fd == -1)) {
 		zend_error(E_WARNING, "%s", strerror(errno));
 		RETURN_FALSE;
 	}
@@ -189,11 +189,11 @@ PHP_FUNCTION(reuseaddress) {
 	int val = 1;
 	socklen_t len = sizeof(val);
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &fd) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &fd) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
-	if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &val, len) == -1) {
+	if(UNEXPECTED(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &val, len) == -1)) {
 		zend_error(E_WARNING, "%s", strerror(errno));
 		RETURN_FALSE;
 	}
@@ -208,7 +208,7 @@ PHP_FUNCTION(bind) {
 	struct sockaddr_storage sa_storage;
 	struct sockaddr	*sock_type = (struct sockaddr*) &sa_storage;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lls|l", &fd, &domain, &address, &address_len, &port) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lls|l", &fd, &domain, &address, &address_len, &port) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
@@ -253,7 +253,7 @@ PHP_FUNCTION(bind) {
 		}
 	}
 
-	if(retval) {
+	if(UNEXPECTED(retval)) {
 		zend_error(E_WARNING, "%s", strerror(errno));
 		RETURN_FALSE;
 	}
@@ -264,11 +264,11 @@ PHP_FUNCTION(bind) {
 PHP_FUNCTION(listen) {
 	long fd, backlog = 10;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l|l", &fd, &backlog) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l|l", &fd, &backlog) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
-	if(listen(fd, backlog)) {
+	if(UNEXPECTED(listen(fd, backlog))) {
 		zend_error(E_WARNING, "%s", strerror(errno));
 		RETURN_FALSE;
 	}
@@ -281,7 +281,7 @@ PHP_FUNCTION(setBlocking) {
 	zend_bool blocking;
 	int flags;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l|b", &fd, &blocking) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l|b", &fd, &blocking) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
@@ -293,7 +293,7 @@ PHP_FUNCTION(setBlocking) {
 		flags &= ~O_NONBLOCK;
 	}
 
-	if(fcntl(fd, F_SETFL, flags)) {
+	if(UNEXPECTED(fcntl(fd, F_SETFL, flags))) {
 		zend_error(E_WARNING, "%s", strerror(errno));
 		RETURN_FALSE;
 	}
@@ -306,13 +306,13 @@ PHP_FUNCTION(write) {
 	char *buffer;
 	int buffer_len, bytes;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ls", &fd, &buffer, &buffer_len) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ls", &fd, &buffer, &buffer_len) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
 	bytes = write(fd, buffer, buffer_len);
 
-	if(bytes < 0) {
+	if(UNEXPECTED(bytes < 0)) {
 		zend_error(E_WARNING, "%s", strerror(errno));
 		RETURN_FALSE;
 	}
@@ -325,13 +325,13 @@ PHP_FUNCTION(writeBuffer) {
 	int bytes;
 	zval *buffer;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lz", &fd, &buffer) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lz", &fd, &buffer) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
 	bytes = write(fd, Z_STRVAL_P(buffer), Z_STRLEN_P(buffer));
 
-	if(bytes < 0) {
+	if(UNEXPECTED(bytes < 0)) {
 		zend_error(E_WARNING, "%s", strerror(errno));
 		RETURN_FALSE;
 	}
@@ -354,7 +354,7 @@ PHP_FUNCTION(read) {
 	int bytes;
 	char *buffer;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ll", &fd, &length) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ll", &fd, &length) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
@@ -384,13 +384,13 @@ PHP_FUNCTION(read) {
 PHP_FUNCTION(accept) {
 	long fd, new_fd;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &fd) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &fd) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
 	new_fd = accept(fd, NULL, NULL);
 
-	if(new_fd == -1) {
+	if(UNEXPECTED(new_fd == -1)) {
 		if(errno != EAGAIN) {
 			zend_error(E_WARNING, "%s", strerror(errno));
 		}
@@ -407,7 +407,7 @@ PHP_FUNCTION(nonBlockingAccept) {
 	int flags;
 #endif
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &fd) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &fd) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
@@ -417,7 +417,7 @@ PHP_FUNCTION(nonBlockingAccept) {
 	new_fd = accept(fd, NULL, NULL);
 #endif
 
-	if(new_fd == -1) {
+	if(UNEXPECTED(new_fd == -1)) {
 		if(errno != EAGAIN) {
 			zend_error(E_WARNING, "%s", strerror(errno));
 		}
@@ -442,7 +442,7 @@ PHP_FUNCTION(keepAlive) {
 	long fd;
 	long set = 0;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l|l", &fd, &set) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l|l", &fd, &set) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
@@ -461,10 +461,9 @@ PHP_FUNCTION(connect) {
 	char *address;
 	int	retval, address_len;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lls|l", &fd, &domain, &address, &address_len, &port) == FAILURE) {
+	if (UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lls|l", &fd, &domain, &address, &address_len, &port) == FAILURE)) {
 		RETURN_FALSE;
 	}
-
 
 	switch(domain) {
 		case AF_INET6: {
@@ -512,7 +511,7 @@ PHP_FUNCTION(connect) {
 PHP_FUNCTION(close) {
 	long fd;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &fd) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &fd) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
@@ -526,11 +525,11 @@ PHP_FUNCTION(getSockName) {
 	struct sockaddr *sa = (struct sockaddr*) &sa_storage;
 	socklen_t size = sizeof(struct sockaddr_storage);
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lz|z", &fd, &address, &port) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lz|z", &fd, &address, &port) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
-	if(getsockname(fd, sa, &size)) {
+	if(UNEXPECTED(getsockname(fd, sa, &size))) {
 		zend_error(E_WARNING, "%s", strerror(errno));
 		RETURN_FALSE;
 	}
@@ -581,11 +580,11 @@ PHP_FUNCTION(getPeerName) {
 	struct sockaddr *sa = (struct sockaddr*) &sa_storage;
 	socklen_t size = sizeof(struct sockaddr_storage);
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lzz", &fd, &address, &port) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lzz", &fd, &address, &port) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
-	if(getpeername(fd, sa, &size)) {
+	if(UNEXPECTED(getpeername(fd, sa, &size))) {
 		zend_error(E_WARNING, "%s", strerror(errno));
 		RETURN_FALSE;
 	}
@@ -631,7 +630,7 @@ static inline void PancakeHashTableToFDSet(HashTable *table, fd_set *set, int *m
 	for(zend_hash_internal_pointer_reset(table);
 		zend_hash_get_current_data(table, (void**) &data) == SUCCESS;
 		zend_hash_move_forward(table)) {
-		if(Z_LVAL_PP(data) > FD_SETSIZE) // Protect from overflow
+		if(UNEXPECTED(Z_LVAL_PP(data) > FD_SETSIZE)) // Protect from overflow
 			continue;
 
 		FD_SET(Z_LVAL_PP(data), set);
@@ -652,7 +651,7 @@ static inline void PancakeFDSetToHashTable(fd_set *set, HashTable **table) {
 	for(zend_hash_internal_pointer_reset(*table);
 		zend_hash_get_current_data(*table, (void**) &data) == SUCCESS;
 		zend_hash_move_forward(*table)) {
-		if(Z_LVAL_PP(data) > FD_SETSIZE)
+		if(UNEXPECTED(Z_LVAL_PP(data) > FD_SETSIZE))
 			continue;
 
 		if(FD_ISSET(Z_LVAL_PP(data), set)) {
@@ -674,7 +673,7 @@ PHP_FUNCTION(select) {
 	struct timeval *time_p = NULL;
 	int retval, max = 0;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|zl", &read, &write, &microseconds) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|zl", &read, &write, &microseconds) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
@@ -694,7 +693,7 @@ PHP_FUNCTION(select) {
 
 	retval = select(max + 1, &read_set, &write_set, NULL, time_p);
 
-	if(retval == -1) {
+	if(UNEXPECTED(retval == -1)) {
 		zend_error(E_WARNING, "%s", strerror(errno));
 		RETURN_FALSE;
 	}
@@ -711,7 +710,7 @@ PHP_FUNCTION(adjustSendBufferSize) {
 	long fd, goalSize, actualSize = 2048;
 	socklen_t size = sizeof(long);
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ll", &fd, &goalSize) == FAILURE) {
+	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ll", &fd, &goalSize) == FAILURE)) {
 		RETURN_FALSE;
 	}
 
