@@ -506,7 +506,9 @@ PHP_FUNCTION(loadModule) {
 		int string_len = spprintf(&string, 0, "Module %s loaded", name);
 		stringP = string;
 		PancakeOutput(&string, string_len, OUTPUT_SYSTEM | OUTPUT_DEBUG | OUTPUT_LOG TSRMLS_CC);
-		efree(string);
+		if(string != stringP) {
+			efree(string);
+		}
 		efree(stringP);
 
 		EG(full_tables_cleanup) = 1;
