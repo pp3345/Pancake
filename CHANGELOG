@@ -1,0 +1,72 @@
+1.4
+
+- SSL/TLS is now supported (OpenSSL 0.9.8 or newer required)
+- Improved performance
+- New "vhost.PHPModules" setting, allowing to load custom PHP modules for each vHost
+- Removed dependencies on pcntl and sockets extensions
+- post_max_size is now always fetched from the native SAPI module
+- Pancake can now be built as a static PHP module (core module only, TLS module not supported)
+- Fixed possible infinite loop when requesting a non-regular file (e. g. a UNIX socket, a FIFO or a device file)
+- SAPI wait slots are now disabled by default (set main.waitSlotWaitLimit to 0 to disable them in old Pancake configurations)
+- TRACE and OPTIONS are now disabled by default
+- Default processing limit for RequestWorkers is now 250k requests
+- Default connection backlog is now 200 instead of 100
+- Default RequestWorker amount is now 2 instead of 4
+- vHost setting "writeLimit" is now moved to main configuration (Pancake will automatically determine the highest value from the vHost configurations for compatibility)
+- Fixed bad hash value of $_ENV
+- Nagle's algorithm is now disabled by default (use new setting "main.naglesAlgorithm" to enable it)
+- Added new "main.preBuffer" setting, allowing to enable buffering of static files before sending HTTP headers (set to 65536 byte by default)
+- Worker threads won't give a flush message anymore on SIGHUP
+- pancake.sh now uses sh instead of bash
+- FD_SETSIZE is now set to 262144 (Linux only)
+- Fixed "double defined vHost" error on first start
+- Fixed directory listings when Host header was missing
+- Fixed bug where error_reporting could not be set via vhost.PHPINISettings
+- Fixed Pancake error_reporting value being used by default in SAPI instead of php.ini value
+- Fixed crash when appending a second value to a header with a non-string value
+- Fixed ?pancakedebug
+- Bundled Moody updated
+
+1.3
+
+- Great performance improvements
+- Improved RAM usage
+- Dropped support for PHP 5.3 (only PHP 5.4 supported currently, support for PHP 5.5 will probably be introduced in Pancake 1.4)
+- Complete just-in-time parsing of request variables in PHP SAPI
+- Improved AJP13 stability
+- Removed dependency on sysvmsg extension
+- Improved daemon mode (it is now recommended to run Pancake in daemon mode using the new bundled Debian init script)
+- HTTPRequest::$answerCodes is not available anymore for custom exception page handlers (see UPGRADING)
+- Added more HTTP answer codes as specified in RFC 6585, RFC 2817, RFC 5842 and RFC 3229
+- Added --config setting to specify a custom configuration file on startup
+- Added --pidfile start option, allowing to set a file where Pancake will store its PID in daemonized mode
+- Added some more MIME types to the default mime.yml
+- Added "PHPINISettings" vHost configuration setting, allowing to specify custom php.ini entries for each vHost
+- New basic-crypted authentication mode (passwords need to be sha1-crypted in authentication files)
+- New "enabled" setting for vHosts (defaults to true)
+- Included configuration files may define other includes themselves now
+- Working HTTP TRACE implementation
+- Log file pointers are now reopened on SIGHUP (useful for logrotate)
+- Workers will now try to finish all pending requests before exiting
+- Improved some system messages
+- Workers are now run as root in debug mode
+- New --use-malloc start option to disable Zend Memory Manager (use with care!)
+- $_ENV will now be an empty array per default (previously contained only 'USER' key)
+- More stable internal communication
+- Improved PHP compatibility
+- Pancake will now warn the user when a vHost is defined in two files (probably the user forgot to change the name)
+- Fixed mt_rand() and rand() returning the same number twice in (very unlikely) edge cases
+- Fixed errors when session or filter extensions were not loaded
+- Fixed bug in session_start() where an error with the session ID might be reported
+- Fixed edge case bug where a single PHPWorker could hang
+- Fixed keys in authentication configuration being treated case-sensitive
+- Fixed session.name not being reverted across requests
+- Fixed keys sometimes being parsed incorrectly in GPC values
+- Fixed YAML errors being hidden sometimes
+- Fixed script output sometimes being sent to STDOUT on PHP fatal error
+- Fixed CGI path info not working correctly when using FastCGI
+- Fixed uploaded files not being cleaned correctly in some cases
+- Fixed script execution not being aborted on E_USER_ERROR
+- Init script for Debian GNU/Linux bundled (thanks to Jan Erik Petersen)
+- DeepTrace v2 and Pancake binaries bundled for i686, x86_64 and Raspberry Pi
+- Moody bundled for PHP 5.4
