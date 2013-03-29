@@ -64,7 +64,7 @@
 	#.if #.extension_loaded 'filter'
 	   #.HAVE_FILTER_EXTENSION = true
 	#.endif
-	
+		
 	#.SAPI_ERROR_REPORTING = #.Pancake\ORIGINAL_ERROR_REPORTING
 	
 	#.longDefine 'EVAL_CODE'
@@ -98,6 +98,18 @@
 	
 	#.if #.eval EVAL_CODE false
 	   #.HAVE_PHP_MODULES = true
+	   
+	   #.longDefine 'EVAL_CODE'
+	   global $Pancake_currentThread;
+       
+       if(in_array("filter", $Pancake_currentThread->vHost->phpModules))
+            return true;
+       return false;
+	   #.endLongDefine
+	   
+	   #.if #.eval EVAL_CODE false
+	       #.HAVE_FILTER_EXTENSION = true
+	   #.endif
 	#.endif
 
 	#.if Pancake\DEBUG_MODE === true
