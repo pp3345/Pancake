@@ -524,7 +524,7 @@
     		$error_types = /* .eval 'return E_ALL | E_STRICT;' */;
     	if(!is_callable($error_handler))
     		return null;
-    	$returnValue = Pancake\vars::$errorHandler;
+    	$returnValue = Pancake\vars::$errorHandler ? Pancake\vars::$errorHandler['call'] : null;
 
     	Pancake\vars::$errorHandler = array('call' => $error_handler, 'for' => $error_types);
     	Pancake\vars::$errorHandlerHistory[] = array('call' => $error_handler, 'for' => $error_types);
