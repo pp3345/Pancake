@@ -519,11 +519,23 @@
     	return Pancake\vars::$Pancake_request->requestHeaders;
     }
 
-    function set_error_handler($error_handler, $error_types = null) {
-    	if(!$error_types)
-    		$error_types = /* .eval 'return E_ALL | E_STRICT;' */;
-    	if(!is_callable($error_handler))
-    		return null;
+    #.ERROR_TYPES = E_ALL | E_STRICT
+
+    function set_error_handler($error_handler, $error_types = /* .ERROR_TYPES */) {
+        if(!is_callable($error_handler)) {
+            if(is_array($error_handler)) {
+                if(isset($error_handler[0]) && isset($error_handler[1])) {
+                    $error_handler_name = $error_handler[0] . "::" . $error_handler[1];
+                } else {
+                    $error_handler_name = "unknown";
+                }
+            } else {
+                $error_handler_name = $error_handler;
+            }
+            #.PHP_ERROR_WITH_BACKTRACE E_WARNING '"set_error_handler() expects the argument ($error_handler_name) to be a valid callback"'
+            return null;
+        }
+
     	$returnValue = Pancake\vars::$errorHandler ? Pancake\vars::$errorHandler['call'] : null;
 
     	Pancake\vars::$errorHandler = array('call' => $error_handler, 'for' => $error_types);
