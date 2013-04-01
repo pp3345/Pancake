@@ -1,3 +1,8 @@
+1.4.1
+
+- Fixed $_SESSION and $GLOBALS not working correctly when using CodeCache under certain circumstances
+- Improved behavior of set_error_handler()
+
 1.4
 
 - SSL/TLS is now supported (OpenSSL 0.9.8 or newer required)
