@@ -610,7 +610,7 @@
     #.endif
 
 	function spl_autoload_register($autoload_function = null, $throw = true, $prepend = false, $unregister = false) {
-		 static $registeredFunctions = array();
+		static $registeredFunctions = array();
 
 		if($unregister) {
 			foreach($registeredFunctions as $function)
@@ -618,6 +618,10 @@
 			$registeredFunctions = array();
 			return;
 		}
+
+        if(!func_num_args()) {
+            return Pancake\PHPFunctions\registerAutoload();
+        }
 
 		// Some crazy softwares like Joomla want to register private static methods as autoloaders, which is only possible, when spl_autoload_register() is called from the same class
 		// But with the SAPI-wrapped function the real spl_autoload_register() is always called from the function's scope
