@@ -1,3 +1,7 @@
+1.4.3
+
+- Fixed critical use after scope error in HTTPRequest::buildAnswerHeaders()
+
 1.4.2
 
 - Fixed spl_autoload_register() not working correctly when no arguments are passed
