@@ -1007,7 +1007,8 @@ PHP_METHOD(HTTPRequest, init) {
 }
 
 PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
-	zval *vHost, *answerHeaderArray, *answerCodez, *answerBodyz, *protocolVersion, **contentLength, *requestHeaderArray, *connectionAnswer, **connection, *requestType;
+	zval *vHost, *answerHeaderArray, *answerCodez, *answerBodyz, *protocolVersion, **contentLength, *requestHeaderArray, *connectionAnswer, **connection, *requestType,
+		*contentLengthM;
 	long answerCode;
 	int answerBody_len;
 
@@ -1026,7 +1027,6 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 			Z_LVAL_PP(contentLength) = answerBody_len;
 		}
 	} else {
-		zval *contentLengthM;
 		MAKE_STD_ZVAL(contentLengthM);
 		contentLength = &contentLengthM;
 
