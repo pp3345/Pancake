@@ -38,7 +38,7 @@
     if(isset($startOptions['h']) || isset($startOptions['help'])) {
         echo 'Pancake HTTP Server ' . VERSION . "\n";
         echo "2012 - 2013 Yussuf Khalil\n\n";
-        echo "Pancake is a fast and lightweight HTTP-server. You may append the following settings to the start command:\n\n";
+        echo "Pancake is a fast and lightweight HTTP server. You may append the following settings to the start command:\n\n";
         echo "-h --help                          Show this help\n";
         echo "--debug                            Enable debug mode\n";
         echo "--daemon                           Run Pancake as a system daemon\n";
