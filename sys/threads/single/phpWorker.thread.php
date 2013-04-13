@@ -75,6 +75,9 @@
         \Pancake\PHPFunctions\setINI("error_reporting", defined($Pancake_currentThread->vHost->phpINISettings["error_reporting"])
                                                         ? constant($Pancake_currentThread->vHost->phpINISettings["error_reporting"])
                                                         : $Pancake_currentThread->vHost->phpINISettings["error_reporting"]);
+    if(isset($Pancake_currentThread->vHost->phpINISettings["expose_php"]))
+        \Pancake\PHPFunctions\setINI("expose_php", $Pancake_currentThread->vHost->phpINISettings["expose_php"]);
+
 	return (bool) $Pancake_currentThread->vHost->phpINISettings;
 	#.endLongDefine
 
