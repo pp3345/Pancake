@@ -356,7 +356,7 @@
             vars::$Pancake_request->registerJITGlobals();
 
 #.if #.call 'ini_get' 'expose_php'
-            #.PHP_VERSION_STRING = ,"PHP" PHP_VERSION
+            #.PHP_VERSION_STRING = ,"PHP/" PHP_VERSION
             vars::$Pancake_request->setHeader('X-Powered-By', /* .PHP_VERSION_STRING */);
 #.endif
 
