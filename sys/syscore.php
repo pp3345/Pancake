@@ -18,6 +18,7 @@
     }
 
     const PANCAKE = true;
+    const PANCAKE_PATH = __DIR__;
     define('Pancake\ORIGINAL_ERROR_REPORTING', ini_get('error_reporting'));
 
     // Include files necessary to run Pancake

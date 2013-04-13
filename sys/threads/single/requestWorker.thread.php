@@ -711,41 +711,6 @@
         }
 #.endif
 
-#.if #.call 'ini_get' 'expose_php'
-        // PHP UUIDs
-        if(isset($requestObject->getGETParams()[""])) {
-            switch($requestObject->getGETParams()[""]) {
-                case 'PHPE9568F34-D428-11d2-A769-00AA001ACF42':
-                    $requestObject->answerBody = file_get_contents('logo/php.gif');
-                    $requestObject->setHeader('Content-Type', 'image/gif');
-                    break;
-                case 'PHPE9568F35-D428-11d2-A769-00AA001ACF42':
-                    $requestObject->answerBody = file_get_contents('logo/zend.gif');
-                    $requestObject->setHeader('Content-Type', 'image/gif');
-                    break;
-                case 'PHPE9568F36-D428-11d2-A769-00AA001ACF42':
-                    $requestObject->answerBody = file_get_contents('logo/php_egg.gif');
-                    $requestObject->setHeader('Content-Type', 'image/gif');
-                    break;
-                case 'PHPB8B5F2A0-3C92-11d3-A3A9-4C7B08C10000':
-                    ob_start();
-                    phpcredits();
-                    $requestObject->setHeader('Content-Type', 'text/html');
-                    $requestObject->answerBody = ob_get_clean();
-                    break;
-#.if #.call 'Pancake\Config::get' 'main.exposepancake'
-                case 'PAN8DF095AE-6639-4C6F-8831-5AB8FBD64D8B':
-                    $requestObject->answerBody = file_get_contents('logo/pancake.png');
-                    $requestObject->setHeader('Content-Type', 'image/png');
-                    break;
-#.endif
-                default:
-                    goto load;
-            }
-            goto write;
-        }
-#.endif
-
         load:
 
 #.ifdef 'SUPPORT_AJP13'

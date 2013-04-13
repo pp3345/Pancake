@@ -348,18 +348,52 @@
 
 	    	unset($length);
 	    	unset($packages);
+            
+            // Set environment vars
+            vars::$Pancake_request->registerJITGlobals();
+
+#.if #.call 'ini_get' 'expose_php'
+            #.PHP_VERSION_STRING = ,"PHP" PHP_VERSION
+            vars::$Pancake_request->setHeader('X-Powered-By', /* .PHP_VERSION_STRING */);
+#.endif
+
+            define('PANCAKE_PHP', true);
+
+#.if #.call 'ini_get' 'expose_php'
+            // PHP UUIDs
+            if(isset(vars::$Pancake_request->getGETParams()[""])) {
+                chdir(/* .PANCAKE_PATH */);
+                switch(vars::$Pancake_request->getGETParams()[""]) {
+                    case 'PHPE9568F34-D428-11d2-A769-00AA001ACF42':
+                        $contents = file_get_contents('logo/php.gif');
+                        vars::$Pancake_request->setHeader('Content-Type', 'image/gif');
+                        goto write;
+                    case 'PHPE9568F35-D428-11d2-A769-00AA001ACF42':
+                        $contents = file_get_contents('logo/zend.gif');
+                        vars::$Pancake_request->setHeader('Content-Type', 'image/gif');
+                        goto write;
+                    case 'PHPE9568F36-D428-11d2-A769-00AA001ACF42':
+                        $contents = file_get_contents('logo/php_egg.gif');
+                        vars::$Pancake_request->setHeader('Content-Type', 'image/gif');
+                        goto write;
+                    case 'PHPB8B5F2A0-3C92-11d3-A3A9-4C7B08C10000':
+                        ob_start();
+                        phpcredits();
+                        vars::$Pancake_request->setHeader('Content-Type', 'text/html');
+                        $contents = ob_get_clean();
+                        goto write;
+#.if #.call 'Pancake\Config::get' 'main.exposepancake'
+                    case 'PAN8DF095AE-6639-4C6F-8831-5AB8FBD64D8B':
+                        $contents = file_get_contents('logo/pancake.png');
+                        vars::$Pancake_request->setHeader('Content-Type', 'image/png');
+                        goto write;
+#.endif
+                }
+            }
+#.endif
 
 	        // Change directory to document root of the vHost / requested file path
 	        chdir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */ . dirname(vars::$Pancake_request->requestFilePath));
-
-	        // Set environment vars
-	     	vars::$Pancake_request->registerJITGlobals();
-
-	        #.if #.call 'ini_get' 'expose_php'
-	        	vars::$Pancake_request->setHeader('X-Powered-By', /* .eval 'return "PHP/" . PHP_VERSION;' false */);
-	        #.endif
-
-	        define('PANCAKE_PHP', true);
 
 	        // Start output buffer
 	        ob_start();
@@ -532,6 +566,8 @@
 		        }
 	        #.endif
 
+	        write:
+	        
 	        $object = new \stdClass;
 			$object->answerHeaders = vars::$Pancake_request->answerHeaders;
 			$object->answerCode = vars::$Pancake_request->answerCode;
