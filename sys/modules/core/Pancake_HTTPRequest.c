@@ -9,8 +9,7 @@
 #include "Pancake.h"
 
 /* Copy of php_autoglobal_merge() with small changes since it is not available as a PHP_API */
-static void PancakeAutoglobalMerge(HashTable *dest, HashTable *src TSRMLS_DC)
-{
+static void PancakeAutoglobalMerge(HashTable *dest, HashTable *src TSRMLS_DC) {
 	zval **src_entry, **dest_entry;
 	char *string_key;
 	uint string_key_len;

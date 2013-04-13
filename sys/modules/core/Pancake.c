@@ -193,8 +193,7 @@ zend_class_entry *MIME_ce;
 ZEND_GET_MODULE(Pancake)
 #endif
 
-void php_Pancake_init_globals(zend_Pancake_globals *Pancake_globals)
-{
+void php_Pancake_init_globals(zend_Pancake_globals *Pancake_globals) {
 	TSRMLS_FETCH();
 
 	Pancake_globals->systemLogStream = NULL;
@@ -217,8 +216,7 @@ void php_Pancake_init_globals(zend_Pancake_globals *Pancake_globals)
 	Pancake_globals->naglesAlgorithm = 0;
 }
 
-PHP_MINIT_FUNCTION(Pancake)
-{
+PHP_MINIT_FUNCTION(Pancake) {
 	zend_class_entry http, exception, mime;
 
 	/* Init module globals */
@@ -338,8 +336,7 @@ PHP_MINIT_FUNCTION(Pancake)
 	return SUCCESS;
 }
 
-PHP_MSHUTDOWN_FUNCTION(Pancake)
-{
+PHP_MSHUTDOWN_FUNCTION(Pancake) {
 	if(PANCAKE_GLOBALS(requestLogStream)) {
 		fclose(PANCAKE_GLOBALS(requestLogStream));
 	}
@@ -355,8 +352,7 @@ PHP_MSHUTDOWN_FUNCTION(Pancake)
 	return SUCCESS;
 }
 
-PHP_RINIT_FUNCTION(Pancake)
-{
+PHP_RINIT_FUNCTION(Pancake) {
 	zval *errorHandler;
 
 	MAKE_STD_ZVAL(errorHandler);
@@ -371,8 +367,7 @@ PHP_RINIT_FUNCTION(Pancake)
 	return SUCCESS;
 }
 
-PHP_RSHUTDOWN_FUNCTION(Pancake)
-{
+PHP_RSHUTDOWN_FUNCTION(Pancake) {
 	if(PANCAKE_GLOBALS(mimeTable)) {
 		zend_hash_destroy(PANCAKE_GLOBALS(mimeTable));
 		FREE_HASHTABLE(PANCAKE_GLOBALS(mimeTable));
