@@ -379,6 +379,11 @@ PHP_RINIT_FUNCTION(Pancake) {
 	Z_STRVAL_P(ZVAL_CACHE(GZIP)) = estrndup("gzip", sizeof("gzip") - 1);
 	Z_STRLEN_P(ZVAL_CACHE(GZIP)) = sizeof("gzip") - 1;
 
+	MAKE_STD_ZVAL(ZVAL_CACHE(HTTP_1_1));
+	Z_TYPE_P(ZVAL_CACHE(HTTP_1_1)) = IS_STRING;
+	Z_STRVAL_P(ZVAL_CACHE(HTTP_1_1)) = estrndup("1.1", sizeof("1.1") - 1);
+	Z_STRLEN_P(ZVAL_CACHE(HTTP_1_1)) = sizeof("1.1") - 1;
+
 	return SUCCESS;
 }
 
