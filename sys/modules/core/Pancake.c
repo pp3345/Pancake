@@ -364,6 +364,21 @@ PHP_RINIT_FUNCTION(Pancake) {
 	EG(user_error_handler) = errorHandler;
 	EG(user_error_handler_error_reporting) = E_ALL;
 
+	MAKE_STD_ZVAL(ZVAL_CACHE(KEEP_ALIVE));
+	Z_TYPE_P(ZVAL_CACHE(KEEP_ALIVE)) = IS_STRING;
+	Z_STRVAL_P(ZVAL_CACHE(KEEP_ALIVE)) = estrndup("keep-alive", sizeof("keep-alive") - 1);
+	Z_STRLEN_P(ZVAL_CACHE(KEEP_ALIVE)) = sizeof("keep-alive") - 1;
+
+	MAKE_STD_ZVAL(ZVAL_CACHE(CLOSE));
+	Z_TYPE_P(ZVAL_CACHE(CLOSE)) = IS_STRING;
+	Z_STRVAL_P(ZVAL_CACHE(CLOSE)) = estrndup("close", sizeof("close") - 1);
+	Z_STRLEN_P(ZVAL_CACHE(CLOSE)) = sizeof("close") - 1;
+
+	MAKE_STD_ZVAL(ZVAL_CACHE(GZIP));
+	Z_TYPE_P(ZVAL_CACHE(GZIP)) = IS_STRING;
+	Z_STRVAL_P(ZVAL_CACHE(GZIP)) = estrndup("gzip", sizeof("gzip") - 1);
+	Z_STRLEN_P(ZVAL_CACHE(GZIP)) = sizeof("gzip") - 1;
+
 	return SUCCESS;
 }
 
@@ -393,6 +408,10 @@ PHP_RSHUTDOWN_FUNCTION(Pancake) {
 	if(strlen(PANCAKE_GLOBALS(dateFormat))) {
 		efree(PANCAKE_GLOBALS(dateFormat));
 	}
+
+	zval_ptr_dtor(&ZVAL_CACHE(KEEP_ALIVE));
+	zval_ptr_dtor(&ZVAL_CACHE(CLOSE));
+	zval_ptr_dtor(&ZVAL_CACHE(GZIP));
 
 	fflush(NULL);
 

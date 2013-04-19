@@ -196,6 +196,11 @@ extern zend_class_entry *MIME_ce;
 #define PANCAKE_GLOBALS(v) (Pancake_globals.v)
 #endif
 
+#define PANCAKE_ZVAL_CACHE_SIZE 2
+#define PANCAKE_ZVAL_CACHE_KEEP_ALIVE 0
+#define PANCAKE_ZVAL_CACHE_CLOSE 1
+#define PANCAKE_ZVAL_CACHE_GZIP 2
+
 ZEND_BEGIN_MODULE_GLOBALS(Pancake)
 	FILE *systemLogStream;
 	FILE *requestLogStream;
@@ -224,8 +229,11 @@ ZEND_BEGIN_MODULE_GLOBALS(Pancake)
 	char *tmpDir;
 	int disableModuleLoader;
 	int naglesAlgorithm;
+	zval *zvalCache[PANCAKE_ZVAL_CACHE_SIZE];
 ZEND_END_MODULE_GLOBALS(Pancake)
 extern ZEND_DECLARE_MODULE_GLOBALS(Pancake);
+
+#define ZVAL_CACHE(value) PANCAKE_GLOBALS(zvalCache)[PANCAKE_ZVAL_CACHE_##value]
 
 #define OUTPUT_SYSTEM 1
 #define OUTPUT_REQUEST 2
@@ -531,5 +539,12 @@ static int PancakeFastHasProperty(zval *object, zval *member, int has_set_exists
 #define HASH_OF_message 7572665263856682U
 #define HASH_OF_header 229468225744494U
 #define HASH_OF_TLS 6384545112U
+#define HASH_OF_content_type 14553278787112811407U
+#define HASH_OF_if 193494708U
+#define HASH_OF_location 249896952137776350U
+#define HASH_OF_precondition 17926165567001274195U
+#define HASH_OF_pattern 7572787993791075U
+#define HASH_OF_replace 7572878230359585U
+#define HASH_OF_gzip 210714201951U
 
 #endif	/* PANCAKE_H */
