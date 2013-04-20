@@ -419,6 +419,7 @@ PHP_RSHUTDOWN_FUNCTION(Pancake) {
 	zval_ptr_dtor(&ZVAL_CACHE(KEEP_ALIVE));
 	zval_ptr_dtor(&ZVAL_CACHE(CLOSE));
 	zval_ptr_dtor(&ZVAL_CACHE(GZIP));
+	zval_ptr_dtor(&ZVAL_CACHE(HTTP_1_1));
 
 	fflush(NULL);
 

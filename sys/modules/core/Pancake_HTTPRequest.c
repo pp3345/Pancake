@@ -245,7 +245,6 @@ PHP_METHOD(HTTPRequest, init) {
 	}
 
 	if(EXPECTED(!strcmp(firstLine[2], "HTTP/1.1"))) {
-		Z_ADDREF_P(ZVAL_CACHE(HTTP_1_1));
 		PancakeQuickWriteProperty(this_ptr, ZVAL_CACHE(HTTP_1_1), "protocolVersion", sizeof("protocolVersion"), HASH_OF_protocolVersion TSRMLS_CC);
 	} else if(UNEXPECTED(strcmp(firstLine[2], "HTTP/1.0"))) {
 		PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("Unsupported protocol", sizeof("Unsupported protocol") - 1, 400, requestHeader, requestHeader_len);
@@ -387,7 +386,7 @@ PHP_METHOD(HTTPRequest, init) {
 			char *to = strchr(headerValue, '-');
 
 			MAKE_STD_ZVAL(zHeaderValue);
-			Z_TYPE_P(zHeaderValue);
+			Z_TYPE_P(zHeaderValue) = IS_STRING;
 
 			Z_STRLEN_P(zHeaderValue) = strlen(headerValue);
 			Z_STRVAL_P(zHeaderValue) = estrndup(headerValue, Z_STRLEN_P(zHeaderValue));
