@@ -174,7 +174,11 @@
 	    // Clean
 	    cleanGlobals();
 
-	    get_included_files(true);
+        foreach(get_included_files() as $file) {
+            dt_remove_include($file);
+        }
+        
+        unset($file);
 
 	    PHPFunctions\registerShutdownFunction('Pancake\PHPShutdownHandler');
 

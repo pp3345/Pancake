@@ -433,24 +433,6 @@
         echo $trace;
     }
 
-    function get_included_files($setNull = false) {
-    	static $pancakeIncludes = array();
-
-    	$includes = Pancake\PHPFunctions\getIncludes();
-    	if($setNull) {
-    		$pancakeIncludes = $includes;
-    		return;
-    	}
-    	foreach($includes as $index => $fileName)
-    		if(in_array($fileName, $pancakeIncludes))
-    			unset($includes[$index]);
-    	return $includes;
-    }
-
-    function get_required_files() {
-    	return get_included_files();
-    }
-
     function apache_child_terminate() {
     	return Pancake\vars::$workerExit = true;
     }

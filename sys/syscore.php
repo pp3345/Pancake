@@ -115,7 +115,6 @@
         dt_remove_function('filter_has_var');
         dt_remove_function('filter_input_array');
     }
-    dt_remove_function('get_required_files');
     dt_remove_function('restore_error_handler');
     dt_remove_function('ini_alter');
     dt_remove_function('stream_register_wrapper');
@@ -131,7 +130,6 @@
     dt_rename_function('debug_backtrace', 'Pancake\PHPFunctions\debugBacktrace');
     dt_rename_function('debug_print_backtrace', 'Pancake\PHPFunctions\debugPrintBacktrace');
     dt_rename_function('register_shutdown_function', 'Pancake\PHPFunctions\registerShutdownFunction');
-    dt_rename_function('get_included_files', 'Pancake\PHPFunctions\getIncludes');
     dt_rename_function('set_error_handler', 'Pancake\PHPFunctions\setErrorHandler');
     dt_rename_function('memory_get_usage', 'Pancake\PHPFunctions\getMemoryUsage');
     dt_rename_function('memory_get_peak_usage', 'Pancake\PHPFunctions\getPeakMemoryUsage');
