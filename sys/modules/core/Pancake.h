@@ -562,5 +562,6 @@ static int PancakeFastHasProperty(zval *object, zval *member, int has_set_exists
 #define HASH_OF_if_unmodified_since 16519140052369146884U
 #define HASH_OF_range 6953969678898U
 #define HASH_OF_writeBuffer 15990011562288760074U
+#define HASH_OF_fileHandle 13873908674298962065U
 
 #endif	/* PANCAKE_H */

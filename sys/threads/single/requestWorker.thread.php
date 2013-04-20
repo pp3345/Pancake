@@ -274,7 +274,6 @@
     $processedRequests = 0;
 #.endif
     $requests = array();
-    $requestFileHandle = array();
 #.ifdef 'SUPPORT_GZIP'
     $gzipPath = array();
 #.endif
@@ -868,14 +867,14 @@
                     gzwrite($gzipFileHandle, fread($requestedFileHandle, /* .WRITE_LIMIT */));
                 // Close GZIP-resource and open normal file-resource
                 gzclose($gzipFileHandle);
-                $requestFileHandle[$socket] = fopen($gzipPath[$socket], 'r');
+                $requestObject->fileHandle = fopen($gzipPath[$socket], 'r');
                 // Set Content-Length
                 $requestObject->setHeader('Content-Length', filesize($gzipPath[$socket]) - $requestObject->rangeFrom);
             } else {
 #.endif
                 // No GZIP
                 $requestObject->setHeader('Content-Length', filesize(/* .VHOST_DOCUMENT_ROOT */ . $requestObject->requestFilePath) - $requestObject->rangeFrom);
-                $requestFileHandle[$socket] = fopen(/* .VHOST_DOCUMENT_ROOT */ . $requestObject->requestFilePath, 'r');
+                $requestObject->fileHandle = fopen(/* .VHOST_DOCUMENT_ROOT */ . $requestObject->requestFilePath, 'r');
 #.ifdef 'SUPPORT_GZIP'
             }
 #.endif
@@ -883,7 +882,7 @@
             // Check if a specific range was requested
             if($requestObject->rangeFrom) {
                 $requestObject->answerCode = 206;
-                fseek($requestFileHandle[$socket], $requestObject->rangeFrom);
+                fseek($requestObject->fileHandle, $requestObject->rangeFrom);
 #.ifdef 'SUPPORT_GZIP'
                 if($gzipPath[$socket])
                     $requestObject->setHeader('Content-Range', 'bytes ' . $requestObject->rangeFrom . '-' . (filesize($gzipPath[$socket]) - 1) . '/' . filesize($gzipPath[$socket]));
@@ -902,8 +901,8 @@
         
 #.if #.Pancake\Config::get("main.prebuffer", 0)
         // Add some data to the buffer to save a write cycle
-        if(isset($requestFileHandle[$socket])) {
-            $requestObject->writeBuffer .= fread($requestFileHandle[$socket], /* .number #.Pancake\Config::get("main.prebuffer", 0)*/);
+        if($requestObject->fileHandle) {
+            $requestObject->writeBuffer .= fread($requestObject->fileHandle, /* .number #.Pancake\Config::get("main.prebuffer", 0)*/);
         }
 #.endif
 
@@ -941,10 +940,10 @@
         // The buffer should usually only be empty if the hard limit was reached - In this case Pancake won't allocate any buffers except when the client really IS ready to receive data
         if(!strlen($requestObject->writeBuffer) 
 #.ifdef 'SUPPORT_TLS'
-        && isset($requestFileHandle[$socket])
+        && $requestObject->fileHandle
 #.endif
         )
-        	$requestObject->writeBuffer = fread($requestFileHandle[$socket], /* .call 'Pancake\Config::get' 'main.writebuffermin' */);
+        	$requestObject->writeBuffer = fread($requestObject->fileHandle, /* .call 'Pancake\Config::get' 'main.writebuffermin' */);
 
 #.ifdef 'SUPPORT_TLS'
         if(isset($TLSConnections[$socket])) {
@@ -974,8 +973,8 @@
 
         // Add data to buffer if not all data was sent yet
         if(strlen($requestObject->writeBuffer) < #.call 'Pancake\Config::get' 'main.writebuffermin'
-        && isset($requestFileHandle[$socket])
-        && !feof($requestFileHandle[$socket])
+        && $requestObject->fileHandle
+        && !feof($requestObject->fileHandle)
 #.if #.call 'Pancake\Config::get' 'main.writebufferhardmaxconcurrent'
         && count($requests) < #.call 'Pancake\Config::get' 'main.writebufferhardmaxconcurrent'
 #.endif
@@ -983,7 +982,7 @@
         && $requestObject->requestType != 'HEAD'
 #.endif
        	)
-        	$requestObject->writeBuffer .= fread($requestFileHandle[$socket],
+        	$requestObject->writeBuffer .= fread($requestObject->fileHandle,
 #.if #.call 'Pancake\Config::get' 'main.writebuffersoftmaxconcurrent'
         			(count($requests) > /* .call 'Pancake\Config::get' 'main.writebuffersoftmaxconcurrent' */ ? /* .call 'Pancake\Config::get' 'main.writebuffermin' */ : /* .WRITE_LIMIT */)
 #.else
@@ -992,7 +991,7 @@
         			- strlen($requestObject->writeBuffer));
 
         // Check if more data is available and we should store the socket for another write cycle
-        if(strlen($requestObject->writeBuffer) || (isset($requestFileHandle[$socket]) && !feof($requestFileHandle[$socket])
+        if(strlen($requestObject->writeBuffer) || ($requestObject->fileHandle && !feof($requestObject->fileHandle)
 #.if #.call 'Pancake\Config::get' 'main.allowhead'
         && $requestObject->requestType != 'HEAD'
 #.endif
@@ -1045,11 +1044,6 @@
 #.endif
 
         unset($liveWriteSocketsOrig[$socket]);
-
-        if(isset($requestFileHandle[$socket])) {
-            fclose($requestFileHandle[$socket]);
-            unset($requestFileHandle[$socket]);
-        }
 
 #.if Pancake\DEBUG_MODE === true
         // Pancake profiler

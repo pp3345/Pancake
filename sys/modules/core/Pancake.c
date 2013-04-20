@@ -322,6 +322,7 @@ PHP_MINIT_FUNCTION(Pancake) {
 	zend_declare_property_null(HTTPRequest_ce, "headerDataCompleted", sizeof("headerDataCompleted") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_bool(HTTPRequest_ce, "TLS", sizeof("TLS") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_stringl(HTTPRequest_ce, "writeBuffer", sizeof("writeBuffer") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_null(HTTPRequest_ce, "fileHandle", sizeof("fileHandle") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
 
 	INIT_NS_CLASS_ENTRY(exception, "Pancake", "invalidHTTPRequestException", invalidHTTPRequestException_methods);
 	exception.create_object = PancakeCreateObject;
