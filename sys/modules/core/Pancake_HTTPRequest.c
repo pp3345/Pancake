@@ -1021,7 +1021,7 @@ PHP_METHOD(HTTPRequest, init) {
 
 PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 	zval *vHost, *answerHeaderArray, *answerCodez, *answerBodyz, *protocolVersion, **contentLength, *requestHeaderArray, *connectionAnswer, **connection, *requestType,
-		*contentLengthM;
+		*contentLengthM, *writeBuffer;
 	long answerCode;
 	int answerBody_len;
 
@@ -1159,7 +1159,7 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 
 	// Another request served by Pancake.
 	// Let's deliver the result to the client
-	RETURN_STRINGL(returnValue, returnValue_len, 0);
+	PancakeQuickWritePropertyString(this_ptr, "writeBuffer", sizeof("writeBuffer"), HASH_OF_writeBuffer, returnValue, returnValue_len, 0);
 }
 
 PHP_METHOD(HTTPRequest, invalidRequest) {
