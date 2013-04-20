@@ -525,10 +525,6 @@
     	return Pancake\PHPFunctions\getPeakMemoryUsage($real_usage) - ($real_usage ? 0 : $nullUsage);
     }
 
-    function get_browser($user_agent = null, $return_array = false) {
-    	return Pancake\PHPFunctions\getBrowser($user_agent ? $user_agent : Pancake\vars::$Pancake_request->getRequestHeader('User-Agent', false), $return_array);
-    }
-
 	function error_get_last() {
 		$lastError = Pancake\PHPFunctions\errorGetLast();
 

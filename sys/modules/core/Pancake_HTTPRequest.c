@@ -1464,8 +1464,13 @@ zval *PancakeFetchGET(zval *this_ptr TSRMLS_DC) {
 			GETParameters = PancakeProcessQueryString(GETParameters, queryString, "&");
 		}
 
+		if(PG(http_globals)[TRACK_VARS_GET]) {
+			zval_ptr_dtor(&PG(http_globals)[TRACK_VARS_GET]);
+		}
+
+		PG(http_globals)[TRACK_VARS_GET] = GETParameters;
+
 		PancakeQuickWriteProperty(this_ptr, GETParameters, "GETParameters", sizeof("GETParameters"), HASH_OF_GETParameters TSRMLS_CC);
-		Z_DELREF_P(GETParameters);
 	}
 
 	return GETParameters;
@@ -1692,8 +1697,18 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 		PancakeQuickWriteProperty(this_ptr, files, "uploadedFiles", sizeof("uploadedFiles"), HASH_OF_uploadedFiles TSRMLS_CC);
 		PancakeQuickWriteProperty(this_ptr, POSTParameters, "POSTParameters", sizeof("POSTParameters"), HASH_OF_POSTParameters TSRMLS_CC);
 		PancakeQuickWriteProperty(this_ptr, tempNames, "uploadedFileTempNames", sizeof("uploadedFileTempNames"), HASH_OF_uploadedFileTempNames TSRMLS_CC);
-		Z_DELREF_P(POSTParameters);
-		Z_DELREF_P(files);
+
+		if(PG(http_globals)[TRACK_VARS_POST]) {
+			zval_ptr_dtor(&PG(http_globals)[TRACK_VARS_POST]);
+		}
+
+		if(PG(http_globals)[TRACK_VARS_FILES]) {
+			zval_ptr_dtor(&PG(http_globals)[TRACK_VARS_FILES]);
+		}
+
+		PG(http_globals)[TRACK_VARS_POST] = POSTParameters;
+		PG(http_globals)[TRACK_VARS_FILES] = files;
+
 		Z_DELREF_P(tempNames);
 	}
 
@@ -1740,8 +1755,13 @@ zval *PancakeFetchCookies(zval *this_ptr TSRMLS_DC) {
 			cookies = PancakeProcessQueryString(cookies, *cookie, ";");
 		}
 
+		if(PG(http_globals)[TRACK_VARS_COOKIE]) {
+			zval_ptr_dtor(&PG(http_globals)[TRACK_VARS_COOKIE]);
+		}
+
+		PG(http_globals)[TRACK_VARS_COOKIE] = cookies;
+
 		PancakeQuickWriteProperty(this_ptr, cookies, "cookies", sizeof("cookies"), HASH_OF_cookies TSRMLS_CC);
-		Z_DELREF_P(cookies);
 	}
 
 	return cookies;
@@ -1900,6 +1920,13 @@ zval *PancakeFetchSERVER(zval *this_ptr TSRMLS_DC) {
 		add_assoc_zval_ex(server, "SERVER_NAME", sizeof("SERVER_NAME"), *data);
 	}
 
+	if(PG(http_globals)[TRACK_VARS_SERVER]) {
+		zval_ptr_dtor(&PG(http_globals)[TRACK_VARS_SERVER]);
+	}
+
+	Z_ADDREF_P(server);
+	PG(http_globals)[TRACK_VARS_SERVER] = server;
+
 	return server;
 }
 
@@ -1958,6 +1985,12 @@ zend_bool PancakeJITFetchREQUEST(const char *name, uint name_len TSRMLS_DC) {
 				break;
 		}
 	}
+
+	if(PG(http_globals)[TRACK_VARS_REQUEST]) {
+		zval_ptr_dtor(&PG(http_globals)[TRACK_VARS_REQUEST]);
+	}
+
+	PG(http_globals)[TRACK_VARS_REQUEST] = REQUEST;
 
 	zend_hash_quick_update(&EG(symbol_table), "_REQUEST", sizeof("_REQUEST"), HASH_OF__REQUEST, &REQUEST, sizeof(zval*), NULL);
 
