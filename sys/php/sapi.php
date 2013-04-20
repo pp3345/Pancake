@@ -28,50 +28,6 @@
         return Pancake\vars::$Pancake_request->setCookie($name, $value, $expire, $path, $domain, $secure, $httponly, true);
     }
 
-    function header($string, $replace = true, $http_response_code = 0) {
-    	if(strtoupper(substr($string, 0, 5)) == 'HTTP/') {
-            $data = explode(' ', $string);
-            if(isset($data[1]))
-            	Pancake\vars::$Pancake_request->answerCode = $data[1];
-        } else {
-            $header = explode(':', $string, 2);
-            Pancake\vars::$Pancake_request->setHeader($header[0], isset($header[1]) ? trim($header[1]) : null, $replace);
-            if(strtolower($header[0]) == 'location' && Pancake\vars::$Pancake_request->answerCode != 201 && (Pancake\vars::$Pancake_request->answerCode < 300 || Pancake\vars::$Pancake_request->answerCode > 399))
-            	Pancake\vars::$Pancake_request->answerCode = 302;
-        }
-
-        if($http_response_code)
-            Pancake\vars::$Pancake_request->answerCode = $http_response_code;
-    }
-
-    function header_remove($name = null) {
-        if($name)
-            unset(Pancake\vars::$Pancake_request->answerHeaders[strtolower($name)]);
-        else
-            Pancake\vars::$Pancake_request->answerHeaders = array();
-    }
-
-	function headers_list() {
-		$headers = array();
-
-        foreach(Pancake\vars::$Pancake_request->answerHeaders as $headerName => $headerValue) {
-            if(is_array($headerValue)) {
-                foreach($headerValue as $value)
-                    $headers[] = $headerName . ': ' . $value;
-            } else
-                $headers[] = $headerName . ': ' . $headerValue;
-        }
-
-        return $headers;
-    }
-
-    function http_response_code($response_code = 0) {
-
-        if($response_code)
-            Pancake\vars::$Pancake_request->answerCode = $response_code;
-        return Pancake\vars::$Pancake_request->answerCode;
-    }
-
     function header_register_callback($callback) {
         if(!is_callable($callback))
             return false;

@@ -107,10 +107,13 @@
     		}
     	}
     	#.endif
+    	
+    	SAPIFinishRequest();
 
     	$object = new \stdClass;
         $object->answerHeaders = vars::$Pancake_request->answerHeaders;
         $object->answerCode = vars::$Pancake_request->answerCode;
+        $object->answerCodeString = vars::$Pancake_request->answerCodeString;
         $object->answerBody = ob_get_clean();
 
         $data = serialize($object);

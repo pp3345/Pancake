@@ -572,9 +572,12 @@
 
 	        write:
 	        
+            SAPIFinishRequest();
+            
 	        $object = new \stdClass;
 			$object->answerHeaders = vars::$Pancake_request->answerHeaders;
 			$object->answerCode = vars::$Pancake_request->answerCode;
+            $object->answerCodeString = vars::$Pancake_request->answerCodeString;
 
 	        // Update request object and send it to RequestWorker
 	        if(!vars::$invalidRequest) {

@@ -108,9 +108,6 @@
     dt_remove_class('Pancake\sfYamlParser');
     dt_remove_function('setcookie');
     dt_remove_function('setrawcookie');
-    dt_remove_function('header');
-    dt_remove_function('headers_list');
-    dt_remove_function('header_remove');
     dt_remove_function('is_uploaded_file');
     dt_remove_function('move_uploaded_file');
     if(extension_loaded('filter')) {
@@ -122,7 +119,6 @@
     dt_remove_function('restore_error_handler');
     dt_remove_function('ini_alter');
     dt_remove_function('stream_register_wrapper');
-    dt_remove_function('http_response_code');
     dt_remove_function('header_register_callback');
     dt_remove_function('session_register_shutdown');
     dt_rename_function('phpinfo', 'Pancake\PHPFunctions\phpinfo');

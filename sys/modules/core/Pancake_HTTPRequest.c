@@ -1021,7 +1021,7 @@ PHP_METHOD(HTTPRequest, init) {
 
 PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 	zval *vHost, *answerHeaderArray, *answerCodez, *answerBodyz, *protocolVersion, **contentLength, *requestHeaderArray, *connectionAnswer, **connection, *requestType,
-		*contentLengthM, *writeBuffer;
+		*contentLengthM, *writeBuffer, *answerCodeStringz;
 	long answerCode;
 	int answerBody_len;
 
@@ -1114,8 +1114,15 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 	int offset = 0;
 	int answerCodeString_len;
 
-	PANCAKE_ANSWER_CODE_STRING(answerCodeString, answerCode);
-	answerCodeString_len = strlen(answerCodeString);
+	FAST_READ_PROPERTY(answerCodeStringz, this_ptr, "answerCodeString", sizeof("answerCodeString") - 1, HASH_OF_answerCodeString);
+
+	if(Z_STRLEN_P(answerCodeStringz)) {
+		answerCodeString = Z_STRVAL_P(answerCodeStringz);
+		answerCodeString_len = Z_STRLEN_P(answerCodeStringz);
+	} else {
+		PANCAKE_ANSWER_CODE_STRING(answerCodeString, answerCode);
+		answerCodeString_len = strlen(answerCodeString);
+	}
 
 	// This is ugly. But it is fast.
 	returnValue_len = sizeof("HTTP/1.1  \r\n\r\n") + answerCode_len + answerCodeString_len + answerHeader_len - 2; // 2 = null byte from answerHeaders + null byte from sizeof()

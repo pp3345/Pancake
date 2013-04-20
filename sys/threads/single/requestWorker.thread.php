@@ -488,6 +488,7 @@
 				$requestObject->answerHeaders = (array) $obj->answerHeaders;
 				$requestObject->answerBody = (string) $obj->answerBody;
 				$requestObject->answerCode = (int) $obj->answerCode;
+                $requestObject->answerCodeString = (string) $obj->answerCodeString;
 
                 unset($obj);
 
