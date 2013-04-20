@@ -147,6 +147,8 @@
     	setThread($Pancake_currentThread);
 	    vars::$Pancake_currentThread = $Pancake_currentThread;
 	    unset($Pancake_currentThread);
+        
+        LoadModule('sapi', true);
 
         foreach($Pancake_sockets as $socket) {
             Close($socket);
@@ -352,8 +354,7 @@
 	    	unset($length);
 	    	unset($packages);
             
-            // Set environment vars
-            vars::$Pancake_request->registerJITGlobals();
+            SAPIRequest(vars::$Pancake_request);
 
 #.if #.call 'ini_get' 'expose_php'
             #.PHP_VERSION_STRING = ,"PHP/" PHP_VERSION

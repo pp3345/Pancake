@@ -16,10 +16,6 @@
 
     const PHP_SAPI = 'pancake';
 
-    function php_sapi_name() {
-        return 'pancake';
-    }
-
     function pancake_logo_guid() {
         return 'PAN8DF095AE-6639-4C6F-8831-5AB8FBD64D8B';
     }
@@ -53,10 +49,6 @@
             unset(Pancake\vars::$Pancake_request->answerHeaders[strtolower($name)]);
         else
             Pancake\vars::$Pancake_request->answerHeaders = array();
-    }
-
-    function headers_sent() {
-        return false;
     }
 
 	function headers_list() {

@@ -106,11 +106,9 @@
 
     // Remove some PHP functions and constants as these will be replaced by the Pancake PHP SAPI
     dt_remove_class('Pancake\sfYamlParser');
-    dt_remove_function('php_sapi_name');
     dt_remove_function('setcookie');
     dt_remove_function('setrawcookie');
     dt_remove_function('header');
-    dt_remove_function('headers_sent');
     dt_remove_function('headers_list');
     dt_remove_function('header_remove');
     dt_remove_function('is_uploaded_file');

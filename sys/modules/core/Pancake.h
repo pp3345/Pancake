@@ -140,7 +140,6 @@ PHP_METHOD(HTTPRequest, getGETParams);
 PHP_METHOD(HTTPRequest, getPOSTParams);
 PHP_METHOD(HTTPRequest, getCookies);
 PHP_METHOD(HTTPRequest, createSERVER);
-PHP_METHOD(HTTPRequest, registerJITGlobals);
 PHP_METHOD(HTTPRequest, setCookie);
 
 PHP_METHOD(invalidHTTPRequestException, __construct);

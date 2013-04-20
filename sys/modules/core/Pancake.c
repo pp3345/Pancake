@@ -155,7 +155,6 @@ const zend_function_entry HTTPRequest_methods[] = {
 	ZEND_ME(HTTPRequest, getPOSTParams, NULL, ZEND_ACC_PUBLIC)
 	ZEND_ME(HTTPRequest, getCookies, NULL, ZEND_ACC_PUBLIC)
 	ZEND_ME(HTTPRequest, createSERVER, NULL, ZEND_ACC_PUBLIC)
-	ZEND_ME(HTTPRequest, registerJITGlobals, NULL, ZEND_ACC_PUBLIC)
 	ZEND_ME(HTTPRequest, setCookie, arginfo_pancake_HTTPRequest_setCookie, ZEND_ACC_PUBLIC)
 	ZEND_FE_END
 };

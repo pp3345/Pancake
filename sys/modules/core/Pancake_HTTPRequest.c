@@ -1968,12 +1968,6 @@ zend_bool PancakeJITFetchENV(const char *name, uint name_len TSRMLS_DC) {
 	return 0;
 }
 
-PHP_METHOD(HTTPRequest, registerJITGlobals) {
-	PANCAKE_GLOBALS(JITGlobalsHTTPRequest) = this_ptr;
-
-	zend_activate_auto_globals(TSRMLS_C);
-}
-
 PHP_METHOD(HTTPRequest, setCookie) {
 	char *name, *value, *path, *domain;
 	int name_len, value_len, path_len, domain_len;
