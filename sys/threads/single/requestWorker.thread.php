@@ -968,7 +968,7 @@
 #.endif
 
         // Write data to socket
-        if(@WriteBuffer($socket, $requestObject->writeBuffer) === false)
+        if(!WriteBuffer($socket, $requestObject->writeBuffer))
             goto close;
 
         // Add data to buffer if not all data was sent yet

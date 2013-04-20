@@ -332,7 +332,6 @@ PHP_FUNCTION(writeBuffer) {
 	bytes = write(fd, Z_STRVAL_P(buffer), Z_STRLEN_P(buffer));
 
 	if(UNEXPECTED(bytes < 0)) {
-		zend_error(E_WARNING, "%s", strerror(errno));
 		RETURN_FALSE;
 	}
 
