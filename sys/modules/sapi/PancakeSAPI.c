@@ -13,6 +13,7 @@ ZEND_DECLARE_MODULE_GLOBALS(PancakeSAPI)
 const zend_function_entry PancakeSAPI_functions[] = {
 	ZEND_NS_FE("Pancake", SAPIRequest, NULL)
 	ZEND_NS_FE("Pancake", SAPIFinishRequest, NULL)
+	ZEND_NS_FE("Pancake", SAPIFlushBuffers, NULL)
 	ZEND_FE_END
 };
 
@@ -96,13 +97,41 @@ static int PancakeSAPIHeaderHandler(sapi_header_struct *sapi_header, sapi_header
 	return SUCCESS;
 }
 
+static int PancakeSAPIOutputHandler(const char *str, unsigned int str_length TSRMLS_DC) {
+	if(!PANCAKE_SAPI_GLOBALS(inExecution)) {
+		return SUCCESS;
+	}
+
+	if(PANCAKE_SAPI_GLOBALS(output) == NULL) {
+		PANCAKE_SAPI_GLOBALS(outputLength) = str_length;
+
+		PANCAKE_SAPI_GLOBALS(output) = emalloc(MAX(str_length + 1, 32786));
+		memcpy(PANCAKE_SAPI_GLOBALS(output), str, str_length);
+	} else {
+		int totalLength = PANCAKE_SAPI_GLOBALS(outputLength) + str_length;
+
+		if(totalLength + 1 > 32786) {
+			PANCAKE_SAPI_GLOBALS(output) = erealloc(PANCAKE_SAPI_GLOBALS(output), totalLength + 1);
+		}
+
+		memcpy(PANCAKE_SAPI_GLOBALS(output) + PANCAKE_SAPI_GLOBALS(outputLength), str, str_length);
+		PANCAKE_SAPI_GLOBALS(outputLength) = totalLength;
+	}
+
+	return SUCCESS;
+}
+
 PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zend_function *function;
 
 	PANCAKE_SAPI_GLOBALS(inExecution) = 0;
+	PANCAKE_SAPI_GLOBALS(outputLength) = 0;
+	PANCAKE_SAPI_GLOBALS(output) = NULL;
 
 	sapi_module.name = "pancake";
 	sapi_module.header_handler = PancakeSAPIHeaderHandler;
+	sapi_module.ub_write = PancakeSAPIOutputHandler;
+	sapi_module.flush = NULL;
 
 	// Hook some functions
 	zend_hash_find(EG(function_table), "headers_sent", sizeof("headers_sent"), (void**) &function);
@@ -134,6 +163,7 @@ PHP_FUNCTION(SAPIRequest) {
 PHP_FUNCTION(SAPIFinishRequest) {
 	zval *answerCode;
 
+	php_output_end_all(TSRMLS_C);
 	PANCAKE_SAPI_GLOBALS(inExecution) = 0;
 
 	PancakeQuickWritePropertyLong(PANCAKE_SAPI_GLOBALS(request), "answerCode", sizeof("answerCode"), HASH_OF_answerCode, SG(sapi_headers).http_response_code);
@@ -152,4 +182,18 @@ PHP_FUNCTION(SAPIFinishRequest) {
 
 	SG(sapi_headers).http_response_code = 0;
 	zend_llist_clean(&SG(sapi_headers).headers);
+
+	if(PANCAKE_SAPI_GLOBALS(output)) {
+		// PHP does not always null-terminate buffered output strings
+		PANCAKE_SAPI_GLOBALS(output)[PANCAKE_SAPI_GLOBALS(outputLength)] = '\0';
+		PancakeQuickWritePropertyString(PANCAKE_SAPI_GLOBALS(request), "answerBody", sizeof("answerBody"), HASH_OF_answerBody,
+				PANCAKE_SAPI_GLOBALS(output), PANCAKE_SAPI_GLOBALS(outputLength), 0);
+	}
+
+	PANCAKE_SAPI_GLOBALS(outputLength) = 0;
+	PANCAKE_SAPI_GLOBALS(output) = NULL;
+}
+
+PHP_FUNCTION(SAPIFlushBuffers) {
+	php_output_end_all(TSRMLS_C);
 }

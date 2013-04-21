@@ -204,36 +204,6 @@
         return true;
     }
 
-    function ob_get_level() {
-        return Pancake\PHPFunctions\OutputBuffering\getLevel() - 1;
-    }
-
-    function ob_end_clean() {
-        if(Pancake\PHPFunctions\OutputBuffering\getLevel() > 1)
-            return Pancake\PHPFunctions\OutputBuffering\endClean();
-        Pancake\PHPErrorHandler(/* .constant 'E_NOTICE' */, 'ob_end_clean(): failed to delete buffer. No buffer to delete');
-        return false;
-    }
-
-    function ob_end_flush() {
-        if(Pancake\PHPFunctions\OutputBuffering\getLevel() > 1)
-            return Pancake\PHPFunctions\OutputBuffering\endFlush();
-        Pancake\PHPErrorHandler(/* .constant 'E_NOTICE' */, 'ob_end_flush(): failed to delete and flush buffer. No buffer to delete or flush');
-        return false;
-    }
-
-    function ob_get_flush() {
-        if(Pancake\PHPFunctions\OutputBuffering\getLevel() > 1)
-            return Pancake\PHPFunctions\OutputBuffering\getFlush();
-        Pancake\PHPErrorHandler(/* .constant 'E_NOTICE' */, 'ob_get_flush(): failed to delete and flush buffer. No buffer to delete or flush');
-        return false;
-    }
-
-    function ob_flush() {
-        if(Pancake\PHPFunctions\OutputBuffering\getLevel() > 1)
-            return Pancake\PHPFunctions\OutputBuffering\flush();
-    }
-
     #.ifdef 'HAVE_SESSION_EXTENSION'
     function session_start() {
 		if(session_id());

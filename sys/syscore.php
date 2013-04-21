@@ -121,11 +121,6 @@
     dt_remove_function('header_register_callback');
     dt_remove_function('session_register_shutdown');
     dt_rename_function('phpinfo', 'Pancake\PHPFunctions\phpinfo');
-    dt_rename_function('ob_get_level', 'Pancake\PHPFunctions\OutputBuffering\getLevel');
-    dt_rename_function('ob_end_clean', 'Pancake\PHPFunctions\OutputBuffering\endClean');
-    dt_rename_function('ob_end_flush', 'Pancake\PHPFunctions\OutputBuffering\endFlush');
-    dt_rename_function('ob_flush', 'Pancake\PHPFunctions\OutputBuffering\flush');
-    dt_rename_function('ob_get_flush', 'Pancake\PHPFunctions\OutputBuffering\getFlush');
     dt_rename_function('ini_set', 'Pancake\PHPFunctions\setINI');
     dt_rename_function('debug_backtrace', 'Pancake\PHPFunctions\debugBacktrace');
     dt_rename_function('debug_print_backtrace', 'Pancake\PHPFunctions\debugPrintBacktrace');

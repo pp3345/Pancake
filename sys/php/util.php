@@ -76,8 +76,7 @@
     	foreach(vars::$Pancake_shutdownCalls as $shutdownCall)
     		call_user_func_array($shutdownCall["callback"], $shutdownCall["args"]);
 
-    	while(PHPFunctions\OutputBuffering\getLevel() > 1)
-    		PHPFunctions\OutputBuffering\endFlush();
+        SAPIFlushBuffers();
 
         #.ifdef 'HAVE_SESSION_EXTENSION'
     	if(session_id() || vars::$sessionID) {
@@ -114,7 +113,7 @@
         $object->answerHeaders = vars::$Pancake_request->answerHeaders;
         $object->answerCode = vars::$Pancake_request->answerCode;
         $object->answerCodeString = vars::$Pancake_request->answerCodeString;
-        $object->answerBody = ob_get_clean();
+        $object->answerBody = vars::$Pancake_request->answerBody;
 
         $data = serialize($object);
     	$packages = array();

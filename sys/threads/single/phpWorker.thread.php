@@ -403,9 +403,6 @@
 	        // Change directory to document root of the vHost / requested file path
 	        chdir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */ . dirname(vars::$Pancake_request->requestFilePath));
 
-	        // Start output buffer
-	        ob_start();
-
 	        // Set error handling
 	        error_reporting(/* .SAPI_ERROR_REPORTING */);
 	        PHPFunctions\setErrorHandler('Pancake\PHPErrorHandler');
@@ -447,8 +444,7 @@
 	            	$fatal = true;
 
 	            if($fatal) {
-	                while(PHPFunctions\OutputBuffering\getLevel() > 1)
-	                    PHPFunctions\OutputBuffering\endFlush();
+	                SAPIFlushBuffers();
 	                if(ini_get('display_errors')) {
 	                    $errorText = 'Uncaught exception \'' . get_class($exception) . '\'';
 	                    if($exception->getMessage())
@@ -464,8 +460,8 @@
 
 	                    PHPErrorHandler(/* .constant 'E_ERROR' */, $errorText, $exception->getFile(), $exception->getLine());
 	                // Send 500 if no content
-	                } else if(!ob_get_contents())
-	                    vars::$invalidRequest = true;
+	                } /*else if(!ob_get_contents())
+	                    vars::$invalidRequest = true;*/
 	            }
 	        }
 
@@ -482,19 +478,9 @@
 
 	        // After $invalidRequest is set to true it might still happen that the registered shutdown functions do some output
 	        if(vars::$invalidRequest) {
-	        	if(!ob_get_contents()) {
-	        	    $requestObject = vars::$Pancake_request;
-	        		vars::$Pancake_request->invalidRequest(new invalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
-	        	} else
-	        		vars::$invalidRequest = false;
+        	    $requestObject = vars::$Pancake_request;
+        		vars::$Pancake_request->invalidRequest(new invalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
 	        }
-
-	        // Destroy all output buffers
-	        while(PHPFunctions\OutputBuffering\getLevel() > 1)
-	            PHPFunctions\OutputBuffering\endFlush();
-
-	        // Get contents from output buffer
-	        $contents = ob_get_contents();
 
             #.ifdef 'HAVE_SESSION_EXTENSION'
 	        if(session_id() || vars::$sessionID) {
@@ -585,7 +571,7 @@
 
 	        // Update request object and send it to RequestWorker
 	        if(!vars::$invalidRequest) {
-	            $object->answerBody = $contents;
+	            $object->answerBody = vars::$Pancake_request->answerBody;
             }
 
 	        $data = serialize($object);
@@ -606,8 +592,6 @@
             Close(vars::$requestSocket);
 
 	        // Clean
-	        PHPFunctions\OutputBuffering\endClean();
-
 			unset($packages);
 			unset($data);
 			unset($contents);
