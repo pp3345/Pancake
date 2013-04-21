@@ -1986,12 +1986,6 @@ zend_bool PancakeJITFetchREQUEST(const char *name, uint name_len TSRMLS_DC) {
 		}
 	}
 
-	if(PG(http_globals)[TRACK_VARS_REQUEST]) {
-		zval_ptr_dtor(&PG(http_globals)[TRACK_VARS_REQUEST]);
-	}
-
-	PG(http_globals)[TRACK_VARS_REQUEST] = REQUEST;
-
 	zend_hash_quick_update(&EG(symbol_table), "_REQUEST", sizeof("_REQUEST"), HASH_OF__REQUEST, &REQUEST, sizeof(zval*), NULL);
 
 	return 0;
