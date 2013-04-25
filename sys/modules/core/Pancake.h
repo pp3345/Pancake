@@ -248,8 +248,8 @@ extern ZEND_DECLARE_MODULE_GLOBALS(Pancake);
 		case 200: \
 			dest = "OK"; \
 			break; \
-		case 204: \
-			dest = "No Content"; \
+		case 304: \
+			dest = "Not Modified"; \
 			break; \
 		case 404: \
 			dest = "Not Found"; \
@@ -263,11 +263,26 @@ extern ZEND_DECLARE_MODULE_GLOBALS(Pancake);
 		case 400: \
 			dest = "Bad Request"; \
 			break; \
+		case 204: \
+			dest = "No Content"; \
+			break; \
 		case 301: \
 			dest = "Moved Permanently"; \
 			break; \
+		case 206: \
+			dest = "Partial Content"; \
+			break; \
+		case 307: \
+			dest = "Temporary Redirect"; \
+			break; \
+		case 401: \
+			dest = "Unauthorized"; \
+			break; \
 		case 501: \
 			dest = "Not Implemented"; \
+			break; \
+		case 502: \
+			dest = "Bad Gateway"; \
 			break; \
 		case 413: \
 			dest = "Request Entity Too Large"; \
@@ -296,9 +311,6 @@ extern ZEND_DECLARE_MODULE_GLOBALS(Pancake);
 		case 205: \
 			dest = "Reset Content"; \
 			break; \
-		case 206: \
-			dest = "Partial Content"; \
-			break; \
 		case 207: \
 			dest = "Multi-Status"; \
 			break; \
@@ -317,17 +329,8 @@ extern ZEND_DECLARE_MODULE_GLOBALS(Pancake);
 		case 303: \
 			dest = "See Other"; \
 			break; \
-		case 304: \
-			dest = "Not Modified"; \
-			break; \
 		case 305: \
 			dest = "Use Proxy"; \
-			break; \
-		case 307: \
-			dest = "Temporary Redirect"; \
-			break; \
-		case 401: \
-			dest = "Unauthorized"; \
 			break; \
 		case 402: \
 			dest = "Payment Required"; \
@@ -394,9 +397,6 @@ extern ZEND_DECLARE_MODULE_GLOBALS(Pancake);
 			break; \
 		case 431: /* RFC 6585 */ \
 			dest = "Request Header Fields Too Large"; \
-			break; \
-		case 502: \
-			dest = "Bad Gateway"; \
 			break; \
 		case 503: \
 			dest = "Service Unavailable"; \
