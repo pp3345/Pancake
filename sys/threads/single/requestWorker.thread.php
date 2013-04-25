@@ -628,25 +628,23 @@
         readData:
 
         if(!isset($requests[$socket])) {
-            // Get information about client
-            GetPeerName($socket, $ip, $port);
-
-            // Get local IP address and port
-            GetSockName($socket, $lip, $lport);
-
             // Create request object and process headers
             try {
-                $requestObject = $requests[$socket] = new HTTPRequest($ip, $port, $lip, $lport);
+                $requestObject = $requests[$socket] = new HTTPRequest;
+
+                GetPeerName($socket, $requestObject->remoteIP, $requestObject->remotePort);
+                GetSockName($socket, $requestObject->localIP, $requestObject->localPort);
+
 #.ifdef 'SUPPORT_TLS'
                 if(isset($TLSConnections[$socket]))
                     $requestObject->TLS = true;
 #.endif
                 $requestObject->init($socketData[$socket]);
-                
+
                 unset($socketData[$socket]);
             } catch(invalidHTTPRequestException $exception) {
                 $requestObject->invalidRequest($exception);
-                
+
                 unset($socketData[$socket], $exception);
                 goto write;
             }

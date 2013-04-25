@@ -212,8 +212,6 @@ PHP_FUNCTION(bind) {
 		RETURN_FALSE;
 	}
 
-	// The bind() syscall is stupid. This is mainly copied from ext/socket
-
 	switch(domain) {
 		case AF_UNIX: {
 			struct sockaddr_un *sa = (struct sockaddr_un *) sock_type;

@@ -33,13 +33,6 @@ ZEND_BEGIN_ARG_INFO(arginfo_pancake_setThread, 0)
 	ZEND_ARG_INFO(0, "thread")
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO(arginfo_pancake_HTTPRequest_construct, 0)
-	ZEND_ARG_INFO(0, "remoteIP")
-	ZEND_ARG_INFO(0, "remotePort")
-	ZEND_ARG_INFO(0, "localIP")
-	ZEND_ARG_INFO(0, "localPort")
-ZEND_END_ARG_INFO()
-
 ZEND_BEGIN_ARG_INFO(arginfo_pancake_HTTPRequest_init, 0)
 	ZEND_ARG_INFO(0, "requestHeader")
 ZEND_END_ARG_INFO()
@@ -145,7 +138,6 @@ const zend_function_entry Pancake_functions[] = {
 };
 
 const zend_function_entry HTTPRequest_methods[] = {
-	ZEND_ME(HTTPRequest, __construct, arginfo_pancake_HTTPRequest_construct, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
 	ZEND_ME(HTTPRequest, init, arginfo_pancake_HTTPRequest_init, ZEND_ACC_PUBLIC)
 	ZEND_ME(HTTPRequest, buildAnswerHeaders, NULL, ZEND_ACC_PUBLIC)
 	ZEND_ME(HTTPRequest, setHeader, arginfo_pancake_HTTPRequest_setHeader, ZEND_ACC_PUBLIC)

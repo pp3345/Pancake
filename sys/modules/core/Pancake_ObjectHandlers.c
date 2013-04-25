@@ -17,7 +17,7 @@ zend_object_handlers PancakeFastObjectHandlers = {
 	PancakeFastWriteProperty,				/* write_property */
 	NULL,				/* read_dimension */
 	NULL,									/* write_dimension */
-	NULL,									/* get_property_ptr_ptr */
+	PancakeFastGetPropertyPtrPtr,									/* get_property_ptr_ptr */
 	NULL,									/* get */
 	NULL,									/* set */
 	PancakeFastHasProperty,					/* has_property */
@@ -51,6 +51,39 @@ zend_object_value PancakeCreateObject(zend_class_entry *classType TSRMLS_DC) {
 	retval.handlers = &PancakeFastObjectHandlers;
 
 	object_properties_init(object, classType);
+
+	return retval;
+}
+
+zval **PancakeFastGetPropertyPtrPtr(zval *object, zval *member, const struct _zend_literal *key TSRMLS_DC) {
+	zend_object *zobj = Z_OBJ_P(object);
+	zend_property_info *property_info;
+	zval **retval;
+
+	if(UNEXPECTED(key == NULL)) {
+		zend_hash_find(&zobj->ce->properties_info, Z_STRVAL_P(member), Z_STRLEN_P(member) + 1, (void**) &property_info);
+	} else if(UNEXPECTED((property_info = CACHED_POLYMORPHIC_PTR(key->cache_slot, zobj->ce)) == NULL)) {
+		zend_hash_quick_find(&zobj->ce->properties_info, Z_STRVAL_P(member), Z_STRLEN_P(member) + 1, key->hash_value, (void**) &property_info);
+		CACHE_POLYMORPHIC_PTR(key->cache_slot, zobj->ce, property_info);
+	}
+
+	if(zobj->properties
+		? ((retval = (zval**)zobj->properties_table[property_info->offset]) == NULL)
+		: (*(retval = &zobj->properties_table[property_info->offset]) == NULL)) {
+		zval *new = &EG(uninitialized_zval);
+		Z_ADDREF_P(new);
+
+		if (!zobj->properties) {
+			zobj->properties_table[property_info->offset] = new;
+			retval = &zobj->properties_table[property_info->offset];
+		} else if (zobj->properties_table[property_info->offset]) {
+			*(zval**) zobj->properties_table[property_info->offset] = new;
+			retval = (zval**) zobj->properties_table[property_info->offset];
+		} else {
+			zend_hash_quick_update(zobj->properties, property_info->name, property_info->name_length+1, property_info->h, &new, sizeof(zval*), (void**) &zobj->properties_table[property_info->offset]);
+			retval = (zval**) zobj->properties_table[property_info->offset];
+		}
+	}
 
 	return retval;
 }

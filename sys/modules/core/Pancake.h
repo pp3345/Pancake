@@ -130,7 +130,6 @@ PHP_FUNCTION(adjustSendBufferSize);
 PHP_FUNCTION(nonBlockingAccept);
 PHP_FUNCTION(naglesAlgorithm);
 
-PHP_METHOD(HTTPRequest, __construct);
 PHP_METHOD(HTTPRequest, init);
 PHP_METHOD(HTTPRequest, buildAnswerHeaders);
 PHP_METHOD(HTTPRequest, setHeader);
@@ -438,6 +437,7 @@ char *PancakeBuildAnswerHeaders(zval *answerHeaderArray, uint *answerHeader_len)
 zval *PancakeFastReadProperty(zval *object, zval *member, ulong hashValue, const zend_literal *key TSRMLS_DC);
 void PancakeFastWriteProperty(zval *object, zval *member, zval *value, const zend_literal *key TSRMLS_DC);
 void PancakeQuickWriteProperty(zval *object, zval *value, char *name, int name_len, ulong h TSRMLS_DC);
+zval **PancakeFastGetPropertyPtrPtr(zval *object, zval *member, const struct _zend_literal *key TSRMLS_DC);
 
 #define QUICK_WRITE_VALUE \
 		zval *__value;\
