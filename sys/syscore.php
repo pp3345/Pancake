@@ -112,7 +112,6 @@
         dt_remove_function('filter_input_array');
     }
     dt_remove_function('restore_error_handler');
-    dt_remove_function('stream_register_wrapper');
     dt_remove_function('header_register_callback');
     dt_remove_function('session_register_shutdown');
     dt_rename_function('debug_backtrace', 'Pancake\PHPFunctions\debugBacktrace');
@@ -123,7 +122,6 @@
     dt_rename_function('memory_get_peak_usage', 'Pancake\PHPFunctions\getPeakMemoryUsage');
     dt_rename_function('error_get_last', 'Pancake\PHPFunctions\errorGetLast');
     dt_rename_function('register_tick_function', 'Pancake\PHPFunctions\registerTickFunction');
-    dt_rename_function('stream_wrapper_register', 'Pancake\PHPFunctions\streamWrapperRegister');
     dt_rename_method('ReflectionFunction', 'isDisabled', 'Pancake_isDisabledOrig');
     dt_remove_constant('PHP_SAPI');
 

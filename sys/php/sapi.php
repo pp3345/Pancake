@@ -295,28 +295,6 @@
 		return call_user_func_array('Pancake\PHPFunctions\registerTickFunction', func_get_args());
 	}
 
-	function stream_register_wrapper($protocol, $classname, $flags = 0, $unregister = false) {
-		static $registeredWrappers = array();
-
-		if($unregister) {
-			foreach($registeredWrappers as $protocol)
-				stream_wrapper_unregister($protocol);
-			$registeredWrappers = array();
-			return;
-		}
-
-		if(Pancake\PHPFunctions\streamWrapperRegister($protocol, $classname, $flags)) {
-			$registeredWrappers[] = $protocol;
-			return true;
-		}
-
-		return false;
-	}
-
-	function stream_wrapper_register($protocol, $classname, $flags = 0) {
-		return stream_register_wrapper($protocol, $classname, $flags);
-	}
-
     dt_rename_method('\Exception', 'getTrace', 'Pancake_getTraceOrig');
     dt_add_method('\Exception', 'getTrace', null, <<<'FUNCTIONBODY'
 $trace = $this->Pancake_getTraceOrig();

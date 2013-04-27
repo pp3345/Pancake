@@ -568,8 +568,6 @@
 	        error_reporting(/* .constant 'Pancake\ERROR_REPORTING' */);
 	        PHPFunctions\setErrorHandler('Pancake\errorHandler');
 	        set_exception_handler(null);
-
-	        stream_register_wrapper(null, null, null, true);
             
             // Clean uploaded files
             if(vars::$Pancake_request->uploadedFileTempNames) {
