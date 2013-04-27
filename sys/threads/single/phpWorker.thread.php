@@ -189,9 +189,6 @@
 	    	vars::$functions = get_defined_functions()['user'];
 	    #.endif
 
-	    memory_get_usage(null, true);
-	    memory_get_peak_usage(null, true);
-
 	    // Predefine constants
 	    #.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->predefinedConstants;' false
 		    foreach(vars::$Pancake_currentThread->vHost->predefinedConstants as $name => $value)

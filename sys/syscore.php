@@ -118,8 +118,6 @@
     dt_rename_function('debug_print_backtrace', 'Pancake\PHPFunctions\debugPrintBacktrace');
     dt_rename_function('register_shutdown_function', 'Pancake\PHPFunctions\registerShutdownFunction');
     dt_rename_function('set_error_handler', 'Pancake\PHPFunctions\setErrorHandler');
-    dt_rename_function('memory_get_usage', 'Pancake\PHPFunctions\getMemoryUsage');
-    dt_rename_function('memory_get_peak_usage', 'Pancake\PHPFunctions\getPeakMemoryUsage');
     dt_rename_function('error_get_last', 'Pancake\PHPFunctions\errorGetLast');
     dt_rename_function('register_tick_function', 'Pancake\PHPFunctions\registerTickFunction');
     dt_rename_method('ReflectionFunction', 'isDisabled', 'Pancake_isDisabledOrig');

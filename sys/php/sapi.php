@@ -258,28 +258,6 @@
     	return true;
     }
 
-    function memory_get_usage($real_usage = false, $setNull = false) {
-    	static $nullUsage = 0;
-
-    	if($setNull) {
-    		$nullUsage = Pancake\PHPFunctions\getMemoryUsage();
-    		return;
-    	}
-
-    	return Pancake\PHPFunctions\getMemoryUsage($real_usage) - ($real_usage ? 0 : $nullUsage);
-    }
-
-    function memory_get_peak_usage($real_usage = false, $setNull = false) {
-    	static $nullUsage = 0;
-
-    	if($setNull) {
-    		$nullUsage = Pancake\PHPFunctions\getPeakMemoryUsage();
-    		return;
-    	}
-
-    	return Pancake\PHPFunctions\getPeakMemoryUsage($real_usage) - ($real_usage ? 0 : $nullUsage);
-    }
-
 	function error_get_last() {
 		$lastError = Pancake\PHPFunctions\errorGetLast();
 
