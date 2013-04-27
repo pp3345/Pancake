@@ -20,14 +20,6 @@
         return 'PAN8DF095AE-6639-4C6F-8831-5AB8FBD64D8B';
     }
 
-    function setcookie($name, $value = null, $expire = 0, $path = null, $domain = null, $secure = false, $httponly = false) {
-    	return Pancake\vars::$Pancake_request->setCookie($name, $value, $expire, $path, $domain, $secure, $httponly);
-    }
-
-    function setrawcookie($name, $value = null, $expire = 0, $path = null, $domain = null, $secure = false, $httponly = false) {
-        return Pancake\vars::$Pancake_request->setCookie($name, $value, $expire, $path, $domain, $secure, $httponly, true);
-    }
-
     function header_register_callback($callback) {
         if(!is_callable($callback))
             return false;
