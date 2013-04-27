@@ -196,6 +196,13 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 		EG(modified_ini_directives) = NULL;
 	}
 
+	// Destroy uploaded files array
+	if(SG(rfc1867_uploaded_files)) {
+		zend_hash_destroy(SG(rfc1867_uploaded_files));
+		FREE_HASHTABLE(SG(rfc1867_uploaded_files));
+		SG(rfc1867_uploaded_files) = NULL;
+	}
+
 	SG(request_info).no_headers = 0;
 	SG(headers_sent) = 0;
 	SG(sapi_headers).http_response_code = 0;
@@ -283,4 +290,11 @@ PHP_FUNCTION(SAPIPostRequestCleanup) {
 	zend_try {
 		zend_ini_deactivate(TSRMLS_C);
 	} zend_end_try();
+
+	// Destroy uploaded files array
+	if(SG(rfc1867_uploaded_files)) {
+		zend_hash_destroy(SG(rfc1867_uploaded_files));
+		FREE_HASHTABLE(SG(rfc1867_uploaded_files));
+		SG(rfc1867_uploaded_files) = NULL;
+	}
 }

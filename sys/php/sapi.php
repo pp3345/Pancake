@@ -32,20 +32,6 @@
     	return register_shutdown_function('session_write_close');
     }
 
-    function is_uploaded_file($filename) {
-        return in_array($filename, Pancake\vars::$Pancake_request->uploadedFileTempNames);
-    }
-
-    function move_uploaded_file($filename, $destination) {
-        if(!is_uploaded_file($filename))
-            return false;
-        if(!rename($filename, $destination)) {
-            Pancake\PHPErrorHandler(/* .constant 'E_WARNING' */, "Unable to move '" . $filename . "' to '" . $destination . "'");
-            return false;
-        }
-        return true;
-    }
-
     function register_shutdown_function($callback) {
     	if(!is_callable($callback))
     		return false;

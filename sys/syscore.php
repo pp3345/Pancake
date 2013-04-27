@@ -106,8 +106,6 @@
 
     // Remove some PHP functions and constants as these will be replaced by the Pancake PHP SAPI
     dt_remove_class('Pancake\sfYamlParser');
-    dt_remove_function('is_uploaded_file');
-    dt_remove_function('move_uploaded_file');
     if(extension_loaded('filter')) {
         dt_remove_function('filter_input');
         dt_remove_function('filter_has_var');

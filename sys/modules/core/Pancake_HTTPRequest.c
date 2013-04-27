@@ -1502,6 +1502,14 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 		MAKE_STD_ZVAL(tempNames);
 		array_init(tempNames);
 
+		if(SG(rfc1867_uploaded_files)) {
+			zend_hash_destroy(SG(rfc1867_uploaded_files));
+			FREE_HASHTABLE(SG(rfc1867_uploaded_files));
+		}
+
+		ALLOC_HASHTABLE(SG(rfc1867_uploaded_files));
+		zend_hash_init(SG(rfc1867_uploaded_files), 5, NULL, (dtor_func_t) free_estring, 0);
+
 		if(Z_STRLEN_P(rawPOSTData)) {
 			zval *requestHeaders, **contentType;
 
@@ -1630,12 +1638,16 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 							} else {
 								// Write contents to file
 								int fd = creat(tempNam, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+								int tempNam_len = strlen(tempNam);
 								char *buffer = estrndup(rawDataOffset, rawDataLength);
+								char *tempNam_dupe = estrndup(tempNam, tempNam_len);
+
 								write(fd, buffer, rawDataLength);
 								efree(buffer);
 								close(fd);
 								Z_LVAL_P(zError) = 0; // UPLOAD_ERR_OK
 								add_next_index_string(tempNames, tempNam, 1);
+								zend_hash_add(SG(rfc1867_uploaded_files), tempNam, tempNam_len + 1, &tempNam_dupe, sizeof(char*), NULL);
 							}
 
 							Z_TYPE_P(zName) = IS_STRING;
