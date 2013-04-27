@@ -299,9 +299,4 @@ $trace .= '#' . $i . ' {main}';
 return $trace;
 FUNCTIONBODY
 	);
-
-    dt_add_method('\ReflectionFunction', 'isDisabled', null, <<<'FUNCTIONBODY'
-return $this->Pancake_isDisabledOrig() || in_array($this->name, Pancake\vars::$Pancake_currentThread->vHost->phpDisabledFunctions);
-FUNCTIONBODY
-    );
 ?>

@@ -120,7 +120,6 @@
     dt_rename_function('set_error_handler', 'Pancake\PHPFunctions\setErrorHandler');
     dt_rename_function('error_get_last', 'Pancake\PHPFunctions\errorGetLast');
     dt_rename_function('register_tick_function', 'Pancake\PHPFunctions\registerTickFunction');
-    dt_rename_method('ReflectionFunction', 'isDisabled', 'Pancake_isDisabledOrig');
     dt_remove_constant('PHP_SAPI');
 
     dt_phpinfo_mode(\DT_PHPINFO_HTML);
