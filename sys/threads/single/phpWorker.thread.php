@@ -57,10 +57,6 @@
 		#.HAVE_LIMIT = true
 	#.endif
 
-	#.if #.extension_loaded 'session'
-	   #.HAVE_SESSION_EXTENSION = true
-	#.endif
-
 	#.if #.extension_loaded 'filter'
 	   #.HAVE_FILTER_EXTENSION = true
 	#.endif
@@ -482,39 +478,6 @@
         		vars::$Pancake_request->invalidRequest(new invalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
 	        }
 
-            #.ifdef 'HAVE_SESSION_EXTENSION'
-	        if(session_id() || vars::$sessionID) {
-	            vars::$Pancake_request->setCookie(session_name(), session_id() ? session_id() : vars::$sessionID, ini_get('session.cookie_lifetime') ? time() + ini_get('session.cookie_lifetime') : 0, ini_get('session.cookie_path'), ini_get('session.cookie_domain'), (int) ini_get('session.cookie_secure'), (int) ini_get('session.cookie_httponly'));
-	            session_write_close();
-	            PHPFunctions\sessionID("");
-
-	        	switch(session_cache_limiter()) {
-	        		case 'nocache':
-	        			vars::$Pancake_request->setHeader('Expires', 'Thu, 19 Nov 1981 08:52:00 GMT');
-	        			vars::$Pancake_request->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0');
-	        			vars::$Pancake_request->setHeader('Pragma', 'no-cache');
-	        			break;
-	        		case 'private':
-	        			vars::$Pancake_request->setHeader('Expires', 'Thu, 19 Nov 1981 08:52:00 GMT');
-	        			vars::$Pancake_request->setHeader('Cache-Control', 'private, max-age=' . ini_get('session.cache_expire') . ', pre-check=' . ini_get('session.cache_expire'));
-	        			vars::$Pancake_request->setHeader('Last-Modified', date('r'));
-	        			break;
-	        		case 'private_no_expire':
-	        			vars::$Pancake_request->setHeader('Cache-Control', 'private, max-age=' . ini_get('session.cache_expire') . ', pre-check=' . ini_get('session.cache_expire'));
-	        			vars::$Pancake_request->setHeader('Last-Modified', date('r'));
-	        			break;
-	        		case 'public':
-	        			vars::$Pancake_request->setHeader('Expires', date('r', time() + ini_get('session.cache_expire')));
-	        			vars::$Pancake_request->setHeader('Cache-Control', 'public, max-age=' . ini_get('session.cache_expire'));
-	        			vars::$Pancake_request->setHeader('Last-Modified', date('r'));
-	        			break;
-	        	}
-
-	        	// SID is not a user-defined constant and thus won't be auto-deleted
-	        	dt_remove_constant('SID');
-	        }
-            #.endif
-
 	        #.if Pancake\DEBUG_MODE === true
 		        if(array_key_exists('pancakephpdebug', vars::$Pancake_request->getGETParams())) {
 		            $body = 'Dump of RequestObject:' . "\r\n";
@@ -625,18 +588,7 @@
 	        #.ifdef 'HAVE_LIMIT'
 	        vars::$Pancake_processedRequests++;
 	        #.endif
-	        #.ifdef 'HAVE_SESSION_EXTENSION'
-	        vars::$sessionID = null;
-            #.endif
 	        vars::$tickFunctions = array();
-	        if(vars::$resetSessionSaveHandler) {
-	        	session_set_save_handler('Pancake\dummy', 'Pancake\dummy', 'Pancake\dummy', 'Pancake\dummy', 'Pancake\dummy', 'Pancake\dummy');
-	        	vars::$resetSessionSaveHandler = false;
-	        }
-
-			#.ifdef 'HAVE_SESSION_EXTENSION'
-			session_name(/* .ini_get('session.name') */);
-			#.endif
 
 	        if(
 	        #.ifdef 'HAVE_LIMIT'

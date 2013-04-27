@@ -100,7 +100,6 @@ PHP_FUNCTION(setThread);
 PHP_FUNCTION(CodeCacheJITGlobals);
 PHP_FUNCTION(ExecuteJITGlobals);
 PHP_FUNCTION(loadFilePointers);
-PHP_FUNCTION(makeSID);
 PHP_FUNCTION(loadModule);
 PHP_FUNCTION(makeFastClass);
 PHP_FUNCTION(disableModuleLoader);

@@ -43,6 +43,30 @@ PHP_MINIT_FUNCTION(PancakeSAPI) {
 	return SUCCESS;
 }
 
+static void PancakeSAPIStoreHTTPStatusLine(TSRMLS_D) {
+	if(SG(sapi_headers).http_status_line) {
+		if(strlen(SG(sapi_headers).http_status_line) >= sizeof("HTTP/1.0 200 ") && SG(sapi_headers).http_status_line[12] == ' ') {
+			char *answerCodeString = &(SG(sapi_headers).http_status_line[13]);
+
+			PancakeQuickWritePropertyString(PANCAKE_SAPI_GLOBALS(request), "answerCodeString", sizeof("answerCodeString"), HASH_OF_answerCodeString, answerCodeString,
+					strlen(answerCodeString), 1);
+		}
+
+		efree(SG(sapi_headers).http_status_line);
+		SG(sapi_headers).http_status_line = NULL;
+	}
+}
+
+static int PancakeSAPISendHeaders(sapi_headers_struct *sapi_headers TSRMLS_DC) {
+	// We don't actually send headers at the moment
+	SG(headers_sent) = 0;
+
+	// sapi_send_headers() will destroy the status line afterwards
+	PancakeSAPIStoreHTTPStatusLine(TSRMLS_C);
+
+	return SAPI_HEADER_SENT_SUCCESSFULLY;
+}
+
 static int PancakeSAPIHeaderHandler(sapi_header_struct *sapi_header, sapi_header_op_enum op, sapi_headers_struct *sapi_headers TSRMLS_DC) {
 	zval *answerHeaders;
 
@@ -150,12 +174,18 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	sapi_module.name = "pancake";
 	sapi_module.header_handler = PancakeSAPIHeaderHandler;
 	sapi_module.ub_write = PancakeSAPIOutputHandler;
+	sapi_module.send_headers = PancakeSAPISendHeaders;
 	sapi_module.flush = NULL;
 
 	// Hook some functions
 	zend_hash_find(EG(function_table), "headers_sent", sizeof("headers_sent"), (void**) &function);
 	PHP_headers_sent = function->internal_function.handler;
 	function->internal_function.handler = Pancake_headers_sent;
+
+	if(zend_hash_find(EG(function_table), "session_start", sizeof("session_start"), (void**) &function) == SUCCESS) {
+		PHP_session_start = function->internal_function.handler;
+		function->internal_function.handler = Pancake_session_start;
+	}
 
 	// Set current php.ini state as initial
 	if (EG(modified_ini_directives)) {
@@ -195,17 +225,7 @@ PHP_FUNCTION(SAPIFinishRequest) {
 
 	PancakeQuickWritePropertyLong(PANCAKE_SAPI_GLOBALS(request), "answerCode", sizeof("answerCode"), HASH_OF_answerCode, SG(sapi_headers).http_response_code);
 
-	if(SG(sapi_headers).http_status_line) {
-		if(strlen(SG(sapi_headers).http_status_line) >= sizeof("HTTP/1.0 200 ") && SG(sapi_headers).http_status_line[12] == ' ') {
-			char *answerCodeString = &(SG(sapi_headers).http_status_line[13]);
-
-			PancakeQuickWritePropertyString(PANCAKE_SAPI_GLOBALS(request), "answerCodeString", sizeof("answerCodeString"), HASH_OF_answerCodeString, answerCodeString,
-					strlen(answerCodeString), 1);
-		}
-
-		efree(SG(sapi_headers).http_status_line);
-		SG(sapi_headers).http_status_line = NULL;
-	}
+	PancakeSAPIStoreHTTPStatusLine(TSRMLS_C);
 
 	SG(sapi_headers).http_response_code = 0;
 	zend_llist_clean(&SG(sapi_headers).headers);

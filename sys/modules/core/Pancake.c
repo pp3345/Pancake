@@ -107,7 +107,6 @@ const zend_function_entry Pancake_functions[] = {
 	ZEND_NS_FE("Pancake", CodeCacheJITGlobals, NULL)
 	ZEND_NS_FE("Pancake", ExecuteJITGlobals, NULL)
 	ZEND_NS_FE("Pancake", loadFilePointers, NULL)
-	ZEND_NS_FE("Pancake", makeSID, NULL)
 	ZEND_NS_FE("Pancake", makeFastClass, NULL)
 	ZEND_NS_FE("Pancake", loadModule, NULL)
 	ZEND_NS_FE("Pancake", disableModuleLoader, NULL)

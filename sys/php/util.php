@@ -76,37 +76,7 @@
     	foreach(vars::$Pancake_shutdownCalls as $shutdownCall)
     		call_user_func_array($shutdownCall["callback"], $shutdownCall["args"]);
 
-        SAPIFlushBuffers();
-
-        #.ifdef 'HAVE_SESSION_EXTENSION'
-    	if(session_id() || vars::$sessionID) {
-    		vars::$Pancake_request->setCookie(session_name(), session_id() ? session_id() : vars::$sessionID, time() + ini_get('session.cookie_lifetime'), ini_get('session.cookie_path'), ini_get('session.cookie_domain'), (int) ini_get('session.cookie_secure'), (int) ini_get('session.cookie_httponly'));
-    		session_write_close();
-
-    		switch(session_cache_limiter()) {
-    			case 'nocache':
-    				vars::$Pancake_request->setHeader('Expires', 'Thu, 19 Nov 1981 08:52:00 GMT');
-    				vars::$Pancake_request->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0');
-    				vars::$Pancake_request->setHeader('Pragma', 'no-cache');
-    				break;
-    			case 'private':
-    				vars::$Pancake_request->setHeader('Expires', 'Thu, 19 Nov 1981 08:52:00 GMT');
-    				vars::$Pancake_request->setHeader('Cache-Control', 'private, max-age=' . ini_get('session.cache_expire') . ', pre-check=' . ini_get('session.cache_expire'));
-    				vars::$Pancake_request->setHeader('Last-Modified', date('r'));
-    				break;
-    			case 'private_no_expire':
-    				vars::$Pancake_request->setHeader('Cache-Control', 'private, max-age=' . ini_get('session.cache_expire') . ', pre-check=' . ini_get('session.cache_expire'));
-    				vars::$Pancake_request->setHeader('Last-Modified', date('r'));
-    				break;
-    			case 'public':
-    				vars::$Pancake_request->setHeader('Expires', date('r', time() + ini_get('session.cache_expire')));
-    				vars::$Pancake_request->setHeader('Cache-Control', 'public, max-age=' . ini_get('session.cache_expire'));
-    				vars::$Pancake_request->setHeader('Last-Modified', date('r'));
-    				break;
-    		}
-    	}
-    	#.endif
-    	
+        SAPIFlushBuffers();    	
     	SAPIFinishRequest();
 
     	$object = new \stdClass;
@@ -287,10 +257,6 @@
         public static $functions = array();
         #.endif
         public static $executingErrorHandler = false;
-        #.ifdef 'HAVE_SESSION_EXTENSION'
-        public static $sessionID = null;
-        #.endif
-        public static $resetSessionSaveHandler = false;
         public static $tickFunctions = array();
         public static $listenArray = array();
         public static $listenArrayOrig = array();

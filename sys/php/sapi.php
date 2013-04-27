@@ -36,11 +36,9 @@
         return true;
     }
 
-    #.ifdef 'HAVE_SESSION_EXTENSION'
-        function session_register_shutdown() {
-        	return register_shutdown_function('session_write_close');
-        }
-    #.endif
+    function session_register_shutdown() {
+    	return register_shutdown_function('session_write_close');
+    }
 
     function phpinfo($what = INFO_ALL) {
         Pancake\vars::$Pancake_request->setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -203,28 +201,6 @@
 
         return true;
     }
-
-    #.ifdef 'HAVE_SESSION_EXTENSION'
-    function session_start() {
-		if(session_id());
-		else if(isset(Pancake\vars::$Pancake_request->getCookies()[session_name()]))
-			session_id(Pancake\vars::$Pancake_request->getCookies()[session_name()]);
-		else if(isset(Pancake\vars::$Pancake_request->getGETParams()[session_name()]))
-			session_id(Pancake\vars::$Pancake_request->getGETParams()[session_name()]);
-		else if(isset(Pancake\vars::$Pancake_request->getPOSTParams()[session_name()]))
-			session_id(Pancake\vars::$Pancake_request->getPOSTParams()[session_name()]);
-		else {
-			Pancake\makeSID();
-		}
-
-        if(Pancake\PHPFunctions\sessionStart()) {
-        	Pancake\vars::$sessionID = session_id();
-        	return true;
-        }
-
-        return false;
-    }
-    #.endif
 
     #.ifdef 'HAVE_FILTER_EXTENSION'
     function filter_input($type, $variable_name, $filter = /* .constant 'FILTER_DEFAULT' */, $options = /* .constant 'FILTER_FLAG_NONE' */) {
@@ -466,28 +442,6 @@
    		return is_array($lastError) && $lastError['type'] == /* .constant 'E_ERROR' */ ? $lastError : Pancake\vars::$lastError;
 	}
 
-    #.ifdef 'HAVE_SESSION_EXTENSION'
-	function session_id($id = "") {
-		if(session_status() == 1 && !$id)
-			return '';
-		if($id)
-			Pancake\vars::$sessionID = $id;
-		return $id ? Pancake\PHPFunctions\sessionID($id) : Pancake\PHPFunctions\sessionID();
-	}
-
-	function session_set_save_handler($open, $close = true, $read = null, $write = null, $destroy = null, $gc = null) {
-		if(is_object($open) && $open instanceof SessionHandlerInterface) {
-			$retval = Pancake\PHPFunctions\setSessionSaveHandler($open, false);
-			if($close && $retval)
-				session_register_shutdown();
-		} else
-			$retval = Pancake\PHPFunctions\setSessionSaveHandler($open, $close, $read, $write, $destroy, $gc);
-		if($retval)
-			return Pancake\vars::$resetSessionSaveHandler = true;
-		return false;
-	}
-    #.endif
-
 	function register_tick_function($function) {
 		if(!is_callable($function)) {
 			#.PHP_ERROR_WITH_BACKTRACE E_WARNING '"Invalid tick callback \'$function\' passed"'
@@ -496,13 +450,6 @@
 		Pancake\vars::$tickFunctions[] = $function;
 		return call_user_func_array('Pancake\PHPFunctions\registerTickFunction', func_get_args());
 	}
-
-    #.ifdef 'HAVE_SESSION_EXTENSION'
-	function session_destroy() {
-		Pancake\vars::$sessionID = "";
-		Pancake\PHPFunctions\sessionDestroy();
-	}
-    #.endif
 
 	function stream_register_wrapper($protocol, $classname, $flags = 0, $unregister = false) {
 		static $registeredWrappers = array();
@@ -525,17 +472,6 @@
 	function stream_wrapper_register($protocol, $classname, $flags = 0) {
 		return stream_register_wrapper($protocol, $classname, $flags);
 	}
-
-    #.ifdef 'HAVE_SESSION_EXTENSION'
-	function session_regenerate_id($delete_old_session = false) {
-		if(Pancake\PHPFunctions\sessionRegenerateID($delete_old_session)) {
-			Pancake\vars::$sessionID = Pancake\PHPFunctions\sessionID();
-			return true;
-		}
-
-		return false;
-	}
-    #.endif
 
     dt_rename_method('\Exception', 'getTrace', 'Pancake_getTraceOrig');
     dt_add_method('\Exception', 'getTrace', null, <<<'FUNCTIONBODY'

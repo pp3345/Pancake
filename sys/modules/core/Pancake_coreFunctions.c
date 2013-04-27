@@ -462,12 +462,6 @@ PHP_FUNCTION(ExecuteJITGlobals) {
 	zend_register_auto_global(ZEND_STRL("_SESSION"), 0, NULL TSRMLS_CC);
 }
 
-PHP_FUNCTION(makeSID) {
-	if(PS(id) != NULL)
-		efree(PS(id));
-	PS(id) = PS(mod)->s_create_sid(&PS(mod_data), NULL TSRMLS_CC);
-}
-
 PHP_FUNCTION(loadModule) {
 	char *name, *modulePath;
 	int name_len;

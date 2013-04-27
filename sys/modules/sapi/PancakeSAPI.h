@@ -26,6 +26,10 @@ extern zend_module_entry PancakeSAPI_module_entry;
 #endif
 
 void (*PHP_headers_sent)(INTERNAL_FUNCTION_PARAMETERS);
+void Pancake_headers_sent(INTERNAL_FUNCTION_PARAMETERS);
+
+void (*PHP_session_start)(INTERNAL_FUNCTION_PARAMETERS);
+void Pancake_session_start(INTERNAL_FUNCTION_PARAMETERS);
 
 ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)
 	zval *request;
@@ -36,8 +40,6 @@ ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)
 	zval *vHost;
 ZEND_END_MODULE_GLOBALS(PancakeSAPI)
 extern ZEND_DECLARE_MODULE_GLOBALS(PancakeSAPI);
-
-void Pancake_headers_sent(INTERNAL_FUNCTION_PARAMETERS);
 
 PHP_MINIT_FUNCTION(PancakeSAPI);
 PHP_RINIT_FUNCTION(PancakeSAPI);
