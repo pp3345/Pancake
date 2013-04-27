@@ -119,7 +119,6 @@
     dt_remove_function('stream_register_wrapper');
     dt_remove_function('header_register_callback');
     dt_remove_function('session_register_shutdown');
-    dt_rename_function('phpinfo', 'Pancake\PHPFunctions\phpinfo');
     dt_rename_function('debug_backtrace', 'Pancake\PHPFunctions\debugBacktrace');
     dt_rename_function('debug_print_backtrace', 'Pancake\PHPFunctions\debugPrintBacktrace');
     dt_rename_function('register_shutdown_function', 'Pancake\PHPFunctions\registerShutdownFunction');

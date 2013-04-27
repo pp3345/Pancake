@@ -172,6 +172,7 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 
 	// Set SAPI module handlers
 	sapi_module.name = "pancake";
+	sapi_module.pretty_name = "Pancake SAPI";
 	sapi_module.header_handler = PancakeSAPIHeaderHandler;
 	sapi_module.ub_write = PancakeSAPIOutputHandler;
 	sapi_module.send_headers = PancakeSAPISendHeaders;
