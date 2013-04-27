@@ -654,8 +654,6 @@
 	        cleanGlobals(array(), false, true);
 	        #.endif
 
-	        spl_autoload_register(null, null, null, true);
-
             #.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetClassNonObjects || $Pancake_currentThread->vHost->resetClassObjects || $Pancake_currentThread->vHost->resetFunctionObjects || $Pancake_currentThread->vHost->resetFunctionNonObjects;' false
                 foreach(get_declared_classes() as $class) {
                     if(in_array($class, vars::$classes))

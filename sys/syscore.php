@@ -127,7 +127,6 @@
     dt_rename_function('memory_get_usage', 'Pancake\PHPFunctions\getMemoryUsage');
     dt_rename_function('memory_get_peak_usage', 'Pancake\PHPFunctions\getPeakMemoryUsage');
     dt_rename_function('error_get_last', 'Pancake\PHPFunctions\errorGetLast');
-    dt_rename_function('spl_autoload_register', 'Pancake\PHPFunctions\registerAutoload');
     dt_rename_function('register_tick_function', 'Pancake\PHPFunctions\registerTickFunction');
     dt_rename_function('stream_wrapper_register', 'Pancake\PHPFunctions\streamWrapperRegister');
     dt_rename_method('ReflectionFunction', 'isDisabled', 'Pancake_isDisabledOrig');

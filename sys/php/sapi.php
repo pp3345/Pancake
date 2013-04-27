@@ -488,58 +488,6 @@
 	}
     #.endif
 
-	function spl_autoload_register($autoload_function = null, $throw = true, $prepend = false, $unregister = false) {
-		static $registeredFunctions = array();
-
-		if($unregister) {
-			foreach($registeredFunctions as $function)
-				spl_autoload_unregister($function);
-			$registeredFunctions = array();
-			return;
-		}
-
-        if(!func_num_args()) {
-            return Pancake\PHPFunctions\registerAutoload();
-        }
-
-		// Some crazy softwares like Joomla want to register private static methods as autoloaders, which is only possible, when spl_autoload_register() is called from the same class
-		// But with the SAPI-wrapped function the real spl_autoload_register() is always called from the function's scope
-		if(is_array($autoload_function)) {
-			$reflect = new ReflectionMethod($autoload_function[0], $autoload_function[1]);
-			if($reflect->isPrivate() || $reflect->isProtected()) {
-				$name = 'Pancake_TemporaryMethod' . mt_rand();
-
-				dt_add_method(is_object($autoload_function[0]) ? get_class($autoload_function[0]) : $autoload_function[0], $name, null, <<<'FUNCTIONBODY'
-if(!\Pancake\PHPFunctions\registerAutoload(func_get_arg(0), func_get_arg(1), func_get_arg(2)))
-							return false;
-						return true;
-FUNCTIONBODY
-						, 0x01 | 0x100);
-
-				if(!$autoload_function[0]::$name($autoload_function, $throw, $prepend))
-					$returnFalse = true;
-
-				dt_remove_method(is_object($autoload_function[0]) ? get_class($autoload_function[0]) : $autoload_function[0], $name);
-
-				if(isset($returnFalse))
-					return false;
-
-				goto registered;
-			}
-		}
-
-		if(!Pancake\PHPFunctions\registerAutoload($autoload_function, $throw, $prepend))
-			return false;
-
-		registered:
-
-		// Do not unregister autoloaders defined at CodeCache-load
-		if(defined('PANCAKE_PHP'))
-			$registeredFunctions[] = $autoload_function;
-
-		return true;
-	}
-
 	function register_tick_function($function) {
 		if(!is_callable($function)) {
 			#.PHP_ERROR_WITH_BACKTRACE E_WARNING '"Invalid tick callback \'$function\' passed"'
