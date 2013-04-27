@@ -181,17 +181,6 @@
 	    // Set exit handler so that Pancake won't die when a script calls exit() oder die()
 		dt_exit_mode(/* .constant 'DT_EXIT_EXCEPTION' */, "Pancake\PHPExitHandler", 'Pancake\ExitException');
 
-	    #.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->phpDisabledFunctions;' false
-		    foreach(vars::$Pancake_currentThread->vHost->phpDisabledFunctions as $function) {
-		    	if(function_exists($function)) {
-		    		dt_remove_function($function);
-		    		eval('function ' . $function . '() { return Pancake\PHPDisabledFunction(__FUNCTION__); }');
-		    	}
-		    }
-
-		    unset($function);
-	    #.endif
-
 	    #.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetClassNonObjects || $Pancake_currentThread->vHost->resetClassObjects || $Pancake_currentThread->vHost->resetFunctionObjects || $Pancake_currentThread->vHost->resetFunctionNonObjects;' false
 	    	vars::$classes = get_declared_classes();
 	    #.endif

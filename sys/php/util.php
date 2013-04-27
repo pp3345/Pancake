@@ -111,16 +111,6 @@
 		Write(vars::$Pancake_currentThread->socket, "EXPECTED_SHUTDOWN");
     }
 
-    #.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->phpDisabledFunctions;' false
-    function PHPDisabledFunction($functionName) {
-    	$backtrace = debug_backtrace(/* .DEBUG_BACKTRACE_PROVIDE_OBJECT */, 2);
-
-    	PHPErrorHandler(/* .E_WARNING */, $functionName . '() has been disabled for security reasons', $backtrace[1]["file"], $backtrace[1]["line"]);
-
-    	return null;
-    }
-    #.endif
-
     #.ifdef 'SUPPORT_CODECACHE'
     /**
     * Recursive CodeCache-build

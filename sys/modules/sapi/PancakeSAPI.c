@@ -155,6 +155,7 @@ static int PancakeSAPISetINIEntriesUnmodified(zend_ini_entry **ini_entry TSRMLS_
 PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zend_function *function;
 	zend_class_entry **vars;
+	zval *disabledFunctions;
 
 	if(PANCAKE_GLOBALS(inSAPIReboot) == 1) {
 		return SUCCESS;
@@ -177,6 +178,18 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	sapi_module.ub_write = PancakeSAPIOutputHandler;
 	sapi_module.send_headers = PancakeSAPISendHeaders;
 	sapi_module.flush = NULL;
+
+	// Disable functions
+	disabledFunctions = zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "phpDisabledFunctions", sizeof("phpDisabledFunctions") - 1, 0 TSRMLS_CC);
+
+	if(Z_TYPE_P(disabledFunctions) == IS_ARRAY) {
+		zval **value;
+
+		PANCAKE_FOREACH(Z_ARRVAL_P(disabledFunctions), value) {
+			php_strtolower(Z_STRVAL_PP(value), Z_STRLEN_PP(value));
+			zend_disable_function(Z_STRVAL_PP(value), Z_STRLEN_PP(value) TSRMLS_CC);
+		}
+	}
 
 	// Hook some functions
 	zend_hash_find(EG(function_table), "headers_sent", sizeof("headers_sent"), (void**) &function);
@@ -203,6 +216,7 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 		SG(rfc1867_uploaded_files) = NULL;
 	}
 
+	// Set some SAPI globals
 	SG(request_info).no_headers = 0;
 	SG(headers_sent) = 0;
 	SG(sapi_headers).http_response_code = 0;

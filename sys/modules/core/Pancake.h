@@ -162,6 +162,11 @@ extern zend_class_entry *HTTPRequest_ce;
 extern zend_class_entry *invalidHTTPRequestException_ce;
 extern zend_class_entry *MIME_ce;
 
+#define PANCAKE_FOREACH(table, value) \
+		for(zend_hash_internal_pointer_reset(table); \
+				zend_hash_get_current_data(table, (void**) &value) == SUCCESS; \
+				zend_hash_move_forward(table))
+
 #define PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL(message, message_len, code, header, header_len) { \
 	zval *exception; \
 	\
