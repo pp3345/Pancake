@@ -205,6 +205,8 @@ void php_Pancake_init_globals(zend_Pancake_globals *Pancake_globals) {
 	Pancake_globals->JIT_ENV = PG(auto_globals_jit);
 	Pancake_globals->disableModuleLoader = 0;
 	Pancake_globals->naglesAlgorithm = 0;
+	Pancake_globals->initialized = 0;
+	Pancake_globals->inSAPIReboot = 0;
 }
 
 PHP_MINIT_FUNCTION(Pancake) {
@@ -349,6 +351,10 @@ PHP_MSHUTDOWN_FUNCTION(Pancake) {
 PHP_RINIT_FUNCTION(Pancake) {
 	zval *errorHandler;
 
+	if(PANCAKE_GLOBALS(initialized) == 1) {
+		return SUCCESS;
+	}
+
 	MAKE_STD_ZVAL(errorHandler);
 	Z_TYPE_P(errorHandler) = IS_STRING;
 	Z_STRLEN_P(errorHandler) = sizeof("Pancake\\errorHandler") - 1;
@@ -378,10 +384,16 @@ PHP_RINIT_FUNCTION(Pancake) {
 	Z_STRVAL_P(ZVAL_CACHE(HTTP_1_1)) = estrndup("1.1", sizeof("1.1") - 1);
 	Z_STRLEN_P(ZVAL_CACHE(HTTP_1_1)) = sizeof("1.1") - 1;
 
+	PANCAKE_GLOBALS(initialized) = 1;
+
 	return SUCCESS;
 }
 
 PHP_RSHUTDOWN_FUNCTION(Pancake) {
+	if(PANCAKE_GLOBALS(inSAPIReboot) == 1) {
+		return SUCCESS;
+	}
+
 	if(PANCAKE_GLOBALS(mimeTable)) {
 		zend_hash_destroy(PANCAKE_GLOBALS(mimeTable));
 		FREE_HASHTABLE(PANCAKE_GLOBALS(mimeTable));

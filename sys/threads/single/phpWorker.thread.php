@@ -70,13 +70,13 @@
 	#.longDefine 'EVAL_CODE'
 	global $Pancake_currentThread;
 	if(isset($Pancake_currentThread->vHost->phpINISettings["session.name"]))
-		\Pancake\PHPFunctions\setINI("session.name", $Pancake_currentThread->vHost->phpINISettings["session.name"]);
+		ini_set("session.name", $Pancake_currentThread->vHost->phpINISettings["session.name"]);
     if(isset($Pancake_currentThread->vHost->phpINISettings["error_reporting"]))
-        \Pancake\PHPFunctions\setINI("error_reporting", defined($Pancake_currentThread->vHost->phpINISettings["error_reporting"])
+        ini_set("error_reporting", defined($Pancake_currentThread->vHost->phpINISettings["error_reporting"])
                                                         ? constant($Pancake_currentThread->vHost->phpINISettings["error_reporting"])
                                                         : $Pancake_currentThread->vHost->phpINISettings["error_reporting"]);
     if(isset($Pancake_currentThread->vHost->phpINISettings["expose_php"]))
-        \Pancake\PHPFunctions\setINI("expose_php", $Pancake_currentThread->vHost->phpINISettings["expose_php"]);
+        ini_set("expose_php", $Pancake_currentThread->vHost->phpINISettings["expose_php"]);
 
 	return (bool) $Pancake_currentThread->vHost->phpINISettings;
 	#.endLongDefine
@@ -147,8 +147,6 @@
     	setThread($Pancake_currentThread);
 	    vars::$Pancake_currentThread = $Pancake_currentThread;
 	    unset($Pancake_currentThread);
-        
-        LoadModule('sapi', true);
 
         foreach($Pancake_sockets as $socket) {
             Close($socket);
@@ -206,8 +204,6 @@
 	    	vars::$functions = get_defined_functions()['user'];
 	    #.endif
 
-	    chdir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */);
-
 	    memory_get_usage(null, true);
 	    memory_get_peak_usage(null, true);
 
@@ -226,19 +222,23 @@
             
             unset($name);
         #.endif
-        
-        disableModuleLoader();
 
-		#.ifdef 'HAVE_INI_SETTINGS'
-			// Set ini settings
+        #.ifdef 'HAVE_INI_SETTINGS'
+            // Set ini settings
 
-			foreach(vars::$Pancake_currentThread->vHost->phpINISettings as $name => $value) {
-				PHPFunctions\setINI($name, $value);
-			}
+            foreach(vars::$Pancake_currentThread->vHost->phpINISettings as $name => $value) {
+                ini_set($name, $value);
+            }
             
             unset($name);
             unset($value);
-		#.endif
+        #.endif
+
+        LoadModule('sapi', true);
+        
+        disableModuleLoader();
+
+        chdir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */);
 
 	    #.ifdef 'SUPPORT_CODECACHE'
 		    // Get a list of files to cache
@@ -598,14 +598,14 @@
 			unset($object);
 
 	        dt_remove_constant('PANCAKE_PHP');
+            
+            SAPIPostRequestCleanup();
 
 	        // Reset error-handling
 	        error_reporting(/* .constant 'Pancake\ERROR_REPORTING' */);
 	        PHPFunctions\setErrorHandler('Pancake\errorHandler');
 	        set_exception_handler(null);
 
-	        // Reset ini-settings
-	        ini_set(null, null, true);
 	        stream_register_wrapper(null, null, null, true);
             
             // Clean uploaded files

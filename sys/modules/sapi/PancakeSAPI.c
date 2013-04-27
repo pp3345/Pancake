@@ -14,6 +14,7 @@ const zend_function_entry PancakeSAPI_functions[] = {
 	ZEND_NS_FE("Pancake", SAPIRequest, NULL)
 	ZEND_NS_FE("Pancake", SAPIFinishRequest, NULL)
 	ZEND_NS_FE("Pancake", SAPIFlushBuffers, NULL)
+	ZEND_NS_FE("Pancake", SAPIPostRequestCleanup, NULL)
 	ZEND_FE_END
 };
 
@@ -121,13 +122,31 @@ static int PancakeSAPIOutputHandler(const char *str, unsigned int str_length TSR
 	return SUCCESS;
 }
 
+static int PancakeSAPISetINIEntriesUnmodified(zend_ini_entry **ini_entry TSRMLS_DC) {
+	(*ini_entry)->modified = 0;
+
+	return 0;
+}
+
 PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zend_function *function;
+	zend_class_entry **vars;
+
+	if(PANCAKE_GLOBALS(inSAPIReboot) == 1) {
+		return SUCCESS;
+	}
 
 	PANCAKE_SAPI_GLOBALS(inExecution) = 0;
 	PANCAKE_SAPI_GLOBALS(outputLength) = 0;
 	PANCAKE_SAPI_GLOBALS(output) = NULL;
 
+	// Fetch vHost
+	FAST_READ_PROPERTY(PANCAKE_SAPI_GLOBALS(vHost), PANCAKE_GLOBALS(currentThread), "vHost", sizeof("vHost") - 1, HASH_OF_vHost);
+
+	// Find DeepTrace (we must not shutdown DeepTrace on SAPI module init)
+	zend_hash_find(&module_registry, "deeptrace", sizeof("deeptrace"), (void**) &PANCAKE_SAPI_GLOBALS(DeepTrace));
+
+	// Set SAPI module handlers
 	sapi_module.name = "pancake";
 	sapi_module.header_handler = PancakeSAPIHeaderHandler;
 	sapi_module.ub_write = PancakeSAPIOutputHandler;
@@ -137,6 +156,14 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zend_hash_find(EG(function_table), "headers_sent", sizeof("headers_sent"), (void**) &function);
 	PHP_headers_sent = function->internal_function.handler;
 	function->internal_function.handler = Pancake_headers_sent;
+
+	// Set current php.ini state as initial
+	if (EG(modified_ini_directives)) {
+		zend_hash_apply(EG(modified_ini_directives), (apply_func_t) PancakeSAPISetINIEntriesUnmodified TSRMLS_CC);
+		zend_hash_destroy(EG(modified_ini_directives));
+		FREE_HASHTABLE(EG(modified_ini_directives));
+		EG(modified_ini_directives) = NULL;
+	}
 
 	SG(request_info).no_headers = 0;
 	SG(headers_sent) = 0;
@@ -182,6 +209,7 @@ PHP_FUNCTION(SAPIFinishRequest) {
 
 	SG(sapi_headers).http_response_code = 0;
 	zend_llist_clean(&SG(sapi_headers).headers);
+	SG(headers_sent) = 0;
 
 	if(PANCAKE_SAPI_GLOBALS(output)) {
 		// PHP does not always null-terminate buffered output strings
@@ -196,4 +224,42 @@ PHP_FUNCTION(SAPIFinishRequest) {
 
 PHP_FUNCTION(SAPIFlushBuffers) {
 	php_output_end_all(TSRMLS_C);
+}
+
+static int PancakeSAPIShutdownModule(zend_module_entry *module TSRMLS_DC) {
+	if (module->request_shutdown_func && module != PANCAKE_SAPI_GLOBALS(DeepTrace)) {
+		module->request_shutdown_func(module->type, module->module_number TSRMLS_CC);
+	}
+
+	return 0;
+}
+
+static int PancakeSAPIStartupModule(zend_module_entry *module TSRMLS_DC) {
+	if (module->request_startup_func) {
+		module->request_startup_func(module->type, module->module_number TSRMLS_CC);
+	}
+
+	return 0;
+}
+
+PHP_FUNCTION(SAPIPostRequestCleanup) {
+	HashTable *shutdownFunctions = BG(user_shutdown_function_names);
+
+	// Tell Pancake not to shutdown
+	PANCAKE_GLOBALS(inSAPIReboot) = 1;
+
+	// Run RSHUTDOWN for modules
+	zend_hash_reverse_apply(&module_registry, (apply_func_t) PancakeSAPIShutdownModule TSRMLS_CC);
+
+	// Initialize modules again
+	zend_hash_reverse_apply(&module_registry, (apply_func_t) PancakeSAPIStartupModule TSRMLS_CC);
+	PANCAKE_GLOBALS(inSAPIReboot) = 0;
+
+	// RINIT of basic will destroy shutdown functions, however we still need them
+	BG(user_shutdown_function_names) = shutdownFunctions;
+
+	// Restore ini entries
+	zend_try {
+		zend_ini_deactivate(TSRMLS_C);
+	} zend_end_try();
 }

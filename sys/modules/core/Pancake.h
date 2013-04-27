@@ -194,7 +194,7 @@ extern zend_class_entry *MIME_ce;
 #define PANCAKE_GLOBALS(v) (Pancake_globals.v)
 #endif
 
-#define PANCAKE_ZVAL_CACHE_SIZE 3
+#define PANCAKE_ZVAL_CACHE_SIZE 4
 #define PANCAKE_ZVAL_CACHE_KEEP_ALIVE 0
 #define PANCAKE_ZVAL_CACHE_CLOSE 1
 #define PANCAKE_ZVAL_CACHE_GZIP 2
@@ -229,6 +229,8 @@ ZEND_BEGIN_MODULE_GLOBALS(Pancake)
 	int disableModuleLoader;
 	int naglesAlgorithm;
 	zval *zvalCache[PANCAKE_ZVAL_CACHE_SIZE];
+	zend_bool initialized;
+	zend_bool inSAPIReboot;
 ZEND_END_MODULE_GLOBALS(Pancake)
 extern ZEND_DECLARE_MODULE_GLOBALS(Pancake);
 

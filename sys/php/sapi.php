@@ -349,23 +349,6 @@
     }
     #.endif
 
-    function ini_set($varname, $newvalue, $reset = false) {
-        static $settings = array();
-        if($reset === true) {
-            foreach($settings as $varname => $newvalue)
-                Pancake\PHPFunctions\setINI($varname, $newvalue);
-            $settings = array();
-            return true;
-        }
-        if(!isset($settings[$varname]))
-            $settings[$varname] = ini_get($varname);
-        return Pancake\PHPFunctions\setINI($varname, $newvalue);
-    }
-
-    function ini_alter($varname, $newvalue) {
-    	return ini_set($varname, $newvalue);
-    }
-
     function debug_backtrace($options = /* .constant 'DEBUG_BACKTRACE_PROVIDE_OBJECT' */, $limit = 0) {
     	if($limit)
     		$limit += 3;

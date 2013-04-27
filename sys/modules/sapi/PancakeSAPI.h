@@ -32,6 +32,8 @@ ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)
 	zend_bool inExecution;
 	char *output;
 	unsigned int outputLength;
+	zend_module_entry *DeepTrace;
+	zval *vHost;
 ZEND_END_MODULE_GLOBALS(PancakeSAPI)
 extern ZEND_DECLARE_MODULE_GLOBALS(PancakeSAPI);
 
@@ -43,5 +45,6 @@ PHP_RINIT_FUNCTION(PancakeSAPI);
 PHP_FUNCTION(SAPIRequest);
 PHP_FUNCTION(SAPIFinishRequest);
 PHP_FUNCTION(SAPIFlushBuffers);
+PHP_FUNCTION(SAPIPostRequestCleanup);
 
 #endif
