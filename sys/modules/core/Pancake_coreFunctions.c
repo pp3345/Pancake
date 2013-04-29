@@ -485,6 +485,8 @@ PHP_FUNCTION(loadModule) {
 		spprintf(&modulePath, 0, "%s/natives/%s/x86_5" PHP_MINOR_VERSION_STRING ".so", pancakePath, name);
 #elif defined(PANCAKE_ARMHF)
 		spprintf(&modulePath, 0, "%s/natives/%s/armhf_5" PHP_MINOR_VERSION_STRING ".so", pancakePath, name);
+#elif defined(PANCAKE_MIPS)
+		spprintf(&modulePath, 0, "%s/natives/%s/mips_5" PHP_MINOR_VERSION_STRING ".so", pancakePath, name);
 #endif
 
 		free(pancakePath);

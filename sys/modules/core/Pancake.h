@@ -67,6 +67,9 @@ extern zend_module_entry Pancake_module_entry;
 #	define PANCAKE_X86_64
 #elif defined(__arm__)
 #	define PANCAKE_ARMHF
+#elif defined(__mips__)
+#	define PANCAKE_MIPS
+#	warning "Please note that there is no official support for Pancake on MIPS processors"
 #else
 #	error "Unsupported processor"
 #endif
