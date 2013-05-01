@@ -11,6 +11,7 @@
 ZEND_DECLARE_MODULE_GLOBALS(PancakeSAPI)
 
 const zend_function_entry PancakeSAPI_functions[] = {
+	ZEND_NS_FE("Pancake", SAPIPrepare, NULL)
 	ZEND_NS_FE("Pancake", SAPIRequest, NULL)
 	ZEND_NS_FE("Pancake", SAPIFinishRequest, NULL)
 	ZEND_NS_FE("Pancake", SAPIFlushBuffers, NULL)
@@ -25,7 +26,7 @@ zend_module_entry PancakeSAPI_module_entry = {
 	PHP_MINIT(PancakeSAPI),
 	NULL,
 	PHP_RINIT(PancakeSAPI),
-	NULL,
+	PHP_RSHUTDOWN(PancakeSAPI),
 	NULL,
 	PANCAKE_VERSION,
 	STANDARD_MODULE_PROPERTIES
@@ -39,6 +40,8 @@ PHP_MINIT_FUNCTION(PancakeSAPI) {
 #ifdef ZTS
 	ZEND_INIT_MODULE_GLOBALS(PancakeSAPI, NULL, NULL);
 #endif
+
+	PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes) = NULL;
 
 	return SUCCESS;
 }
@@ -152,10 +155,29 @@ static int PancakeSAPISetINIEntriesUnmodified(zend_ini_entry **ini_entry TSRMLS_
 	return 0;
 }
 
+static HashTable *PancakeSAPITransformHashTableValuesToKeys(HashTable *table) {
+	HashTable *new;
+	zval **value;
+
+	ALLOC_HASHTABLE(new);
+	zend_hash_init(new, table->nTableSize, NULL, NULL, 0);
+
+	PANCAKE_FOREACH(table, value) {
+		if(Z_TYPE_PP(value) != IS_STRING) {
+			continue;
+		}
+
+		php_strtolower(Z_STRVAL_PP(value), Z_STRLEN_PP(value));
+		zend_hash_add(new, Z_STRVAL_PP(value), Z_STRLEN_PP(value) + 1, NULL, 0, NULL);
+	}
+
+	return new;
+}
+
 PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zend_function *function;
 	zend_class_entry **vars;
-	zval *disabledFunctions;
+	zval *disabledFunctions, *autoDelete, *autoDeleteExcludes;
 
 	if(PANCAKE_GLOBALS(inSAPIReboot) == 1) {
 		return SUCCESS;
@@ -188,6 +210,23 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 		PANCAKE_FOREACH(Z_ARRVAL_P(disabledFunctions), value) {
 			php_strtolower(Z_STRVAL_PP(value), Z_STRLEN_PP(value));
 			zend_disable_function(Z_STRVAL_PP(value), Z_STRLEN_PP(value) TSRMLS_CC);
+		}
+	}
+
+	// Read auto deletes
+	autoDelete = zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "autoDelete", sizeof("autoDelete") - 1, 0 TSRMLS_CC);
+	PANCAKE_SAPI_GLOBALS(autoDeleteFunctions) = Z_TYPE_P(autoDelete) == IS_ARRAY && zend_hash_exists(Z_ARRVAL_P(autoDelete), "functions", sizeof("functions"));
+	PANCAKE_SAPI_GLOBALS(autoDeleteClasses) = Z_TYPE_P(autoDelete) == IS_ARRAY && zend_hash_exists(Z_ARRVAL_P(autoDelete), "classes", sizeof("classes"));
+	PANCAKE_SAPI_GLOBALS(autoDeleteIncludes) = Z_TYPE_P(autoDelete) == IS_ARRAY && zend_hash_exists(Z_ARRVAL_P(autoDelete), "includes", sizeof("includes"));
+
+	autoDeleteExcludes = zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "autoDeleteExcludes", sizeof("autoDeleteExcludes") - 1, 0 TSRMLS_CC);
+	if(Z_TYPE_P(autoDeleteExcludes) == IS_ARRAY && zend_hash_exists(Z_ARRVAL_P(autoDeleteExcludes), "functions", sizeof("functions"))) {
+		zval **functions;
+
+		zend_hash_find(Z_ARRVAL_P(autoDeleteExcludes), "functions", sizeof("functions"), (void**) &functions);
+
+		if(Z_TYPE_PP(functions) == IS_ARRAY) {
+			PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes) = PancakeSAPITransformHashTableValuesToKeys(Z_ARRVAL_PP(functions));
 		}
 	}
 
@@ -228,6 +267,26 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zend_llist_clean(&SG(sapi_headers).headers);
 
 	return SUCCESS;
+}
+
+PHP_RSHUTDOWN_FUNCTION(PancakeSAPI) {
+	if(PANCAKE_GLOBALS(inSAPIReboot) == 1) {
+		return SUCCESS;
+	}
+
+	if(PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes)) {
+		zend_hash_destroy(PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes));
+		efree(PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes));
+	}
+
+	return SUCCESS;
+}
+
+PHP_FUNCTION(SAPIPrepare) {
+	// Fetch amount of currently existing functions
+	if(PANCAKE_SAPI_GLOBALS(autoDeleteFunctions)) {
+		PANCAKE_SAPI_GLOBALS(functionsPre) = EG(function_table)->nNumOfElements;
+	}
 }
 
 PHP_FUNCTION(SAPIRequest) {
@@ -310,5 +369,28 @@ PHP_FUNCTION(SAPIPostRequestCleanup) {
 		zend_hash_destroy(SG(rfc1867_uploaded_files));
 		FREE_HASHTABLE(SG(rfc1867_uploaded_files));
 		SG(rfc1867_uploaded_files) = NULL;
+	}
+
+	// Destroy functions
+	if(PANCAKE_SAPI_GLOBALS(autoDeleteFunctions) && EG(function_table)->nNumOfElements > PANCAKE_SAPI_GLOBALS(functionsPre)) {
+		char *functionName;
+		uint functionName_len;
+		int iterationCount = EG(function_table)->nNumOfElements - PANCAKE_SAPI_GLOBALS(functionsPre);
+
+		for(zend_hash_internal_pointer_end_ex(EG(function_table), NULL);
+			iterationCount--
+			&& zend_hash_get_current_key_ex(EG(function_table), &functionName, &functionName_len, NULL, 0, NULL) == HASH_KEY_IS_STRING;
+			zend_hash_internal_pointer_end_ex(EG(function_table), NULL)) {
+			if(PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes)
+			&&	zend_hash_quick_exists(PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes), functionName, functionName_len, EG(function_table)->pInternalPointer->h)) {
+				continue;
+			}
+
+			if(EG(function_table)->pInternalPointer->h == HASH_OF___autoload) {
+				EG(autoload_func) = NULL;
+			}
+
+			zend_hash_quick_del(EG(function_table), functionName, functionName_len, EG(function_table)->pInternalPointer->h);
+		}
 	}
 }

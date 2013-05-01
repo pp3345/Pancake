@@ -25,10 +25,6 @@
 		#.define 'SUPPORT_CODECACHE' true
 	#.endif
 
-	#.if #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["functions"]) ? $Pancake_currentThread->vHost->autoDelete["functions"] : true);' false
-		#.AUTODELETE_FUNCTIONS = true
-	#.endif
-
 	#.if #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["classes"]) ? $Pancake_currentThread->vHost->autoDelete["classes"] : true);' false
 		#.AUTODELETE_CLASSES = true
 	#.endif
@@ -255,7 +251,7 @@
 	   	#.endif
 
 	    // Get currently defined funcs, consts, classes, interfaces, traits and includes
-	    #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_FUNCTIONS'
+	    #.if Pancake\DEBUG_MODE
 	    vars::$Pancake_funcsPre = get_defined_functions();
 	    #.endif
 	    #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_CONSTANTS'
@@ -304,6 +300,9 @@
         #.ifdef 'STDERR'
             dt_remove_constant('STDERR');
         #.endif
+        
+        // Further prepare the Pancake SAPI module
+        SAPIPrepare();
 
 	    // Set user and group
 	    setUser();
@@ -705,34 +704,11 @@
             }
             #.endif
 
-			#.ifdef 'AUTODELETE_FUNCTIONS'
-	        $funcsPost = get_defined_functions();
-			#.endif
 			#.ifdef 'AUTODELETE_CONSTANTS'
 	        $constsPost = get_defined_constants(true);
 			#.endif
 
-	        #.ifdef 'AUTODELETE_FUNCTIONS'
-	            foreach($funcsPost['user'] as $func) {
-	                if(!in_array($func, vars::$Pancake_funcsPre['user'])
-						#.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->autoDeleteExcludes["functions"];' false
-	                	&& !isset(vars::$Pancake_currentThread->vHost->autoDeleteExcludes['functions'][$func])
-	                	#.endif
-	                	#.if Pancake\DEBUG_MODE === true
-	                	&& stripos($func, '__PANCAKE_BENCHMARK__') !== 0
-	                	&& !in_array($func, benchmarkFunction(null, false, true))
-	                	#.endif
-	                	) {
-	                    dt_destroy_function_data($func);
-	                    $deleteFunctions[] = $func;
-	                }
-	            }
-
-				unset($func);
-				unset($funcsPost);
-	        #.endif
-
-	        #.ifdef 'AUTODELETE_CLASSES'
+			#.ifdef 'AUTODELETE_CLASSES'
 	            foreach(get_declared_classes() as $class) {
 	                if(!in_array($class, vars::$Pancake_classesPre)
 	                	#.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->autoDeleteExcludes["classes"];' false
@@ -864,7 +840,7 @@
 	        srand();
 
 	        // Get currently defined funcs, consts, classes, interfaces, traits and includes
-	        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_FUNCTIONS'
+	        #.if Pancake\DEBUG_MODE
 	        vars::$Pancake_funcsPre = get_defined_functions();
 	        #.endif
 	        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_CONSTANTS'

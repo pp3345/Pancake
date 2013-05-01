@@ -38,12 +38,21 @@ ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)
 	unsigned int outputLength;
 	zend_module_entry *DeepTrace;
 	zval *vHost;
+	zend_bool autoDeleteFunctions;
+	zend_bool autoDeleteClasses;
+	zend_bool autoDeleteIncludes;
+	HashTable *autoDeleteFunctionsExcludes;
+	uint functionsPre;
+	uint classesPre;
+	uint includesPre;
 ZEND_END_MODULE_GLOBALS(PancakeSAPI)
 extern ZEND_DECLARE_MODULE_GLOBALS(PancakeSAPI);
 
 PHP_MINIT_FUNCTION(PancakeSAPI);
 PHP_RINIT_FUNCTION(PancakeSAPI);
+PHP_RSHUTDOWN_FUNCTION(PancakeSAPI);
 
+PHP_FUNCTION(SAPIPrepare);
 PHP_FUNCTION(SAPIRequest);
 PHP_FUNCTION(SAPIFinishRequest);
 PHP_FUNCTION(SAPIFlushBuffers);

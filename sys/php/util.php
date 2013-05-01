@@ -210,7 +210,7 @@
         #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_CONSTANTS'
         public static $Pancake_constsPre = array();
         #.endif
-        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_FUNCTIONS'
+        #.if Pancake\DEBUG_MODE
         public static $Pancake_funcsPre = array();
         #.endif
         #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_INCLUDES'
