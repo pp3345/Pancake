@@ -42,6 +42,7 @@ PHP_MINIT_FUNCTION(PancakeSAPI) {
 #endif
 
 	PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes) = NULL;
+	PANCAKE_SAPI_GLOBALS(autoDeleteIncludesExcludes) = NULL;
 
 	return SUCCESS;
 }
@@ -220,13 +221,17 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	PANCAKE_SAPI_GLOBALS(autoDeleteIncludes) = Z_TYPE_P(autoDelete) == IS_ARRAY && zend_hash_exists(Z_ARRVAL_P(autoDelete), "includes", sizeof("includes"));
 
 	autoDeleteExcludes = zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "autoDeleteExcludes", sizeof("autoDeleteExcludes") - 1, 0 TSRMLS_CC);
-	if(Z_TYPE_P(autoDeleteExcludes) == IS_ARRAY && zend_hash_exists(Z_ARRVAL_P(autoDeleteExcludes), "functions", sizeof("functions"))) {
-		zval **functions;
+	if(Z_TYPE_P(autoDeleteExcludes) == IS_ARRAY) {
+		zval **data;
 
-		zend_hash_find(Z_ARRVAL_P(autoDeleteExcludes), "functions", sizeof("functions"), (void**) &functions);
+		if(zend_hash_find(Z_ARRVAL_P(autoDeleteExcludes), "functions", sizeof("functions"), (void**) &data) == SUCCESS
+		&& Z_TYPE_PP(data) == IS_ARRAY) {
+			PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes) = PancakeSAPITransformHashTableValuesToKeys(Z_ARRVAL_PP(data));
+		}
 
-		if(Z_TYPE_PP(functions) == IS_ARRAY) {
-			PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes) = PancakeSAPITransformHashTableValuesToKeys(Z_ARRVAL_PP(functions));
+		if(zend_hash_find(Z_ARRVAL_P(autoDeleteExcludes), "includes", sizeof("includes"), (void**) &data) == SUCCESS
+		&& Z_TYPE_PP(data) == IS_ARRAY) {
+			PANCAKE_SAPI_GLOBALS(autoDeleteIncludesExcludes) = PancakeSAPITransformHashTableValuesToKeys(Z_ARRVAL_PP(data));
 		}
 	}
 
@@ -279,6 +284,11 @@ PHP_RSHUTDOWN_FUNCTION(PancakeSAPI) {
 		efree(PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes));
 	}
 
+	if(PANCAKE_SAPI_GLOBALS(autoDeleteIncludesExcludes)) {
+		zend_hash_destroy(PANCAKE_SAPI_GLOBALS(autoDeleteIncludesExcludes));
+		efree(PANCAKE_SAPI_GLOBALS(autoDeleteIncludesExcludes));
+	}
+
 	return SUCCESS;
 }
 
@@ -286,6 +296,11 @@ PHP_FUNCTION(SAPIPrepare) {
 	// Fetch amount of currently existing functions
 	if(PANCAKE_SAPI_GLOBALS(autoDeleteFunctions)) {
 		PANCAKE_SAPI_GLOBALS(functionsPre) = EG(function_table)->nNumOfElements;
+	}
+
+	// Fetch currently included files
+	if(PANCAKE_SAPI_GLOBALS(autoDeleteIncludes)) {
+		PANCAKE_SAPI_GLOBALS(includesPre) = EG(included_files).nNumOfElements;
 	}
 }
 
@@ -379,10 +394,10 @@ PHP_FUNCTION(SAPIPostRequestCleanup) {
 
 		for(zend_hash_internal_pointer_end_ex(EG(function_table), NULL);
 			iterationCount--
-			&& zend_hash_get_current_key_ex(EG(function_table), &functionName, &functionName_len, NULL, 0, NULL) == HASH_KEY_IS_STRING;
-			zend_hash_internal_pointer_end_ex(EG(function_table), NULL)) {
+			&& zend_hash_get_current_key_ex(EG(function_table), &functionName, &functionName_len, NULL, 0, NULL) == HASH_KEY_IS_STRING;) {
 			if(PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes)
 			&&	zend_hash_quick_exists(PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes), functionName, functionName_len, EG(function_table)->pInternalPointer->h)) {
+				zend_hash_move_backward(EG(function_table));
 				continue;
 			}
 
@@ -391,6 +406,35 @@ PHP_FUNCTION(SAPIPostRequestCleanup) {
 			}
 
 			zend_hash_quick_del(EG(function_table), functionName, functionName_len, EG(function_table)->pInternalPointer->h);
+			zend_hash_internal_pointer_end(EG(function_table));
 		}
 	}
+
+	PANCAKE_SAPI_GLOBALS(functionsPre) = EG(function_table)->nNumOfElements;
+
+	// Destroy includes
+	if(PANCAKE_SAPI_GLOBALS(autoDeleteIncludes)) {
+		if(PANCAKE_SAPI_GLOBALS(autoDeleteIncludesExcludes) || PANCAKE_SAPI_GLOBALS(includesPre)) {
+			char *fileName;
+			int fileName_len;
+			int iterationCount = EG(included_files).nNumOfElements - PANCAKE_SAPI_GLOBALS(includesPre);
+
+			for(zend_hash_internal_pointer_end(&EG(included_files));
+				iterationCount--
+				&& zend_hash_get_current_key_ex(&EG(included_files), &fileName, &fileName_len, NULL, 0, NULL) == HASH_KEY_IS_STRING;){
+				if(PANCAKE_SAPI_GLOBALS(autoDeleteIncludesExcludes)
+				&& zend_hash_quick_exists(PANCAKE_SAPI_GLOBALS(autoDeleteIncludesExcludes), fileName, fileName_len, EG(included_files).pInternalPointer->h)) {
+					zend_hash_move_forward(&EG(included_files));
+					continue;
+				}
+
+				zend_hash_quick_del(&EG(included_files), fileName, fileName_len, EG(included_files).pInternalPointer->h);
+				zend_hash_internal_pointer_end(&EG(included_files));
+			}
+		} else {
+			zend_hash_clean(&EG(included_files));
+		}
+	}
+
+	PANCAKE_SAPI_GLOBALS(includesPre) = EG(included_files).nNumOfElements;
 }

@@ -213,7 +213,7 @@
         #.if Pancake\DEBUG_MODE
         public static $Pancake_funcsPre = array();
         #.endif
-        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_INCLUDES'
+        #.if Pancake\DEBUG_MODE
         public static $Pancake_includesPre = array();
         #.endif
         #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_CLASSES'

@@ -41,10 +41,6 @@
 		#.AUTODELETE_CONSTANTS = true
 	#.endif
 
-	#.if #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["includes"]) ? $Pancake_currentThread->vHost->autoDelete["includes"] : true);' false
-		#.AUTODELETE_INCLUDES = true
-	#.endif
-
 	#.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->forceDeletes;' false
 		#.HAVE_FORCED_DELETES = true
 	#.endif
@@ -257,7 +253,7 @@
 	    #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_CONSTANTS'
 	    vars::$Pancake_constsPre = get_defined_constants(true);
 	    #.endif
-	    #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_INCLUDES'
+	    #.if Pancake\DEBUG_MODE
 	    vars::$Pancake_includesPre = get_included_files();
 	    #.endif
 	    #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_CLASSES'
@@ -814,20 +810,6 @@
                 unset($constValue);
             #.endif
 
-            #.ifdef 'AUTODELETE_INCLUDES'
-                foreach(get_included_files() as $include) {
-                    if(!in_array($include, vars::$Pancake_includesPre)
-                        #.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->autoDeleteExcludes["includes"];' false
-                        && !isset(vars::$Pancake_currentThread->vHost->autoDeleteExcludes['includes'][$include])
-                        #.endif
-                        ) {
-                        dt_remove_include($include);
-                    }
-                }
-
-                unset($include);
-            #.endif
-
 		    #.ifdef 'SUPPORT_CODECACHE'
 	        cleanGlobals(vars::$Pancake_exclude, false, true);
 	        #.else
@@ -846,7 +828,7 @@
 	        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_CONSTANTS'
 	        vars::$Pancake_constsPre = get_defined_constants(true);
 	        #.endif
-	        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_INCLUDES'
+	        #.if Pancake\DEBUG_MODE
 	        vars::$Pancake_includesPre = get_included_files();
 	        #.endif
 	        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_CLASSES'

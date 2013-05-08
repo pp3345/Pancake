@@ -42,6 +42,7 @@ ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)
 	zend_bool autoDeleteClasses;
 	zend_bool autoDeleteIncludes;
 	HashTable *autoDeleteFunctionsExcludes;
+	HashTable *autoDeleteIncludesExcludes;
 	uint functionsPre;
 	uint classesPre;
 	uint includesPre;

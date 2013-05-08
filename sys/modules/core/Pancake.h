@@ -170,6 +170,12 @@ extern zend_class_entry *MIME_ce;
 				zend_hash_get_current_data(table, (void**) &value) == SUCCESS; \
 				zend_hash_move_forward(table))
 
+#define PANCAKE_FOREACH_KEY(table, key, key_len, value) \
+		for(zend_hash_internal_pointer_reset(table); \
+				zend_hash_get_current_data(table, (void**) &value) == SUCCESS \
+				&& zend_hash_get_current_key_ex(table, &key, &key_len, NULL, 0, NULL) != HASH_KEY_NON_EXISTANT; \
+				zend_hash_move_forward(table))
+
 #define PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL(message, message_len, code, header, header_len) { \
 	zval *exception; \
 	\
