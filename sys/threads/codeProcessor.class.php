@@ -41,7 +41,13 @@
 			SigWaitInfo(array(\SIGCHLD), $info);
 			Wait($x, \WNOHANG);
 
-			$this->running = false;
+            $this->running = false;
+
+            if($info["pid"] != $this->pid) {
+                trigger_error("Thread " . $info["pid"] . " exited while in compilation, please report this error to the Pancake support", \E_USER_ERROR);
+                $this->kill();
+                abort();
+            }
 
 			if($info["status"] !== 1) {
 			    trigger_error("Failed to compile sources, please report this error to the Pancake support", \E_USER_ERROR);
