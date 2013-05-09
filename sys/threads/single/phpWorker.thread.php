@@ -298,45 +298,13 @@
         #.endif
         
         // Further prepare the Pancake SAPI module
-        SAPIPrepare();
+        SAPIPrepare(vars::$Pancake_currentThread->vHost->phpSocket, vars::$Pancake_currentThread->socket);
 
 	    // Set user and group
 	    setUser();
 
 	    // Wait for requests
-	    while(Select(vars::$listenArray) !== false) {
-            if(isset(vars::$listenArray[vars::$Pancake_currentThread->socket])) {
-                switch(Read(vars::$Pancake_currentThread->socket, 512)) {
-                    case "GRACEFUL_SHUTDOWN":
-                        break 2;
-                    case "LOAD_FILE_POINTERS":
-                        loadFilePointers();
-                        goto cycle;
-                }
-            }
-
-            vars::$requestSocket = Accept(vars::$listenArray[vars::$Pancake_currentThread->vHost->phpSocket]);
-
-	    	// Get request object from RequestWorker
-	    	$packages = hexdec(Read(vars::$requestSocket, 8));
-	    	$length = hexdec(Read(vars::$requestSocket, 8));
-
-	    	if($packages > 1) {
-	    		$sockData = "";
-
-	    		while($packages--)
-	    			$sockData .= Read(vars::$requestSocket, $length);
-
-	    		vars::$Pancake_request = unserialize($sockData);
-	    		unset($sockData);
-	    	} else
-	    		vars::$Pancake_request = unserialize(Read(vars::$requestSocket, $length));
-
-	    	unset($length);
-	    	unset($packages);
-            
-            SAPIRequest(vars::$Pancake_request);
-
+	    while(vars::$Pancake_request = SAPIWait()) {
 #.if #.call 'ini_get' 'expose_php'
             #.PHP_VERSION_STRING = ,"PHP/" PHP_VERSION
             vars::$Pancake_request->setHeader('X-Powered-By', /* .PHP_VERSION_STRING */);
@@ -395,10 +363,6 @@
 	            runShutdown:
 
 	            vars::$executedShutdown = true;
-
-	            // Run header callbacks
-	            foreach(vars::$Pancake_headerCallbacks as $callback)
-	                call_user_func($callback);
 
 	            // Run Registered Shutdown Functions
 	            foreach(vars::$Pancake_shutdownCalls as $shutdownCall)
@@ -508,39 +472,6 @@
 	        
             SAPIFinishRequest();
             
-	        $object = new \stdClass;
-			$object->answerHeaders = vars::$Pancake_request->answerHeaders;
-			$object->answerCode = vars::$Pancake_request->answerCode;
-            $object->answerCodeString = vars::$Pancake_request->answerCodeString;
-
-	        // Update request object and send it to RequestWorker
-	        if(!vars::$invalidRequest) {
-	            $object->answerBody = vars::$Pancake_request->answerBody;
-            }
-
-	        $data = serialize($object);
-	        $packages = array();
-
-	      	if($packageSize = AdjustSendBufferSize(vars::$requestSocket, strlen($data))) {
-	      		for($i = 0;$i < ceil(strlen($data) / $packageSize);$i++)
-	      			$packages[] = substr($data, $i * $packageSize, $packageSize);
-	      	} else
-	      		$packages[] = $data;
-
-	        // First transmit the length of the serialized object, then the object itself
-	        Write(vars::$requestSocket, dechex(count($packages)));
-	        Write(vars::$requestSocket, dechex(strlen($packages[0])));
-	        foreach($packages as $data)
-	        	Write(vars::$requestSocket, $data);
-            
-            Close(vars::$requestSocket);
-
-	        // Clean
-			unset($packages);
-			unset($data);
-			unset($contents);
-			unset($object);
-
 	        dt_remove_constant('PANCAKE_PHP');
             
             SAPIPostRequestCleanup();
@@ -561,7 +492,6 @@
 	        vars::$errorHandlerHistory = array();
 	        vars::$lastError = null;
 	        vars::$Pancake_shutdownCalls = array();
-	        vars::$Pancake_headerCallbacks = array();
 	        vars::$executedShutdown = false;
 	        vars::$invalidRequest = false;
 	        #.ifdef 'HAVE_LIMIT'

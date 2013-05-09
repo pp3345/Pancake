@@ -20,14 +20,6 @@
         return 'PAN8DF095AE-6639-4C6F-8831-5AB8FBD64D8B';
     }
 
-    function header_register_callback($callback) {
-        if(!is_callable($callback))
-            return false;
-
-        Pancake\vars::$Pancake_headerCallbacks[] = $callback;
-        return true;
-    }
-
     function session_register_shutdown() {
     	return register_shutdown_function('session_write_close');
     }

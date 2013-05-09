@@ -194,7 +194,7 @@
             if($this->phpWorkers) {
                 $this->phpSocketName = Config::get('main.tmppath') . mt_rand() . '_' . $this->name . '_socket';
 
-                $this->phpSocket = Socket(\AF_UNIX, \SOCK_SEQPACKET, 0);
+                $this->phpSocket = Socket(\AF_UNIX, \SOCK_STREAM, 0);
                 Bind($this->phpSocket, \AF_UNIX, $this->phpSocketName);
                 Listen($this->phpSocket, (int) $config['phpsocketbacklog']);
 

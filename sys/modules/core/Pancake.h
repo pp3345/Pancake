@@ -41,6 +41,7 @@
 #include "ext/standard/url.h"
 #include "ext/session/php_session.h"
 #include "main/php_network.h"
+#include "ext/standard/php_smart_str.h"
 #include <signal.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
@@ -579,5 +580,7 @@ static int PancakeFastHasProperty(zval *object, zval *member, int has_set_exists
 #define HASH_OF_fileHandle 13873908674298962065U
 #define HASH_OF_answerCodeString 14190217524307537351U
 #define HASH_OF___autoload 13862708775328875964U
+#define HASH_OF_freeSocket 13874316547539494416U
+#define HASH_OF_address 7572151963013451U
 
 #endif	/* PANCAKE_H */

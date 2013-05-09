@@ -35,6 +35,7 @@
 	        public $rewriteRules = array();
 	        #.ifdef 'SUPPORT_PHP'
 	        public $phpSocketName = "";
+            public $SAPIClient = false;
 	        #.endif
 	        #.ifdef 'SUPPORT_FASTCGI'
 	        public $fastCGI = array();

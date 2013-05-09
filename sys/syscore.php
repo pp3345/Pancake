@@ -112,7 +112,6 @@
         dt_remove_function('filter_input_array');
     }
     dt_remove_function('restore_error_handler');
-    dt_remove_function('header_register_callback');
     dt_remove_function('session_register_shutdown');
     dt_rename_function('debug_backtrace', 'Pancake\PHPFunctions\debugBacktrace');
     dt_rename_function('debug_print_backtrace', 'Pancake\PHPFunctions\debugPrintBacktrace');

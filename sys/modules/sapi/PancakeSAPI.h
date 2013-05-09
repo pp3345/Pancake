@@ -15,6 +15,7 @@
 
 #include "../core/Pancake.h"
 #include "ext/standard/php_string.h"
+#include <sys/epoll.h>
 
 extern zend_module_entry PancakeSAPI_module_entry;
 #define phpext_PancakeSAPI_ptr &PancakeSAPI_module_entry
@@ -46,6 +47,10 @@ ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)
 	uint functionsPre;
 	uint classesPre;
 	uint includesPre;
+	int epoll;
+	int listenSocket;
+	int controlSocket;
+	int clientSocket;
 ZEND_END_MODULE_GLOBALS(PancakeSAPI)
 extern ZEND_DECLARE_MODULE_GLOBALS(PancakeSAPI);
 
@@ -54,9 +59,9 @@ PHP_RINIT_FUNCTION(PancakeSAPI);
 PHP_RSHUTDOWN_FUNCTION(PancakeSAPI);
 
 PHP_FUNCTION(SAPIPrepare);
-PHP_FUNCTION(SAPIRequest);
 PHP_FUNCTION(SAPIFinishRequest);
 PHP_FUNCTION(SAPIFlushBuffers);
 PHP_FUNCTION(SAPIPostRequestCleanup);
+PHP_FUNCTION(SAPIWait);
 
 #endif

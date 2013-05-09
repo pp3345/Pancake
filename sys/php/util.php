@@ -78,29 +78,6 @@
 
         SAPIFlushBuffers();    	
     	SAPIFinishRequest();
-
-    	$object = new \stdClass;
-        $object->answerHeaders = vars::$Pancake_request->answerHeaders;
-        $object->answerCode = vars::$Pancake_request->answerCode;
-        $object->answerCodeString = vars::$Pancake_request->answerCodeString;
-        $object->answerBody = vars::$Pancake_request->answerBody;
-
-        $data = serialize($object);
-    	$packages = array();
-
-      	if($packageSize = AdjustSendBufferSize(vars::$requestSocket, strlen($data))) {
-      		for($i = 0;$i < ceil($data / $packageSize);$i++)
-      			$packages[] = substr($data, $i * $packageSize, $i * $packageSize + $packageSize);
-      	} else
-      		$packages[] = $data;
-
-        // First transmit the length of the serialized object, then the object itself
-        Write(vars::$requestSocket, dechex(count($packages)));
-        Write(vars::$requestSocket, dechex(strlen($packages[0])));
-        foreach($packages as $data)
-        	Write(vars::$requestSocket, $data);
-        
-        Close(vars::$requestSocket);
         
         // Clean uploaded files
         if(vars::$Pancake_request->uploadedFileTempNames) {
@@ -231,7 +208,6 @@
         #.ifdef 'HAVE_LIMIT'
         public static $Pancake_processedRequests = 0;
         #.endif
-        public static $Pancake_headerCallbacks = array();
         public static $Pancake_shutdownCalls = array();
         public static $errorHandler = null;
         public static $errorHandlerHistory = array();

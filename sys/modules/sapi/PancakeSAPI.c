@@ -12,10 +12,10 @@ ZEND_DECLARE_MODULE_GLOBALS(PancakeSAPI)
 
 const zend_function_entry PancakeSAPI_functions[] = {
 	ZEND_NS_FE("Pancake", SAPIPrepare, NULL)
-	ZEND_NS_FE("Pancake", SAPIRequest, NULL)
 	ZEND_NS_FE("Pancake", SAPIFinishRequest, NULL)
 	ZEND_NS_FE("Pancake", SAPIFlushBuffers, NULL)
 	ZEND_NS_FE("Pancake", SAPIPostRequestCleanup, NULL)
+	ZEND_NS_FE("Pancake", SAPIWait, NULL)
 	ZEND_FE_END
 };
 
@@ -47,26 +47,66 @@ PHP_MINIT_FUNCTION(PancakeSAPI) {
 	return SUCCESS;
 }
 
-static void PancakeSAPIStoreHTTPStatusLine(TSRMLS_D) {
-	if(SG(sapi_headers).http_status_line) {
-		if(strlen(SG(sapi_headers).http_status_line) >= sizeof("HTTP/1.0 200 ") && SG(sapi_headers).http_status_line[12] == ' ') {
-			char *answerCodeString = &(SG(sapi_headers).http_status_line[13]);
+static int PancakeSAPISendHeaders(sapi_headers_struct *sapi_headers TSRMLS_DC) {
+	zval *answerHeaders;
+	php_serialize_data_t varHash;
+	smart_str buf = {0};
+	size_t offset = 0;
+	short responseCode = (short) sapi_headers->http_response_code;
 
-			PancakeQuickWritePropertyString(PANCAKE_SAPI_GLOBALS(request), "answerCodeString", sizeof("answerCodeString"), HASH_OF_answerCodeString, answerCodeString,
-					strlen(answerCodeString), 1);
+	if(!PANCAKE_SAPI_GLOBALS(inExecution)) {
+		return SUCCESS;
+	}
+
+	FAST_READ_PROPERTY(answerHeaders, PANCAKE_SAPI_GLOBALS(request), "answerHeaders", sizeof("answerHeaders") - 1, HASH_OF_answerHeaders);
+
+	PHP_VAR_SERIALIZE_INIT(varHash);
+	php_var_serialize(&buf, &answerHeaders, &varHash TSRMLS_CC);
+	PHP_VAR_SERIALIZE_DESTROY(varHash);
+
+	/* Write packet type */
+	if(write(PANCAKE_SAPI_GLOBALS(clientSocket), "\0", sizeof(char)) == -1) {
+		/* What do we do here? */
+		return SAPI_HEADER_SEND_FAILED;
+	}
+
+	/* Write header length */
+	write(PANCAKE_SAPI_GLOBALS(clientSocket), &buf.len, sizeof(size_t));
+
+	/* Write headers */
+	while(offset < buf.len) {
+		ssize_t result = write(PANCAKE_SAPI_GLOBALS(clientSocket), &buf.c[offset], buf.len - offset);
+		if(result == -1) {
+			/* What do we do here? */
+			return SAPI_HEADER_SEND_FAILED;
 		}
 
-		efree(SG(sapi_headers).http_status_line);
-		SG(sapi_headers).http_status_line = NULL;
+		offset += result;
 	}
-}
 
-static int PancakeSAPISendHeaders(sapi_headers_struct *sapi_headers TSRMLS_DC) {
-	// We don't actually send headers at the moment
-	SG(headers_sent) = 0;
+	/* Write status code */
+	write(PANCAKE_SAPI_GLOBALS(clientSocket), &responseCode, sizeof(short));
 
-	// sapi_send_headers() will destroy the status line afterwards
-	PancakeSAPIStoreHTTPStatusLine(TSRMLS_C);
+	if(sapi_headers->http_status_line && strlen(sapi_headers->http_status_line) >= sizeof("HTTP/1.0 200 ") && sapi_headers->http_status_line[12] == ' ') {
+		char *answerCodeString = &(SG(sapi_headers).http_status_line[13]);
+		short statusLineLength = (short) strlen(answerCodeString);
+		offset = 0;
+
+		write(PANCAKE_SAPI_GLOBALS(clientSocket), &statusLineLength, sizeof(short));
+
+		while(offset < statusLineLength) {
+			ssize_t result = write(PANCAKE_SAPI_GLOBALS(clientSocket), &answerCodeString[offset], statusLineLength - offset);
+			if(result == -1) {
+				/* What do we do here? */
+				return SAPI_HEADER_SEND_FAILED;
+			}
+
+			offset += result;
+		}
+	} else {
+		/* Write 0 length */
+		write(PANCAKE_SAPI_GLOBALS(clientSocket), "\0", sizeof(short));
+	}
 
 	return SAPI_HEADER_SENT_SUCCESSFULLY;
 }
@@ -127,24 +167,28 @@ static int PancakeSAPIHeaderHandler(sapi_header_struct *sapi_header, sapi_header
 }
 
 static int PancakeSAPIOutputHandler(const char *str, unsigned int str_length TSRMLS_DC) {
-	if(!PANCAKE_SAPI_GLOBALS(inExecution)) {
+	unsigned int offset = 0;
+
+	if(!PANCAKE_SAPI_GLOBALS(inExecution) || !str_length) {
 		return SUCCESS;
 	}
 
-	if(PANCAKE_SAPI_GLOBALS(output) == NULL) {
-		PANCAKE_SAPI_GLOBALS(outputLength) = str_length;
+	/* Write packet type */
+	if(write(PANCAKE_SAPI_GLOBALS(clientSocket), "\1", sizeof(char)) == -1) {
+		/* What do we do here? */
+		return FAILURE;
+	}
 
-		PANCAKE_SAPI_GLOBALS(output) = emalloc(MAX(str_length + 1, 32786));
-		memcpy(PANCAKE_SAPI_GLOBALS(output), str, str_length);
-	} else {
-		int totalLength = PANCAKE_SAPI_GLOBALS(outputLength) + str_length;
+	write(PANCAKE_SAPI_GLOBALS(clientSocket), &str_length, sizeof(unsigned int));
 
-		if(totalLength + 1 > 32786) {
-			PANCAKE_SAPI_GLOBALS(output) = erealloc(PANCAKE_SAPI_GLOBALS(output), totalLength + 1);
+	while(offset < str_length) {
+		ssize_t result = write(PANCAKE_SAPI_GLOBALS(clientSocket), &str[offset], str_length - offset);
+		if(result == -1) {
+			/* What do we do here? */
+			return FAILURE;
 		}
 
-		memcpy(PANCAKE_SAPI_GLOBALS(output) + PANCAKE_SAPI_GLOBALS(outputLength), str, str_length);
-		PANCAKE_SAPI_GLOBALS(outputLength) = totalLength;
+		offset += result;
 	}
 
 	return SUCCESS;
@@ -293,6 +337,25 @@ PHP_RSHUTDOWN_FUNCTION(PancakeSAPI) {
 }
 
 PHP_FUNCTION(SAPIPrepare) {
+	struct epoll_event event = {0}, event2 = {0};
+
+	if(PANCAKE_SAPI_GLOBALS(epoll)
+	|| zend_parse_parameters(ZEND_NUM_ARGS(), "ll", &PANCAKE_SAPI_GLOBALS(listenSocket), &PANCAKE_SAPI_GLOBALS(controlSocket)) == FAILURE) {
+		RETURN_FALSE;
+	}
+
+	PANCAKE_SAPI_GLOBALS(epoll) = epoll_create(3);
+
+	event.events = EPOLLIN | EPOLLRDHUP;
+	event.data.fd = PANCAKE_SAPI_GLOBALS(listenSocket);
+	epoll_ctl(PANCAKE_SAPI_GLOBALS(epoll), EPOLL_CTL_ADD, PANCAKE_SAPI_GLOBALS(listenSocket), &event);
+
+	event2.events = EPOLLIN | EPOLLRDHUP;
+	event2.data.fd = PANCAKE_SAPI_GLOBALS(controlSocket);
+	epoll_ctl(PANCAKE_SAPI_GLOBALS(epoll), EPOLL_CTL_ADD, PANCAKE_SAPI_GLOBALS(controlSocket), &event2);
+
+	PANCAKE_SAPI_GLOBALS(clientSocket) = -1;
+
 	// Fetch amount of currently existing functions
 	if(PANCAKE_SAPI_GLOBALS(autoDeleteFunctions)) {
 		PANCAKE_SAPI_GLOBALS(functionsPre) = EG(function_table)->nNumOfElements;
@@ -304,9 +367,8 @@ PHP_FUNCTION(SAPIPrepare) {
 	}
 }
 
-PHP_FUNCTION(SAPIRequest) {
-	zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &PANCAKE_SAPI_GLOBALS(request));
-	PANCAKE_GLOBALS(JITGlobalsHTTPRequest) = PANCAKE_SAPI_GLOBALS(request);
+static void PancakeSAPIInitializeRequest(zval *request) {
+	PANCAKE_GLOBALS(JITGlobalsHTTPRequest) = PANCAKE_SAPI_GLOBALS(request) = request;
 
 	PANCAKE_SAPI_GLOBALS(inExecution) = 1;
 
@@ -318,28 +380,132 @@ PHP_FUNCTION(SAPIFinishRequest) {
 
 	php_output_end_all(TSRMLS_C);
 	PANCAKE_SAPI_GLOBALS(inExecution) = 0;
-
-	PancakeQuickWritePropertyLong(PANCAKE_SAPI_GLOBALS(request), "answerCode", sizeof("answerCode"), HASH_OF_answerCode, SG(sapi_headers).http_response_code);
-
-	PancakeSAPIStoreHTTPStatusLine(TSRMLS_C);
-
-	SG(sapi_headers).http_response_code = 0;
-	zend_llist_clean(&SG(sapi_headers).headers);
 	SG(headers_sent) = 0;
 
-	if(PANCAKE_SAPI_GLOBALS(output)) {
-		// PHP does not always null-terminate buffered output strings
-		PANCAKE_SAPI_GLOBALS(output)[PANCAKE_SAPI_GLOBALS(outputLength)] = '\0';
-		PancakeQuickWritePropertyString(PANCAKE_SAPI_GLOBALS(request), "answerBody", sizeof("answerBody"), HASH_OF_answerBody,
-				PANCAKE_SAPI_GLOBALS(output), PANCAKE_SAPI_GLOBALS(outputLength), 0);
-	}
-
-	PANCAKE_SAPI_GLOBALS(outputLength) = 0;
-	PANCAKE_SAPI_GLOBALS(output) = NULL;
+	write(PANCAKE_SAPI_GLOBALS(clientSocket), "\2", sizeof(char));
 }
 
 PHP_FUNCTION(SAPIFlushBuffers) {
 	php_output_end_all(TSRMLS_C);
+}
+
+zend_bool PancakeSAPIFetchRequest(int fd, zval *return_value) {
+	size_t length, offset = 0;
+	unsigned char *buf, *bufP;
+	php_unserialize_data_t varHash;
+	zval *HTTPRequest;
+
+	read(fd, &length, sizeof(size_t));
+	buf = emalloc(length + 1);
+	buf[length] = '\0';
+
+	while(offset < length) {
+		size_t readLength = read(fd, &buf[offset], length - offset);
+		if(readLength == -1) {
+			efree(buf);
+			close(fd);
+			return FAILURE;
+		}
+
+		offset += readLength;
+	}
+
+	MAKE_STD_ZVAL(HTTPRequest);
+
+	bufP = buf;
+
+	PHP_VAR_UNSERIALIZE_INIT(varHash);
+	if (!php_var_unserialize(&HTTPRequest, (const unsigned char**) &buf, buf + length, &varHash TSRMLS_CC)) {
+		/* Malformed value */
+		PHP_VAR_UNSERIALIZE_DESTROY(varHash);
+		zval_ptr_dtor(&HTTPRequest);
+		close(fd);
+		efree(bufP);
+
+		return FAILURE;
+	}
+	PHP_VAR_UNSERIALIZE_DESTROY(varHash);
+
+	efree(bufP);
+
+	PancakeSAPIInitializeRequest(HTTPRequest);
+
+	RETVAL_ZVAL(HTTPRequest, 0, 0);
+	return SUCCESS;
+}
+
+PHP_FUNCTION(SAPIWait) {
+	struct epoll_event events[1];
+
+	wait:
+	if(epoll_wait(PANCAKE_SAPI_GLOBALS(epoll), events, 1, -1) == -1)
+		goto wait;
+
+	if(events[0].data.fd == PANCAKE_SAPI_GLOBALS(listenSocket)) {
+		/* Incoming SAPI connection */
+		int fd = accept(events[0].data.fd, NULL, NULL);
+		struct epoll_event event = {0};
+
+		if(fd == -1) { /* We might get -1 when another worker was faster */
+			goto wait;
+		}
+
+		event.events = EPOLLIN | EPOLLRDHUP;
+		event.data.fd = PANCAKE_SAPI_GLOBALS(clientSocket) = fd;
+		epoll_ctl(PANCAKE_SAPI_GLOBALS(epoll), EPOLL_CTL_ADD, fd, &event);
+
+		if(PancakeSAPIFetchRequest(fd, return_value) == SUCCESS) {
+			return;
+		} else {
+			goto wait;
+		}
+	} else if(events[0].data.fd == PANCAKE_SAPI_GLOBALS(controlSocket)) {
+		/* Pancake master control instruction */
+		if(events[0].events & EPOLLRDHUP) {
+			/* Master closed connection, this should not happen - probably we should exit */
+			close(PANCAKE_SAPI_GLOBALS(controlSocket));
+			RETURN_FALSE;
+		} else {
+			char *buf = emalloc(128);
+			int length;
+
+			length = read(PANCAKE_SAPI_GLOBALS(controlSocket), buf, 127);
+
+			if(length <= 0) {
+				efree(buf);
+				RETURN_FALSE;
+			}
+
+			buf[length] = '\0';
+
+			if(!strcmp(buf, "GRACEFUL_SHUTDOWN")) {
+				/* Master wants us to shutdown */
+				efree(buf);
+				RETURN_FALSE;
+			} else if(!strcmp(buf, "LOAD_FILE_POINTERS")) {
+				PancakeLoadFilePointers(TSRMLS_C);
+			}
+
+			efree(buf);
+			goto wait;
+		}
+	} else {
+		/* Keep-Alive SAPI connection */
+		if(events[0].events & EPOLLRDHUP) {
+			/* SAPIClient closed connection */
+			close(events[0].data.fd);
+			PANCAKE_SAPI_GLOBALS(clientSocket) = -1;
+			goto wait;
+		}
+
+		PANCAKE_SAPI_GLOBALS(clientSocket) = events[0].data.fd;
+
+		if(PancakeSAPIFetchRequest(events[0].data.fd, return_value) == SUCCESS) {
+			return;
+		} else {
+			goto wait;
+		}
+	}
 }
 
 static int PancakeSAPIShutdownModule(zend_module_entry *module TSRMLS_DC) {

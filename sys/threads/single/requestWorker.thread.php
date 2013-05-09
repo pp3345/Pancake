@@ -182,6 +182,9 @@
     	foreach($vHost->listen as $address)
     		$Pancake_vHosts[$address] = $vHost;
     }
+    
+    // Destroy reference
+    unset($vHost);
 
     // This will be an unconnected socket after startup
     Close($this->localSocket);
@@ -190,6 +193,15 @@
         setThread($Pancake_currentThread, vHostInterface::$defaultvHost, $Pancake_vHosts, /* .constant 'SUPPORT_AUTHENTICATION' */);
     #.else
         setThread($Pancake_currentThread, vHostInterface::$defaultvHost, $Pancake_vHosts, 0);
+    #.endif
+        
+    #.ifdef 'SUPPORT_PHP'
+    LoadModule('sapi_client', true);
+    
+    foreach($Pancake_vHosts as $vHost) {
+        if($vHost->phpWorkers && !$vHost->SAPIClient)
+            $vHost->SAPIClient = new SAPIClient($vHost);
+    }
     #.endif
     
     #.ifdef 'SUPPORT_TLS'
@@ -440,59 +452,15 @@
 
 #.ifdef 'SUPPORT_PHP'
             if(isset($phpSockets[$socket])) {
-                $packages = hexdec(Read($socket, 8));
-				if(!$packages) {
-					unset($listenSocketsOrig[$socket]);
-                	Close($socket);
-                    
-                	$socket = $phpSockets[$socket];
+                $requestObject = $phpSockets[$socket];
+                if($requestObject->vHost->SAPIClient->SAPIData($socket, $requestObject)) {
+                    goto clean;
+                } else {
+                    unset($listenSocketsOrig[$socket]);
                     unset($phpSockets[$socket]);
-                    $requestObject = $requests[$socket];
-					$requestObject->invalidRequest(new invalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
-					goto write;
-				}
-
-                $length = hexdec(Read($socket, 8));
-
-                if($packages > 1) {
-                	$sockData = "";
-
-                	while($packages--)
-                		$sockData .= Read($socket, $length);
-
-                	$obj = unserialize($sockData);
-
-                	unset($sockData);
+                    $socket = $requestObject->socket;
+                    goto write;
                 }
-                else
-                	$obj = unserialize(Read($socket, $length));
-
-				if(!($obj instanceof \stdClass)) {
-					unset($listenSocketsOrig[$socket]);
-                	unset($phpSockets[$socket]);
-                	Close($socket);
-                    
-                    $socket = $phpSockets[$socket];
-                    $requestObject = $requests[$socket];
-					$requestObject->invalidRequest(new invalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
-					goto write;
-				}
-                
-                unset($listenSocketsOrig[$socket]);
-                Close($socket);
-                $psocket = $socket;
-                $socket = $phpSockets[$socket];
-                unset($phpSockets[$psocket]);
-                $requestObject = $requests[$socket];
-
-				$requestObject->answerHeaders = (array) $obj->answerHeaders;
-				$requestObject->answerBody = (string) $obj->answerBody;
-				$requestObject->answerCode = (int) $obj->answerCode;
-                $requestObject->answerCodeString = (string) $obj->answerCodeString;
-
-                unset($obj);
-
-                goto write;
             }
 #.endif
 
@@ -739,60 +707,10 @@
          && /* .VHOST_PHP_WORKERS */
 #.endif
         ) {
-            if(!($psocket = Socket(/* .constant 'AF_UNIX' */, /* .constant 'SOCK_SEQPACKET' */, 0))) {
-            	$requestObject->invalidRequest(new invalidHTTPRequestException('Failed to create communication socket. Probably the server is overladed. Try again later.', 500));
-            	goto write;
-            }
-
-            SetBlocking($psocket, false);
-
-            if(Connect($psocket, /* .AF_UNIX */, /* .VHOST_SOCKET_NAME */)) {
-#.ifdef 'SUPPORT_WAITSLOTS'
-      			$waits[$socket]++;
-
-            	if($waits[$socket] > /* .call 'Pancake\Config::get' 'main.waitslotwaitlimit' */) {
-            		$requestObject->invalidRequest(new invalidHTTPRequestException('There was no worker available to serve your request. Please try again later.', 500));
-            		goto write;
-            	}
-
-            	$waitSlotsOrig[$socket] = $socket;
-
-            	goto clean;
-#.else
-            	$requestObject->invalidRequest(new invalidHTTPRequestException('There was no worker available to serve your request. Please try again later.', 500));
-            	goto write;
-#.endif
-            }
-
-#.ifdef 'SUPPORT_WAITSLOTS'
-            unset($waitSlotsOrig[$socket]);
-            unset($waits[$socket]);
-#.endif
-
-            $data = serialize($requestObject);
-
-            SetBlocking($psocket, true);
-
-            $packages = array();
-
-            if($packageSize = AdjustSendBufferSize($psocket, strlen($data))) {
-            	for($i = 0;$i < ceil(strlen($data) / $packageSize);$i++)
-            		$packages[] = substr($data, $i * $packageSize, $packageSize);
-            } else
-            		$packages[] = $data;
-
-            // First transmit the length of the serialized object, then the object itself
-            Write($psocket, dechex(count($packages)));
-            Write($psocket, dechex(strlen($packages[0])));
-            foreach($packages as $data)
-            	Write($psocket, $data);
-
-            unset($packages);
-            unset($data);
-
-            $listenSocketsOrig[$psocket] = $psocket;
-            $phpSockets[$psocket] = $socket;
-
+            $requestObject->socket = $socket;
+            $socket = $requestObject->vHost->SAPIClient->makeRequest($requestObject);
+            $phpSockets[$socket] = $requestObject;
+            $listenSocketsOrig[$socket] = $socket;
             goto clean;
         }
 #.endif
