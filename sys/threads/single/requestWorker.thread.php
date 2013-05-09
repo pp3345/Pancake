@@ -453,12 +453,22 @@
 #.ifdef 'SUPPORT_PHP'
             if(isset($phpSockets[$socket])) {
                 $requestObject = $phpSockets[$socket];
-                if($requestObject->vHost->SAPIClient->SAPIData($socket, $requestObject)) {
-                    goto clean;
-                } else {
+                try {
+                    if($requestObject->vHost->SAPIClient->SAPIData($socket, $requestObject)) {
+                        goto clean;
+                    } else {
+                        unset($listenSocketsOrig[$socket]);
+                        unset($phpSockets[$socket]);
+                        $socket = $requestObject->socket;
+                        goto write;
+                    }
+                } catch(invalidHTTPRequestException $exception) {
                     unset($listenSocketsOrig[$socket]);
                     unset($phpSockets[$socket]);
+                    
+                    $requestObject->invalidRequest($exception);
                     $socket = $requestObject->socket;
+                    unset($exception);
                     goto write;
                 }
             }
@@ -708,7 +718,14 @@
 #.endif
         ) {
             $requestObject->socket = $socket;
-            $socket = $requestObject->vHost->SAPIClient->makeRequest($requestObject);
+            try {
+                $socket = $requestObject->vHost->SAPIClient->makeRequest($requestObject);
+            } catch(invalidHTTPRequestException $exception) {
+                $requestObject->invalidRequest($exception);
+
+                unset($exception);
+                goto write;
+            }
             $phpSockets[$socket] = $requestObject;
             $listenSocketsOrig[$socket] = $socket;
             goto clean;
