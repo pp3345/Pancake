@@ -192,7 +192,6 @@
         public static $functions = array();
         #.endif
         public static $executingErrorHandler = false;
-        public static $tickFunctions = array();
         public static $listenArray = array();
         public static $listenArrayOrig = array();
     }

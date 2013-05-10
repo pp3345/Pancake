@@ -446,6 +446,9 @@ static void PancakeSAPIInitializeRequest(zval *request) {
 PHP_FUNCTION(SAPIFinishRequest) {
 	zval *answerCode;
 
+	// Disable tick functions
+	zend_llist_clean(&PG(tick_functions));
+
 	zend_try {
 		php_call_shutdown_functions(TSRMLS_C);
 	} zend_end_try();

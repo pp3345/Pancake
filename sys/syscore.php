@@ -113,7 +113,6 @@
     }
     dt_rename_function('debug_backtrace', 'Pancake\PHPFunctions\debugBacktrace');
     dt_rename_function('debug_print_backtrace', 'Pancake\PHPFunctions\debugPrintBacktrace');
-    dt_rename_function('register_tick_function', 'Pancake\PHPFunctions\registerTickFunction');
     dt_remove_constant('PHP_SAPI');
 
     dt_phpinfo_mode(\DT_PHPINFO_HTML);

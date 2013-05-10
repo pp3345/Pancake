@@ -196,15 +196,6 @@
     	return Pancake\vars::$Pancake_request->requestHeaders;
     }
 
-	function register_tick_function($function) {
-		if(!is_callable($function)) {
-			#.PHP_ERROR_WITH_BACKTRACE E_WARNING '"Invalid tick callback \'$function\' passed"'
-			return false;
-		}
-		Pancake\vars::$tickFunctions[] = $function;
-		return call_user_func_array('Pancake\PHPFunctions\registerTickFunction', func_get_args());
-	}
-
     dt_rename_method('\Exception', 'getTrace', 'Pancake_getTraceOrig');
     dt_add_method('\Exception', 'getTrace', null, <<<'FUNCTIONBODY'
 $trace = $this->Pancake_getTraceOrig();

@@ -347,9 +347,6 @@
 
 	        set_time_limit(0);
 
-	        foreach(vars::$tickFunctions as $tickFunction)
-	        	unregister_tick_function($tickFunction);
-
 	        // After $invalidRequest is set to true it might still happen that the registered shutdown functions do some output
 	        if(vars::$invalidRequest) {
         	    $requestObject = vars::$Pancake_request;
@@ -422,7 +419,6 @@
 	        #.ifdef 'HAVE_LIMIT'
 	        vars::$Pancake_processedRequests++;
 	        #.endif
-	        vars::$tickFunctions = array();
 
 	        if(
 	        #.ifdef 'HAVE_LIMIT'
