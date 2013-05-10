@@ -45,10 +45,6 @@
 		#.HAVE_FORCED_DELETES = true
 	#.endif
 
-	#.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpWorkerLimit;' false
-		#.HAVE_LIMIT = true
-	#.endif
-
 	#.if #.extension_loaded 'filter'
 	   #.HAVE_FILTER_EXTENSION = true
 	#.endif
@@ -398,19 +394,6 @@
                     @unlink($file);
                 unset($file);
             }
-
-	        #.ifdef 'HAVE_LIMIT'
-	        vars::$Pancake_processedRequests++;
-	        #.endif
-
-	        if(
-	        #.ifdef 'HAVE_LIMIT'
-	        (vars::$Pancake_processedRequests >= /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpWorkerLimit;' false */) ||
-	        #.endif
-	        vars::$workerExit) {
-	        	Write(vars::$Pancake_currentThread->socket, "EXPECTED_SHUTDOWN");
-	        	exit;
-	        }
 
 	        // We're cleaning the globals here because PHP 5.4 is likely to crash when having an instance of a non-existant class
 	        #.ifdef 'SUPPORT_CODECACHE'

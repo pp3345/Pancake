@@ -129,10 +129,6 @@
         #.ifdef 'SUPPORT_CODECACHE'
         public static $Pancake_exclude = array();
         #.endif
-        #.ifdef 'HAVE_LIMIT'
-        public static $Pancake_processedRequests = 0;
-        #.endif
-        public static $workerExit = false;
         #.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetClassNonObjects || $Pancake_currentThread->vHost->resetClassObjects || $Pancake_currentThread->vHost->resetFunctionObjects || $Pancake_currentThread->vHost->resetFunctionNonObjects;' false
         public static $classes = array();
         #.endif

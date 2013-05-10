@@ -16,6 +16,7 @@ const zend_function_entry PancakeSAPI_functions[] = {
 	ZEND_NS_FE("Pancake", SAPIPostRequestCleanup, NULL)
 	ZEND_NS_FE("Pancake", SAPIWait, NULL)
 	ZEND_NS_FE("Pancake", SAPIExitHandler, NULL)
+	ZEND_FE(apache_child_terminate, NULL)
 	ZEND_FE_END
 };
 
@@ -43,6 +44,8 @@ PHP_MINIT_FUNCTION(PancakeSAPI) {
 
 	PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes) = NULL;
 	PANCAKE_SAPI_GLOBALS(autoDeleteIncludesExcludes) = NULL;
+	PANCAKE_SAPI_GLOBALS(processedRequests) = 0;
+	PANCAKE_SAPI_GLOBALS(exit) = 0;
 
 	return SUCCESS;
 }
@@ -222,7 +225,7 @@ static HashTable *PancakeSAPITransformHashTableValuesToKeys(HashTable *table) {
 PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zend_function *function;
 	zend_class_entry **vars;
-	zval *disabledFunctions, *autoDelete, *autoDeleteExcludes, *HTMLErrors, *documentRoot;
+	zval *disabledFunctions, *autoDelete, *autoDeleteExcludes, *HTMLErrors, *documentRoot, *processingLimit;
 
 	if(PANCAKE_GLOBALS(inSAPIReboot) == 1) {
 		return SUCCESS;
@@ -287,6 +290,14 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 
 	// Fetch document root
 	FAST_READ_PROPERTY(PANCAKE_SAPI_GLOBALS(documentRoot), PANCAKE_SAPI_GLOBALS(vHost), "documentRoot", sizeof("documentRoot") - 1, HASH_OF_documentRoot);
+
+	// Fetch processing limit
+	processingLimit = zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "phpWorkerLimit", sizeof("phpWorkerLimit") - 1, 0 TSRMLS_CC);
+	if(Z_TYPE_P(processingLimit) == IS_LONG && Z_LVAL_P(processingLimit) > 0) {
+		PANCAKE_SAPI_GLOBALS(processingLimit) = Z_LVAL_P(processingLimit);
+	} else {
+		PANCAKE_SAPI_GLOBALS(processingLimit) = 0;
+	}
 
 	// Hook some functions
 	zend_hash_find(EG(function_table), "headers_sent", sizeof("headers_sent"), (void**) &function);
@@ -458,6 +469,13 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	SG(headers_sent) = 0;
 
 	write(PANCAKE_SAPI_GLOBALS(clientSocket), "\2", sizeof(char));
+
+	if((PANCAKE_SAPI_GLOBALS(processingLimit)
+	&& ++PANCAKE_SAPI_GLOBALS(processedRequests) >= PANCAKE_SAPI_GLOBALS(processingLimit))
+	|| PANCAKE_SAPI_GLOBALS(exit)) {
+		write(PANCAKE_SAPI_GLOBALS(controlSocket), "EXPECTED_SHUTDOWN", sizeof("EXPECTED_SHUTDOWN") - 1);
+		zend_bailout();
+	}
 }
 
 zend_bool PancakeSAPIFetchRequest(int fd, zval *return_value) {

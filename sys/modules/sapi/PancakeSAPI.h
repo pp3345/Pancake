@@ -53,6 +53,9 @@ ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)
 	int clientSocket;
 	zval *errorHandler;
 	zval *documentRoot;
+	long processingLimit;
+	long processedRequests;
+	zend_bool exit;
 ZEND_END_MODULE_GLOBALS(PancakeSAPI)
 extern ZEND_DECLARE_MODULE_GLOBALS(PancakeSAPI);
 
@@ -65,5 +68,7 @@ PHP_FUNCTION(SAPIFinishRequest);
 PHP_FUNCTION(SAPIPostRequestCleanup);
 PHP_FUNCTION(SAPIWait);
 PHP_FUNCTION(SAPIExitHandler);
+
+PHP_FUNCTION(apache_child_terminate);
 
 #endif

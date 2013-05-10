@@ -177,10 +177,6 @@
         echo $trace;
     }
 
-    function apache_child_terminate() {
-    	return Pancake\vars::$workerExit = true;
-    }
-
     function apache_request_headers() {
     	return Pancake\vars::$Pancake_request->requestHeaders;
     }
