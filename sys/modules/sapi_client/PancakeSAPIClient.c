@@ -106,7 +106,7 @@ PHP_METHOD(SAPIClient, makeRequest) {
 				close(sock);
 				zend_error(E_WARNING, "%s", strerror(errno));
 				PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("Failed to establish connection to PHP SAPI",
-						sizeof("Failed to establish connection to PHP SAPI") - 1, 500);
+					sizeof("Failed to establish connection to PHP SAPI") - 1, 500);
 				return;
 			}
 		}
@@ -132,7 +132,7 @@ PHP_METHOD(SAPIClient, makeRequest) {
 			goto fetchSocket;
 		} else {
 			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("Failed to send request to PHP SAPI",
-												sizeof("Failed to send request to PHP SAPI") - 1, 500);
+				sizeof("Failed to send request to PHP SAPI") - 1, 500);
 			return;
 		}
 	}
@@ -146,7 +146,7 @@ PHP_METHOD(SAPIClient, makeRequest) {
 			zend_error(E_WARNING, "%s", strerror(errno));
 
 			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("Failed to send request to PHP SAPI",
-									sizeof("Failed to send request to PHP SAPI") - 1, 500);
+				sizeof("Failed to send request to PHP SAPI") - 1, 500);
 			return;
 		}
 
@@ -172,7 +172,7 @@ PHP_METHOD(SAPIClient, SAPIData) {
 		zend_error(E_WARNING, "%s", strerror(errno));
 
 		PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("PHP SAPI unexpectedly closed network connection",
-											sizeof("PHP SAPI unexpectedly closed network connection") - 1, 500);
+				sizeof("PHP SAPI unexpectedly closed network connection") - 1, 500);
 		return;
 	}
 
@@ -196,7 +196,7 @@ PHP_METHOD(SAPIClient, SAPIData) {
 					close(fd);
 
 					PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("PHP SAPI unexpectedly closed network connection",
-														sizeof("PHP SAPI unexpectedly closed network connection") - 1, 500);
+						sizeof("PHP SAPI unexpectedly closed network connection") - 1, 500);
 					return;
 				}
 
@@ -217,7 +217,7 @@ PHP_METHOD(SAPIClient, SAPIData) {
 				efree(headerBuf);
 
 				PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("PHP SAPI returned malformed value",
-													sizeof("PHP SAPI returned malformed value") - 1, 500);
+					sizeof("PHP SAPI returned malformed value") - 1, 500);
 
 				return;
 			}
@@ -244,7 +244,7 @@ PHP_METHOD(SAPIClient, SAPIData) {
 						close(fd);
 
 						PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("PHP SAPI unexpectedly closed network connection",
-																				sizeof("PHP SAPI unexpectedly closed network connection") - 1, 500);
+							sizeof("PHP SAPI unexpectedly closed network connection") - 1, 500);
 						return;
 					}
 
@@ -272,7 +272,7 @@ PHP_METHOD(SAPIClient, SAPIData) {
 					close(fd);
 
 					PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("PHP SAPI unexpectedly closed network connection",
-																									sizeof("PHP SAPI unexpectedly closed network connection") - 1, 500);
+						sizeof("PHP SAPI unexpectedly closed network connection") - 1, 500);
 					return;
 				}
 
