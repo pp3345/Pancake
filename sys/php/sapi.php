@@ -20,24 +20,6 @@
         return 'PAN8DF095AE-6639-4C6F-8831-5AB8FBD64D8B';
     }
 
-    function session_register_shutdown() {
-    	return register_shutdown_function('session_write_close');
-    }
-
-    function register_shutdown_function($callback) {
-    	if(!is_callable($callback))
-    		return false;
-
-        $shutdownCall = array('callback' => $callback);
-
-        $shutdownCall['args'] = func_get_args();
-        unset($shutdownCall['args'][0]);
-
-        Pancake\vars::$Pancake_shutdownCalls[] = $shutdownCall;
-
-        return true;
-    }
-
     #.ifdef 'HAVE_FILTER_EXTENSION'
     function filter_input($type, $variable_name, $filter = /* .constant 'FILTER_DEFAULT' */, $options = /* .constant 'FILTER_FLAG_NONE' */) {
         // Create bitmask of flags

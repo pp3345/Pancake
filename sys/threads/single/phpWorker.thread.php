@@ -166,10 +166,6 @@
         
         unset($file);
 
-	    PHPFunctions\registerShutdownFunction('Pancake\PHPShutdownHandler');
-
-	    dt_remove_function('Pancake\PHPFunctions\registerShutdownFunction');
-
 	    // Set exit handler so that Pancake won't die when a script calls exit() oder die()
 		dt_exit_mode(/* .constant 'DT_EXIT_EXCEPTION' */, "Pancake\PHPExitHandler", 'Pancake\ExitException');
 
@@ -355,25 +351,9 @@
 	        	#.endif
 
 	        	include /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */ . vars::$Pancake_request->requestFilePath;
-
-	            runShutdown:
-
-	            vars::$executedShutdown = true;
-
-	            // Run Registered Shutdown Functions
-	            foreach(vars::$Pancake_shutdownCalls as $shutdownCall)
-	            	call_user_func_array($shutdownCall["callback"], $shutdownCall["args"]);
-
-	            goto postShutdown;
 	        } catch(ExitException $e) {
 	        	unset($e);
 	        }
-
-	        // If a shutdown function throws an exception, it will be executed again, so we must make sure, we only execute the shutdown functions once...
-	        if(!vars::$executedShutdown)
-	        	goto runShutdown;
-
-	        postShutdown:
 
 	        set_time_limit(0);
 
@@ -433,7 +413,11 @@
 
 	        write:
 	        
-            SAPIFinishRequest();
+            try {
+                SAPIFinishRequest();
+            } catch(ExitException $e) {
+                unset($e);
+            }
             
 	        dt_remove_constant('PANCAKE_PHP');
             
@@ -446,8 +430,6 @@
                 unset($file);
             }
 
-	        vars::$Pancake_shutdownCalls = array();
-	        vars::$executedShutdown = false;
 	        vars::$invalidRequest = false;
 	        #.ifdef 'HAVE_LIMIT'
 	        vars::$Pancake_processedRequests++;

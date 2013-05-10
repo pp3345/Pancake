@@ -68,26 +68,6 @@
         return true;
     }
 
-    function PHPShutdownHandler() {
-    	if(!defined('PANCAKE_PHP'))
-    		return;
-
-    	// Execute registered shutdown callbacks
-    	foreach(vars::$Pancake_shutdownCalls as $shutdownCall)
-    		call_user_func_array($shutdownCall["callback"], $shutdownCall["args"]);
-
-        SAPIFlushBuffers();    	
-    	SAPIFinishRequest();
-        
-        // Clean uploaded files
-        if(vars::$Pancake_request->uploadedFileTempNames) {
-            foreach(vars::$Pancake_request->uploadedFileTempNames as $file)
-                @unlink($file);
-        }
-
-		Write(vars::$Pancake_currentThread->socket, "EXPECTED_SHUTDOWN");
-    }
-
     #.ifdef 'SUPPORT_CODECACHE'
     /**
     * Recursive CodeCache-build
@@ -208,11 +188,9 @@
         #.ifdef 'HAVE_LIMIT'
         public static $Pancake_processedRequests = 0;
         #.endif
-        public static $Pancake_shutdownCalls = array();
         public static $workerExit = false;
         public static $requestSocket = null;
         public static $invalidRequest = false;
-        public static $executedShutdown = false;
         #.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetClassNonObjects || $Pancake_currentThread->vHost->resetClassObjects || $Pancake_currentThread->vHost->resetFunctionObjects || $Pancake_currentThread->vHost->resetFunctionNonObjects;' false
         public static $classes = array();
         #.endif

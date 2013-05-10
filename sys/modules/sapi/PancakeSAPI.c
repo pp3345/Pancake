@@ -347,6 +347,17 @@ PHP_RSHUTDOWN_FUNCTION(PancakeSAPI) {
 		return SUCCESS;
 	}
 
+	if(PANCAKE_SAPI_GLOBALS(inExecution)) {
+		/* We are executing a PHP script which bailed out */
+		PANCAKE_SAPI_GLOBALS(inExecution) = 0;
+
+		/* End request */
+		write(PANCAKE_SAPI_GLOBALS(clientSocket), "\2", sizeof(char));
+
+		/* Tell Master that we're expecting to die soon */
+		write(PANCAKE_SAPI_GLOBALS(controlSocket), "EXPECTED_SHUTDOWN", sizeof("EXPECTED_SHUTDOWN") - 1);
+	}
+
 	if(PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes)) {
 		zend_hash_destroy(PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes));
 		efree(PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes));
@@ -413,6 +424,10 @@ static void PancakeSAPIInitializeRequest(zval *request) {
 
 PHP_FUNCTION(SAPIFinishRequest) {
 	zval *answerCode;
+
+	zend_try {
+		php_call_shutdown_functions(TSRMLS_C);
+	} zend_end_try();
 
 	php_output_end_all(TSRMLS_C);
 	PANCAKE_SAPI_GLOBALS(inExecution) = 0;
@@ -561,8 +576,6 @@ static int PancakeSAPIStartupModule(zend_module_entry *module TSRMLS_DC) {
 }
 
 PHP_FUNCTION(SAPIPostRequestCleanup) {
-	HashTable *shutdownFunctions = BG(user_shutdown_function_names);
-
 	// Reset error handler stack
 	zend_stack_destroy(&EG(user_error_handlers_error_reporting));
 	zend_stack_init(&EG(user_error_handlers_error_reporting));
@@ -592,9 +605,6 @@ PHP_FUNCTION(SAPIPostRequestCleanup) {
 	// Initialize modules again
 	zend_hash_reverse_apply(&module_registry, (apply_func_t) PancakeSAPIStartupModule TSRMLS_CC);
 	PANCAKE_GLOBALS(inSAPIReboot) = 0;
-
-	// RINIT of basic will destroy shutdown functions, however we still need them
-	BG(user_shutdown_function_names) = shutdownFunctions;
 
 	// Restore ini entries
 	zend_try {

@@ -5,5 +5,5 @@ PHP_ARG_ENABLE(Pancake, whether to enable PancakeSAPI,
 [  --enable-PancakeSAPI           Enable PancakeSAPI])
 
 if test "$PHP_PANCAKESAPI" != "no"; then
-  PHP_NEW_EXTENSION(PancakeSAPI, PancakeSAPI.c PancakeSAPI_Hooks.c, $ext_shared)
+  PHP_NEW_EXTENSION(PancakeSAPI, PancakeSAPI.c PancakeSAPI_Hooks.c PancakeSAPI_PHPDependencies.c, $ext_shared)
 fi
