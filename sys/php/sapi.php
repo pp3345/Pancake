@@ -214,48 +214,6 @@
     	return Pancake\vars::$Pancake_request->requestHeaders;
     }
 
-    #.ERROR_TYPES = E_ALL | E_STRICT
-
-    function set_error_handler($error_handler, $error_types = /* .ERROR_TYPES */) {
-        if(!is_callable($error_handler)) {
-            if(is_array($error_handler)) {
-                if(isset($error_handler[0]) && isset($error_handler[1])) {
-                    $error_handler_name = $error_handler[0] . "::" . $error_handler[1];
-                } else {
-                    $error_handler_name = "unknown";
-                }
-            } else {
-                $error_handler_name = $error_handler;
-            }
-            #.PHP_ERROR_WITH_BACKTRACE E_WARNING '"set_error_handler() expects the argument ($error_handler_name) to be a valid callback"'
-            return null;
-        }
-
-    	$returnValue = Pancake\vars::$errorHandler ? Pancake\vars::$errorHandler['call'] : null;
-
-    	Pancake\vars::$errorHandler = array('call' => $error_handler, 'for' => $error_types);
-    	Pancake\vars::$errorHandlerHistory[] = array('call' => $error_handler, 'for' => $error_types);
-
-    	return $returnValue;
-    }
-
-    function restore_error_handler() {
-    	array_pop(Pancake\vars::$errorHandlerHistory);
-    	end(Pancake\Vars::$errorHandlerHistory);
-    	if(($handler = current(Pancake\vars::$errorHandlerHistory)) === false)
-    		Pancake\vars::$errorHandler = null;
-    	else
-    		Pancake\vars::$errorHandler = $handler;
-
-    	return true;
-    }
-
-	function error_get_last() {
-		$lastError = Pancake\PHPFunctions\errorGetLast();
-
-   		return is_array($lastError) && $lastError['type'] == /* .constant 'E_ERROR' */ ? $lastError : Pancake\vars::$lastError;
-	}
-
 	function register_tick_function($function) {
 		if(!is_callable($function)) {
 			#.PHP_ERROR_WITH_BACKTRACE E_WARNING '"Invalid tick callback \'$function\' passed"'

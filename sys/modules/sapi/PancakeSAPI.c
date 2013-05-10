@@ -222,7 +222,7 @@ static HashTable *PancakeSAPITransformHashTableValuesToKeys(HashTable *table) {
 PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zend_function *function;
 	zend_class_entry **vars;
-	zval *disabledFunctions, *autoDelete, *autoDeleteExcludes;
+	zval *disabledFunctions, *autoDelete, *autoDeleteExcludes, *HTMLErrors;
 
 	if(PANCAKE_GLOBALS(inSAPIReboot) == 1) {
 		return SUCCESS;
@@ -279,6 +279,12 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 		}
 	}
 
+	// Fetch PHPHTMLErrors setting
+	HTMLErrors = zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "phpHTMLErrors", sizeof("phpHTMLErrors") - 1, 0 TSRMLS_CC);
+	if(zend_is_true(HTMLErrors)) {
+		PG(html_errors) = 1;
+	}
+
 	// Hook some functions
 	zend_hash_find(EG(function_table), "headers_sent", sizeof("headers_sent"), (void**) &function);
 	PHP_headers_sent = function->internal_function.handler;
@@ -302,6 +308,24 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 		zend_hash_destroy(SG(rfc1867_uploaded_files));
 		FREE_HASHTABLE(SG(rfc1867_uploaded_files));
 		SG(rfc1867_uploaded_files) = NULL;
+	}
+
+	// Reset error handler stack
+	zend_stack_destroy(&EG(user_error_handlers_error_reporting));
+	zend_stack_init(&EG(user_error_handlers_error_reporting));
+
+	// Fetch Pancake error handler
+	PANCAKE_SAPI_GLOBALS(errorHandler) = EG(user_error_handler);
+	Z_ADDREF_P(PANCAKE_SAPI_GLOBALS(errorHandler));
+
+	// Reset last errors
+	if (PG(last_error_message)) {
+		free(PG(last_error_message));
+		PG(last_error_message) = NULL;
+	}
+	if (PG(last_error_file)) {
+		free(PG(last_error_file));
+		PG(last_error_file) = NULL;
 	}
 
 	// Set some SAPI globals
@@ -371,6 +395,18 @@ static void PancakeSAPIInitializeRequest(zval *request) {
 	PANCAKE_GLOBALS(JITGlobalsHTTPRequest) = PANCAKE_SAPI_GLOBALS(request) = request;
 
 	PANCAKE_SAPI_GLOBALS(inExecution) = 1;
+
+	EG(user_error_handler) = NULL;
+
+	// Reset last errors
+	if (PG(last_error_message)) {
+		free(PG(last_error_message));
+		PG(last_error_message) = NULL;
+	}
+	if (PG(last_error_file)) {
+		free(PG(last_error_file));
+		PG(last_error_file) = NULL;
+	}
 
 	zend_activate_auto_globals(TSRMLS_C);
 }
@@ -526,6 +562,26 @@ static int PancakeSAPIStartupModule(zend_module_entry *module TSRMLS_DC) {
 
 PHP_FUNCTION(SAPIPostRequestCleanup) {
 	HashTable *shutdownFunctions = BG(user_shutdown_function_names);
+
+	// Reset error handler stack
+	zend_stack_destroy(&EG(user_error_handlers_error_reporting));
+	zend_stack_init(&EG(user_error_handlers_error_reporting));
+
+	// Set Pancake error handler
+	if(EG(user_error_handler)) {
+		zval_ptr_dtor(&EG(user_error_handler));
+	}
+	EG(user_error_handler) = PANCAKE_SAPI_GLOBALS(errorHandler);
+	EG(user_error_handler_error_reporting) = E_ALL;
+
+	// Reset exception handler stack
+	zend_ptr_stack_destroy(&EG(user_exception_handlers));
+	zend_ptr_stack_init(&EG(user_exception_handlers));
+
+	// Reset exception handler
+	if (EG(user_exception_handler)) {
+		zval_ptr_dtor(&EG(user_exception_handler));
+	}
 
 	// Tell Pancake not to shutdown
 	PANCAKE_GLOBALS(inSAPIReboot) = 1;

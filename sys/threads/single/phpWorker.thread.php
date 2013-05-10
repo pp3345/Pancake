@@ -348,10 +348,6 @@
 	        // Change directory to document root of the vHost / requested file path
 	        chdir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */ . dirname(vars::$Pancake_request->requestFilePath));
 
-	        // Set error handling
-	        error_reporting(/* .SAPI_ERROR_REPORTING */);
-	        PHPFunctions\setErrorHandler('Pancake\PHPErrorHandler');
-
 	        // Execute script and protect Pancake from exit() and Exceptions
 	        try {
 	        	#.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpMaxExecutionTime;' false
@@ -371,39 +367,6 @@
 	            goto postShutdown;
 	        } catch(ExitException $e) {
 	        	unset($e);
-	        } catch(\Exception $exception) {
-	        	$fatal = false;
-
-	            if(($oldHandler = set_exception_handler('Pancake\dummy')) !== null) {
-	            	try {
-	                	call_user_func($oldHandler, $exception);
-	            	} catch(ExitException $e) {
-	            	} catch(\Exception $e) {
-	            		$fatal = true;
-	            	}
-	            } else
-	            	$fatal = true;
-
-	            if($fatal) {
-	                SAPIFlushBuffers();
-	                if(ini_get('display_errors')) {
-	                    $errorText = 'Uncaught exception \'' . get_class($exception) . '\'';
-	                    if($exception->getMessage())
-	                        $errorText .= ' with message \'' . $exception->getMessage() . '\'';
-	                    $errorText .= ' in ' . $exception->getFile() . ':' . $exception->getLine();
-	                    $errorText .= "\n";
-	                    $errorText .= "Stack trace:";
-	                    $errorText .= "\n";
-	                    $errorText .= $exception->getTraceAsString();
-
-	                    $errorText .= "\n";
-	                    $errorText .= "  thrown";
-
-	                    PHPErrorHandler(/* .constant 'E_ERROR' */, $errorText, $exception->getFile(), $exception->getLine());
-	                // Send 500 if no content
-	                } /*else if(!ob_get_contents())
-	                    vars::$invalidRequest = true;*/
-	            }
 	        }
 
 	        // If a shutdown function throws an exception, it will be executed again, so we must make sure, we only execute the shutdown functions once...
@@ -475,11 +438,6 @@
 	        dt_remove_constant('PANCAKE_PHP');
             
             SAPIPostRequestCleanup();
-
-	        // Reset error-handling
-	        error_reporting(/* .constant 'Pancake\ERROR_REPORTING' */);
-	        PHPFunctions\setErrorHandler('Pancake\errorHandler');
-	        set_exception_handler(null);
             
             // Clean uploaded files
             if(vars::$Pancake_request->uploadedFileTempNames) {
@@ -488,9 +446,6 @@
                 unset($file);
             }
 
-	        vars::$errorHandler = null;
-	        vars::$errorHandlerHistory = array();
-	        vars::$lastError = null;
 	        vars::$Pancake_shutdownCalls = array();
 	        vars::$executedShutdown = false;
 	        vars::$invalidRequest = false;

@@ -209,11 +209,8 @@
         public static $Pancake_processedRequests = 0;
         #.endif
         public static $Pancake_shutdownCalls = array();
-        public static $errorHandler = null;
-        public static $errorHandlerHistory = array();
         public static $workerExit = false;
         public static $requestSocket = null;
-        public static $lastError = null;
         public static $invalidRequest = false;
         public static $executedShutdown = false;
         #.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetClassNonObjects || $Pancake_currentThread->vHost->resetClassObjects || $Pancake_currentThread->vHost->resetFunctionObjects || $Pancake_currentThread->vHost->resetFunctionNonObjects;' false

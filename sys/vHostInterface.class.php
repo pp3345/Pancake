@@ -74,6 +74,7 @@
 			#.ifdef 'HAVE_PHP_MODULES'
 			public $phpModules = array();
 			#.endif
+			public $phpHTMLErrors = true;
 			public $autoDelete = array();
 	    #.endif
         public $exceptionPageHandler = "";

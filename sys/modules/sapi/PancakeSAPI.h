@@ -51,6 +51,7 @@ ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)
 	int listenSocket;
 	int controlSocket;
 	int clientSocket;
+	zval *errorHandler;
 ZEND_END_MODULE_GLOBALS(PancakeSAPI)
 extern ZEND_DECLARE_MODULE_GLOBALS(PancakeSAPI);
 
