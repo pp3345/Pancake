@@ -225,7 +225,7 @@ static HashTable *PancakeSAPITransformHashTableValuesToKeys(HashTable *table) {
 PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zend_function *function;
 	zend_class_entry **vars;
-	zval *disabledFunctions, *autoDelete, *autoDeleteExcludes, *HTMLErrors, *documentRoot, *processingLimit;
+	zval *disabledFunctions, *autoDelete, *autoDeleteExcludes, *HTMLErrors, *documentRoot, *processingLimit, *timeout;
 
 	if(PANCAKE_GLOBALS(inSAPIReboot) == 1) {
 		return SUCCESS;
@@ -297,6 +297,14 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 		PANCAKE_SAPI_GLOBALS(processingLimit) = Z_LVAL_P(processingLimit);
 	} else {
 		PANCAKE_SAPI_GLOBALS(processingLimit) = 0;
+	}
+
+	// Fetch max_execution_time
+	timeout = zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "phpMaxExecutionTime", sizeof("phpMaxExecutionTime") - 1, 0 TSRMLS_CC);
+	if(Z_TYPE_P(timeout) == IS_LONG && Z_LVAL_P(timeout) > 0) {
+		PANCAKE_SAPI_GLOBALS(timeout) = Z_LVAL_P(timeout);
+	} else {
+		PANCAKE_SAPI_GLOBALS(timeout) = 0;
 	}
 
 	// Hook some functions
@@ -450,6 +458,10 @@ static void PancakeSAPIInitializeRequest(zval *request) {
 		PG(last_error_file) = NULL;
 	}
 
+	if(PANCAKE_SAPI_GLOBALS(timeout)) {
+		zend_set_timeout(PANCAKE_SAPI_GLOBALS(timeout), 1);
+	}
+
 	zend_activate_auto_globals(TSRMLS_C);
 }
 
@@ -476,6 +488,11 @@ PHP_FUNCTION(SAPIFinishRequest) {
 		write(PANCAKE_SAPI_GLOBALS(controlSocket), "EXPECTED_SHUTDOWN", sizeof("EXPECTED_SHUTDOWN") - 1);
 		zend_bailout();
 	}
+
+	// Disable time limit
+	zend_try {
+		zend_unset_timeout(TSRMLS_C);
+	} zend_end_try();
 }
 
 zend_bool PancakeSAPIFetchRequest(int fd, zval *return_value) {

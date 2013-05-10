@@ -56,6 +56,7 @@ ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)
 	long processingLimit;
 	long processedRequests;
 	zend_bool exit;
+	long timeout;
 ZEND_END_MODULE_GLOBALS(PancakeSAPI)
 extern ZEND_DECLARE_MODULE_GLOBALS(PancakeSAPI);
 

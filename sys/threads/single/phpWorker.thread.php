@@ -322,16 +322,10 @@
 
 	        // Execute script and protect Pancake from exit() and Exceptions
 	        try {
-	        	#.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpMaxExecutionTime;' false
-	        		set_time_limit(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpMaxExecutionTime;' false */);
-	        	#.endif
-
 	        	include /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */ . vars::$Pancake_request->requestFilePath;
 	        } catch(ExitException $e) {
 	        	unset($e);
 	        }
-
-	        set_time_limit(0);
 
 	        #.if Pancake\DEBUG_MODE === true
 		        if(array_key_exists('pancakephpdebug', vars::$Pancake_request->getGETParams())) {
