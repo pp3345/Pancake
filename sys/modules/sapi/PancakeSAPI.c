@@ -407,6 +407,10 @@ static void PancakeSAPIInitializeRequest(zval *request) {
 
 	PANCAKE_SAPI_GLOBALS(inExecution) = 1;
 
+	if (PG(expose_php)) {
+		sapi_add_header(SAPI_PHP_VERSION_HEADER, sizeof(SAPI_PHP_VERSION_HEADER)-1, 1);
+	}
+
 	EG(user_error_handler) = NULL;
 
 	// Reset last errors
@@ -430,6 +434,7 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	} zend_end_try();
 
 	php_output_end_all(TSRMLS_C);
+	php_output_deactivate(TSRMLS_C);
 	PANCAKE_SAPI_GLOBALS(inExecution) = 0;
 	SG(headers_sent) = 0;
 
@@ -595,6 +600,9 @@ PHP_FUNCTION(SAPIPostRequestCleanup) {
 	if (EG(user_exception_handler)) {
 		zval_ptr_dtor(&EG(user_exception_handler));
 	}
+
+	// Load output layer
+	php_output_activate(TSRMLS_C);
 
 	// Tell Pancake not to shutdown
 	PANCAKE_GLOBALS(inSAPIReboot) = 1;

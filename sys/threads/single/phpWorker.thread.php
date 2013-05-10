@@ -301,11 +301,6 @@
 
 	    // Wait for requests
 	    while(vars::$Pancake_request = SAPIWait()) {
-#.if #.call 'ini_get' 'expose_php'
-            #.PHP_VERSION_STRING = ,"PHP/" PHP_VERSION
-            vars::$Pancake_request->setHeader('X-Powered-By', /* .PHP_VERSION_STRING */);
-#.endif
-
             define('PANCAKE_PHP', true);
 
 #.if #.call 'ini_get' 'expose_php'
