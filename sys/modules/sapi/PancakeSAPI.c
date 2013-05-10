@@ -637,7 +637,7 @@ PHP_FUNCTION(SAPIPostRequestCleanup) {
 			&& zend_hash_get_current_key_ex(EG(function_table), &functionName, &functionName_len, NULL, 0, NULL) == HASH_KEY_IS_STRING;) {
 			if(PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes)
 			&&	zend_hash_quick_exists(PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes), functionName, functionName_len, EG(function_table)->pInternalPointer->h)) {
-				zend_hash_move_backward(EG(function_table));
+				zend_hash_move_backwards(EG(function_table));
 				continue;
 			}
 
