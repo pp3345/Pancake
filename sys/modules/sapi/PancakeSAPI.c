@@ -13,7 +13,6 @@ ZEND_DECLARE_MODULE_GLOBALS(PancakeSAPI)
 const zend_function_entry PancakeSAPI_functions[] = {
 	ZEND_NS_FE("Pancake", SAPIPrepare, NULL)
 	ZEND_NS_FE("Pancake", SAPIFinishRequest, NULL)
-	ZEND_NS_FE("Pancake", SAPIFlushBuffers, NULL)
 	ZEND_NS_FE("Pancake", SAPIPostRequestCleanup, NULL)
 	ZEND_NS_FE("Pancake", SAPIWait, NULL)
 	ZEND_NS_FE("Pancake", SAPIExitHandler, NULL)
@@ -459,10 +458,6 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	SG(headers_sent) = 0;
 
 	write(PANCAKE_SAPI_GLOBALS(clientSocket), "\2", sizeof(char));
-}
-
-PHP_FUNCTION(SAPIFlushBuffers) {
-	php_output_end_all(TSRMLS_C);
 }
 
 zend_bool PancakeSAPIFetchRequest(int fd, zval *return_value) {
