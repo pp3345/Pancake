@@ -14,54 +14,6 @@
         exit;
     #.endif
 
-    function PHPErrorHandler($errtype, $errstr, $errfile = "Unknown", $errline = 0, $errcontext = array()) {
-    	if(vars::$errorHandler
-    	&& vars::$errorHandler['for'] & $errtype
-    	&& !($errtype & /* .eval 'return \E_ERROR | \E_PARSE | \E_CORE_ERROR | \E_CORE_WARNING | \E_COMPILE_ERROR | \E_COMPILE_WARNING;' */)
-    	&& is_callable(vars::$errorHandler['call'])
-    	&& (vars::$executingErrorHandler = true)
-    	&& call_user_func(vars::$errorHandler['call'], $errtype, $errstr, $errfile, $errline, $errcontext) !== false) {
-    		vars::$executingErrorHandler = false;
-    		vars::$lastError = array('type' => $errtype, 'message' => $errstr, 'file' => $errfile, 'line' => $errline);
-    		return true;
-    	}
-
-    	vars::$executingErrorHandler = false;
-
-    	vars::$lastError = array('type' => $errtype, 'message' => $errstr, 'file' => $errfile, 'line' => $errline);
-
-        if(!(error_reporting() & $errtype) || !error_reporting() || !ini_get('display_errors'))
-            return true;
-
-        $typeNames = array( /* .constant 'E_ERROR' */ => 'Fatal error',
-                            /* .constant 'E_WARNING' */ => 'Warning',
-                            /* .constant 'E_PARSE' */ => 'Parse error',
-                            /* .constant 'E_NOTICE' */ => 'Notice',
-                            /* .constant 'E_CORE_ERROR' */ => 'PHP Fatal error',
-                            /* .constant 'E_CORE_WARNING' */ => 'PHP Warning',
-                            /* .constant 'E_COMPILE_ERROR' */ => 'PHP Fatal error',
-                            /* .constant 'E_COMPILE_WARNING' */ => 'PHP Warning',
-                            /* .constant 'E_USER_ERROR' */ => 'Fatal error',
-                            /* .constant 'E_USER_WARNING' */ => 'Warning',
-                            /* .constant 'E_USER_NOTICE' */ => 'Notice',
-                            /* .constant 'E_STRICT' */ => 'Strict Standards',
-                            /* .constant 'E_RECOVERABLE_ERROR' */ => 'Catchable fatal error',
-                            /* .constant 'E_DEPRECATED' */ => 'Deprecated',
-                            /* .constant 'E_USER_DEPRECATED' */ => 'Deprecated');
-
-        #.if /* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpHTMLErrors;' */
-       		echo "<br />" . "\r\n" . "<b>" . $typeNames[$errtype] . "</b>:  " . $errstr . " in <b>" . $errfile . "</b> on line <b>" . $errline . "</b><br />" . "\r\n";
-        #.else
-        	echo $typeNames[$errtype].': '.$errstr.' in '.$errfile .' on line '.$errline."\n";
-       	#.endif
-
-       	// Abort script execution on E_USER_ERROR
-       	if($errtype == /* .constant 'E_USER_ERROR' */)
-            exit(255);
-
-        return true;
-    }
-
     #.ifdef 'SUPPORT_CODECACHE'
     /**
     * Recursive CodeCache-build
@@ -103,8 +55,6 @@
         $newBacktrace = array();
 
         foreach($backtrace as $tracePart) {
-			if(vars::$executingErrorHandler && ((isset($tracePart['file']) && strpos($tracePart['file'], '/sys/compilecache/phpWorker.thread')) || (isset($tracePart['function']) && $tracePart['function'] == 'Pancake\PHPErrorHandler')))
-				continue;
         	$newBacktrace[] = $tracePart;
         }
         return $newBacktrace;
@@ -183,17 +133,12 @@
         public static $Pancake_processedRequests = 0;
         #.endif
         public static $workerExit = false;
-        public static $requestSocket = null;
-        public static $invalidRequest = false;
         #.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetClassNonObjects || $Pancake_currentThread->vHost->resetClassObjects || $Pancake_currentThread->vHost->resetFunctionObjects || $Pancake_currentThread->vHost->resetFunctionNonObjects;' false
         public static $classes = array();
         #.endif
         #.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetFunctionObjects || $Pancake_currentThread->vHost->resetFunctionNonObjects;' false
         public static $functions = array();
         #.endif
-        public static $executingErrorHandler = false;
-        public static $listenArray = array();
-        public static $listenArrayOrig = array();
     }
 
 ?>

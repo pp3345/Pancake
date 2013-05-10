@@ -156,16 +156,13 @@
         ob_start();
         Pancake\PHPFunctions\debugPrintBacktrace($options, $limit);
 
-        $backtrace = ob_get_contents();
-        Pancake\PHPFunctions\OutputBuffering\endClean();
+        $backtrace = ob_get_clean();
 
         $trace = "";
         $i = 0;
 
         foreach(explode("\n", $backtrace) as $index => $tracePart) {
-            if(!$index
-            || (strpos($tracePart, '/sys/compilecache/phpWorker.thread') && strpos($tracePart, 'call_user_func') && Pancake\vars::$executingErrorHandler)
-            || (strpos($tracePart, 'Pancake\PHPErrorHandler') && Pancake\vars::$executingErrorHandler))
+            if(!$index)
                 continue;
             if(strpos($tracePart, '/sys/compilecache/phpWorker.thread'))
                 break;

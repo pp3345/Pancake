@@ -109,14 +109,6 @@
 		#.define 'BENCHMARK' false
 	#.endif
 
-	#.longDefine 'MACRO_CODE'
-	$backtrace = debug_backtrace(/* .DEBUG_BACKTRACE_PROVIDE_OBJECT */, 2);
-
-	\Pancake\PHPErrorHandler($errorType, $errorMessage, $backtrace[0]["file"], $backtrace[0]["line"]);
-	#.endLongDefine
-
-	#.macro 'PHP_ERROR_WITH_BACKTRACE' MACRO_CODE '$errorType' '$errorMessage'
-
     namespace {
     	#.include 'php/sapi.php'
     }
@@ -278,8 +270,6 @@
 
 	    ExecuteJITGlobals();
 
-        vars::$listenArray = vars::$listenArrayOrig = array(vars::$Pancake_currentThread->vHost->phpSocket, vars::$Pancake_currentThread->socket);
-
         // Set blocking for signals
         SigProcMask(/* .constant 'SIG_BLOCK' */, array(/* .constant 'SIGINT' */, /* .constant 'SIGHUP' */));
 
@@ -347,12 +337,6 @@
 
 	        set_time_limit(0);
 
-	        // After $invalidRequest is set to true it might still happen that the registered shutdown functions do some output
-	        if(vars::$invalidRequest) {
-        	    $requestObject = vars::$Pancake_request;
-        		vars::$Pancake_request->invalidRequest(new invalidHTTPRequestException('An internal server error occured while trying to handle your request.', 500));
-	        }
-
 	        #.if Pancake\DEBUG_MODE === true
 		        if(array_key_exists('pancakephpdebug', vars::$Pancake_request->getGETParams())) {
 		            $body = 'Dump of RequestObject:' . "\r\n";
@@ -415,7 +399,6 @@
                 unset($file);
             }
 
-	        vars::$invalidRequest = false;
 	        #.ifdef 'HAVE_LIMIT'
 	        vars::$Pancake_processedRequests++;
 	        #.endif
@@ -710,10 +693,6 @@
 
 				unset($results);
 	        #.endif
-
-	        cycle:
-
-	        vars::$listenArray = vars::$listenArrayOrig;
 	    }
 
 		do_exit:
