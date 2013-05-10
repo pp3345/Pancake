@@ -166,9 +166,6 @@
         
         unset($file);
 
-	    // Set exit handler so that Pancake won't die when a script calls exit() oder die()
-		dt_exit_mode(/* .constant 'DT_EXIT_EXCEPTION' */, "Pancake\PHPExitHandler", 'Pancake\ExitException');
-
 	    #.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetClassNonObjects || $Pancake_currentThread->vHost->resetClassObjects || $Pancake_currentThread->vHost->resetFunctionObjects || $Pancake_currentThread->vHost->resetFunctionNonObjects;' false
 	    	vars::$classes = get_declared_classes();
 	    #.endif
@@ -207,6 +204,9 @@
         LoadModule('sapi', true);
         
         disableModuleLoader();
+        
+        // Set exit handler so that Pancake won't die when a script calls exit() oder die()
+        dt_exit_mode(/* .constant 'DT_EXIT_EXCEPTION' */, "Pancake\SAPIExitHandler", 'Pancake\ExitException');
 
         chdir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */);
 
@@ -301,8 +301,6 @@
 
 	    // Wait for requests
 	    while(vars::$Pancake_request = SAPIWait()) {
-            define('PANCAKE_PHP', true);
-
 #.if #.call 'ini_get' 'expose_php'
             // PHP UUIDs
             if(isset(vars::$Pancake_request->getGETParams()[""])) {
@@ -410,9 +408,7 @@
             } catch(ExitException $e) {
                 unset($e);
             }
-            
-	        dt_remove_constant('PANCAKE_PHP');
-            
+                        
             SAPIPostRequestCleanup();
             
             // Clean uploaded files

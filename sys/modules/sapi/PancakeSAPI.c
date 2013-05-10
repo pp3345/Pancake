@@ -16,6 +16,7 @@ const zend_function_entry PancakeSAPI_functions[] = {
 	ZEND_NS_FE("Pancake", SAPIFlushBuffers, NULL)
 	ZEND_NS_FE("Pancake", SAPIPostRequestCleanup, NULL)
 	ZEND_NS_FE("Pancake", SAPIWait, NULL)
+	ZEND_NS_FE("Pancake", SAPIExitHandler, NULL)
 	ZEND_FE_END
 };
 
@@ -693,4 +694,16 @@ PHP_FUNCTION(SAPIPostRequestCleanup) {
 	}
 
 	PANCAKE_SAPI_GLOBALS(includesPre) = EG(included_files).nNumOfElements;
+}
+
+PHP_FUNCTION(SAPIExitHandler) {
+	zval *exitmsg;
+
+	zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|z", &exitmsg);
+
+	if(ZEND_NUM_ARGS() && Z_TYPE_P(exitmsg) != IS_LONG) {
+		zend_print_variable(exitmsg);
+	}
+
+	RETURN_BOOL(!PANCAKE_SAPI_GLOBALS(inExecution));
 }

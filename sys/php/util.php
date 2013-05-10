@@ -14,12 +14,6 @@
         exit;
     #.endif
 
-    function PHPExitHandler($exitmsg = null) {
-    	if(!is_int($exitmsg))
-        	echo $exitmsg;
-        return !defined('PANCAKE_PHP');
-    }
-
     function PHPErrorHandler($errtype, $errstr, $errfile = "Unknown", $errline = 0, $errcontext = array()) {
     	if(vars::$errorHandler
     	&& vars::$errorHandler['for'] & $errtype

@@ -65,5 +65,6 @@ PHP_FUNCTION(SAPIFinishRequest);
 PHP_FUNCTION(SAPIFlushBuffers);
 PHP_FUNCTION(SAPIPostRequestCleanup);
 PHP_FUNCTION(SAPIWait);
+PHP_FUNCTION(SAPIExitHandler);
 
 #endif
