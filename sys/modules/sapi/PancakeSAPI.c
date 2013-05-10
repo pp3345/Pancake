@@ -222,7 +222,7 @@ static HashTable *PancakeSAPITransformHashTableValuesToKeys(HashTable *table) {
 PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zend_function *function;
 	zend_class_entry **vars;
-	zval *disabledFunctions, *autoDelete, *autoDeleteExcludes, *HTMLErrors;
+	zval *disabledFunctions, *autoDelete, *autoDeleteExcludes, *HTMLErrors, *documentRoot;
 
 	if(PANCAKE_GLOBALS(inSAPIReboot) == 1) {
 		return SUCCESS;
@@ -284,6 +284,9 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	if(zend_is_true(HTMLErrors)) {
 		PG(html_errors) = 1;
 	}
+
+	// Fetch document root
+	FAST_READ_PROPERTY(PANCAKE_SAPI_GLOBALS(documentRoot), PANCAKE_SAPI_GLOBALS(vHost), "documentRoot", sizeof("documentRoot") - 1, HASH_OF_documentRoot);
 
 	// Hook some functions
 	zend_hash_find(EG(function_table), "headers_sent", sizeof("headers_sent"), (void**) &function);
@@ -403,7 +406,20 @@ PHP_FUNCTION(SAPIPrepare) {
 }
 
 static void PancakeSAPIInitializeRequest(zval *request) {
+	zval *requestFilePath;
+	char *directory;
+
 	PANCAKE_GLOBALS(JITGlobalsHTTPRequest) = PANCAKE_SAPI_GLOBALS(request) = request;
+
+	// Switch to correct directory
+	FAST_READ_PROPERTY(requestFilePath, request, "requestFilePath", sizeof("requestFilePath") - 1, HASH_OF_requestFilePath);
+	directory = emalloc(Z_STRLEN_P(PANCAKE_SAPI_GLOBALS(documentRoot)) + Z_STRLEN_P(requestFilePath));
+	memcpy(directory, Z_STRVAL_P(requestFilePath), Z_STRLEN_P(requestFilePath) + 1);
+	dirname(directory);
+	memmove(directory + Z_STRLEN_P(PANCAKE_SAPI_GLOBALS(documentRoot)), directory, strlen(directory) + 1);
+	memcpy(directory, Z_STRVAL_P(PANCAKE_SAPI_GLOBALS(documentRoot)), Z_STRLEN_P(PANCAKE_SAPI_GLOBALS(documentRoot)));
+	chdir(directory);
+	efree(directory);
 
 	PANCAKE_SAPI_GLOBALS(inExecution) = 1;
 

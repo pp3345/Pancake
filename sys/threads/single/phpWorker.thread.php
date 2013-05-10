@@ -336,9 +336,6 @@
             }
 #.endif
 
-	        // Change directory to document root of the vHost / requested file path
-	        chdir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */ . dirname(vars::$Pancake_request->requestFilePath));
-
 	        // Execute script and protect Pancake from exit() and Exceptions
 	        try {
 	        	#.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpMaxExecutionTime;' false
