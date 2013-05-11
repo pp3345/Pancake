@@ -424,11 +424,29 @@ PHP_FUNCTION(SAPIPrepare) {
 	}
 }
 
-static void PancakeSAPIInitializeRequest(zval *request) {
-	zval *requestFilePath;
+static zend_bool PancakeSAPIInitializeRequest(zval *request) {
+	zval *requestFilePath, *queryString;
 	char *directory;
 
 	PANCAKE_GLOBALS(JITGlobalsHTTPRequest) = PANCAKE_SAPI_GLOBALS(request) = request;
+
+	PANCAKE_SAPI_GLOBALS(inExecution) = 1;
+
+	// X-Powered-By
+	if (PG(expose_php)) {
+		sapi_add_header(SAPI_PHP_VERSION_HEADER, sizeof(SAPI_PHP_VERSION_HEADER)-1, 1);
+	}
+
+	// Set request info data
+	FAST_READ_PROPERTY(queryString, request, "queryString", sizeof("queryString") - 1, HASH_OF_queryString);
+	SG(request_info).query_string = Z_STRVAL_P(queryString);
+
+#if PHP_MINOR_VERSION < 5
+	// Handle PHP UUID queries
+	if(php_handle_special_queries(TSRMLS_C)) {
+		return 0;
+	}
+#endif
 
 	// Switch to correct directory
 	FAST_READ_PROPERTY(requestFilePath, request, "requestFilePath", sizeof("requestFilePath") - 1, HASH_OF_requestFilePath);
@@ -439,12 +457,6 @@ static void PancakeSAPIInitializeRequest(zval *request) {
 	memcpy(directory, Z_STRVAL_P(PANCAKE_SAPI_GLOBALS(documentRoot)), Z_STRLEN_P(PANCAKE_SAPI_GLOBALS(documentRoot)));
 	chdir(directory);
 	efree(directory);
-
-	PANCAKE_SAPI_GLOBALS(inExecution) = 1;
-
-	if (PG(expose_php)) {
-		sapi_add_header(SAPI_PHP_VERSION_HEADER, sizeof(SAPI_PHP_VERSION_HEADER)-1, 1);
-	}
 
 	EG(user_error_handler) = NULL;
 
@@ -463,6 +475,7 @@ static void PancakeSAPIInitializeRequest(zval *request) {
 	}
 
 	zend_activate_auto_globals(TSRMLS_C);
+	return 1;
 }
 
 PHP_FUNCTION(SAPIFinishRequest) {
@@ -510,7 +523,7 @@ zend_bool PancakeSAPIFetchRequest(int fd, zval *return_value) {
 		if(readLength == -1) {
 			efree(buf);
 			close(fd);
-			return FAILURE;
+			return 0;
 		}
 
 		offset += readLength;
@@ -528,16 +541,27 @@ zend_bool PancakeSAPIFetchRequest(int fd, zval *return_value) {
 		close(fd);
 		efree(bufP);
 
-		return FAILURE;
+		return 0;
 	}
 	PHP_VAR_UNSERIALIZE_DESTROY(varHash);
 
 	efree(bufP);
 
-	PancakeSAPIInitializeRequest(HTTPRequest);
+	if(!PancakeSAPIInitializeRequest(HTTPRequest)) {
+		// Reload output layer
+		php_output_end_all(TSRMLS_C);
+		php_output_deactivate(TSRMLS_C);
+		php_output_activate(TSRMLS_C);
+
+		write(fd, "\2", sizeof(char));
+
+		SG(headers_sent) = 0;
+		zval_ptr_dtor(&HTTPRequest);
+		return 0;
+	}
 
 	RETVAL_ZVAL(HTTPRequest, 0, 0);
-	return SUCCESS;
+	return 1;
 }
 
 PHP_FUNCTION(SAPIWait) {
@@ -560,7 +584,7 @@ PHP_FUNCTION(SAPIWait) {
 		event.data.fd = PANCAKE_SAPI_GLOBALS(clientSocket) = fd;
 		epoll_ctl(PANCAKE_SAPI_GLOBALS(epoll), EPOLL_CTL_ADD, fd, &event);
 
-		if(PancakeSAPIFetchRequest(fd, return_value) == SUCCESS) {
+		if(PancakeSAPIFetchRequest(fd, return_value)) {
 			return;
 		} else {
 			goto wait;
@@ -606,7 +630,7 @@ PHP_FUNCTION(SAPIWait) {
 
 		PANCAKE_SAPI_GLOBALS(clientSocket) = events[0].data.fd;
 
-		if(PancakeSAPIFetchRequest(events[0].data.fd, return_value) == SUCCESS) {
+		if(PancakeSAPIFetchRequest(events[0].data.fd, return_value)) {
 			return;
 		} else {
 			goto wait;

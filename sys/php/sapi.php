@@ -16,10 +16,6 @@
 
     const PHP_SAPI = 'pancake';
 
-    function pancake_logo_guid() {
-        return 'PAN8DF095AE-6639-4C6F-8831-5AB8FBD64D8B';
-    }
-
     #.ifdef 'HAVE_FILTER_EXTENSION'
     function filter_input($type, $variable_name, $filter = /* .constant 'FILTER_DEFAULT' */, $options = /* .constant 'FILTER_FLAG_NONE' */) {
         // Create bitmask of flags
