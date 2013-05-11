@@ -13,7 +13,6 @@ ZEND_DECLARE_MODULE_GLOBALS(PancakeSAPI)
 const zend_function_entry PancakeSAPI_functions[] = {
 	ZEND_NS_FE("Pancake", SAPIPrepare, NULL)
 	ZEND_NS_FE("Pancake", SAPIFinishRequest, NULL)
-	ZEND_NS_FE("Pancake", SAPIPostRequestCleanup, NULL)
 	ZEND_NS_FE("Pancake", SAPIWait, NULL)
 	ZEND_NS_FE("Pancake", SAPIExitHandler, NULL)
 	ZEND_FE(apache_child_terminate, NULL)
@@ -48,6 +47,22 @@ PHP_MINIT_FUNCTION(PancakeSAPI) {
 	PANCAKE_SAPI_GLOBALS(exit) = 0;
 
 	return SUCCESS;
+}
+
+static int PancakeSAPIShutdownModule(zend_module_entry *module TSRMLS_DC) {
+	if (module->request_shutdown_func && module != PANCAKE_SAPI_GLOBALS(DeepTrace)) {
+		module->request_shutdown_func(module->type, module->module_number TSRMLS_CC);
+	}
+
+	return 0;
+}
+
+static int PancakeSAPIStartupModule(zend_module_entry *module TSRMLS_DC) {
+	if (module->request_startup_func) {
+		module->request_startup_func(module->type, module->module_number TSRMLS_CC);
+	}
+
+	return 0;
 }
 
 static int PancakeSAPISendHeaders(sapi_headers_struct *sapi_headers TSRMLS_DC) {
@@ -506,6 +521,103 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	zend_try {
 		zend_unset_timeout(TSRMLS_C);
 	} zend_end_try();
+
+	// Reset error handler stack
+	zend_stack_destroy(&EG(user_error_handlers_error_reporting));
+	zend_stack_init(&EG(user_error_handlers_error_reporting));
+
+	// Set Pancake error handler
+	if(EG(user_error_handler)) {
+		zval_ptr_dtor(&EG(user_error_handler));
+	}
+	EG(user_error_handler) = PANCAKE_SAPI_GLOBALS(errorHandler);
+	EG(user_error_handler_error_reporting) = E_ALL;
+
+	// Reset exception handler stack
+	zend_ptr_stack_destroy(&EG(user_exception_handlers));
+	zend_ptr_stack_init(&EG(user_exception_handlers));
+
+	// Reset exception handler
+	if (EG(user_exception_handler)) {
+		zval_ptr_dtor(&EG(user_exception_handler));
+	}
+
+	// Load output layer
+	php_output_activate(TSRMLS_C);
+
+	// Tell Pancake not to shutdown
+	PANCAKE_GLOBALS(inSAPIReboot) = 1;
+
+	// Run RSHUTDOWN for modules
+	zend_hash_reverse_apply(&module_registry, (apply_func_t) PancakeSAPIShutdownModule TSRMLS_CC);
+
+	// Initialize modules again
+	zend_hash_reverse_apply(&module_registry, (apply_func_t) PancakeSAPIStartupModule TSRMLS_CC);
+	PANCAKE_GLOBALS(inSAPIReboot) = 0;
+
+	// Restore ini entries
+	zend_try {
+		zend_ini_deactivate(TSRMLS_C);
+	} zend_end_try();
+
+	// Destroy uploaded files array
+	if(SG(rfc1867_uploaded_files)) {
+		zend_hash_destroy(SG(rfc1867_uploaded_files));
+		FREE_HASHTABLE(SG(rfc1867_uploaded_files));
+		SG(rfc1867_uploaded_files) = NULL;
+	}
+
+	// Destroy functions
+	if(PANCAKE_SAPI_GLOBALS(autoDeleteFunctions) && EG(function_table)->nNumOfElements > PANCAKE_SAPI_GLOBALS(functionsPre)) {
+		char *functionName;
+		uint functionName_len;
+		int iterationCount = EG(function_table)->nNumOfElements - PANCAKE_SAPI_GLOBALS(functionsPre);
+
+		for(zend_hash_internal_pointer_end_ex(EG(function_table), NULL);
+			iterationCount--
+			&& zend_hash_get_current_key_ex(EG(function_table), &functionName, &functionName_len, NULL, 0, NULL) == HASH_KEY_IS_STRING;) {
+			if(PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes)
+			&&	zend_hash_quick_exists(PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes), functionName, functionName_len, EG(function_table)->pInternalPointer->h)) {
+				zend_hash_move_backwards(EG(function_table));
+				continue;
+			}
+
+			if(EG(function_table)->pInternalPointer->h == HASH_OF___autoload) {
+				EG(autoload_func) = NULL;
+			}
+
+			zend_hash_quick_del(EG(function_table), functionName, functionName_len, EG(function_table)->pInternalPointer->h);
+			zend_hash_internal_pointer_end(EG(function_table));
+		}
+	}
+
+	PANCAKE_SAPI_GLOBALS(functionsPre) = EG(function_table)->nNumOfElements;
+
+	// Destroy includes
+	if(PANCAKE_SAPI_GLOBALS(autoDeleteIncludes)) {
+		if(PANCAKE_SAPI_GLOBALS(autoDeleteIncludesExcludes) || PANCAKE_SAPI_GLOBALS(includesPre)) {
+			char *fileName;
+			int fileName_len;
+			int iterationCount = EG(included_files).nNumOfElements - PANCAKE_SAPI_GLOBALS(includesPre);
+
+			for(zend_hash_internal_pointer_end(&EG(included_files));
+				iterationCount--
+				&& zend_hash_get_current_key_ex(&EG(included_files), &fileName, &fileName_len, NULL, 0, NULL) == HASH_KEY_IS_STRING;){
+				if(PANCAKE_SAPI_GLOBALS(autoDeleteIncludesExcludes)
+				&& zend_hash_quick_exists(PANCAKE_SAPI_GLOBALS(autoDeleteIncludesExcludes), fileName, fileName_len, EG(included_files).pInternalPointer->h)) {
+					zend_hash_move_forward(&EG(included_files));
+					continue;
+				}
+
+				zend_hash_quick_del(&EG(included_files), fileName, fileName_len, EG(included_files).pInternalPointer->h);
+				zend_hash_internal_pointer_end(&EG(included_files));
+			}
+		} else {
+			zend_hash_clean(&EG(included_files));
+		}
+	}
+
+	PANCAKE_SAPI_GLOBALS(includesPre) = EG(included_files).nNumOfElements;
 }
 
 zend_bool PancakeSAPIFetchRequest(int fd, zval *return_value) {
@@ -636,121 +748,6 @@ PHP_FUNCTION(SAPIWait) {
 			goto wait;
 		}
 	}
-}
-
-static int PancakeSAPIShutdownModule(zend_module_entry *module TSRMLS_DC) {
-	if (module->request_shutdown_func && module != PANCAKE_SAPI_GLOBALS(DeepTrace)) {
-		module->request_shutdown_func(module->type, module->module_number TSRMLS_CC);
-	}
-
-	return 0;
-}
-
-static int PancakeSAPIStartupModule(zend_module_entry *module TSRMLS_DC) {
-	if (module->request_startup_func) {
-		module->request_startup_func(module->type, module->module_number TSRMLS_CC);
-	}
-
-	return 0;
-}
-
-PHP_FUNCTION(SAPIPostRequestCleanup) {
-	// Reset error handler stack
-	zend_stack_destroy(&EG(user_error_handlers_error_reporting));
-	zend_stack_init(&EG(user_error_handlers_error_reporting));
-
-	// Set Pancake error handler
-	if(EG(user_error_handler)) {
-		zval_ptr_dtor(&EG(user_error_handler));
-	}
-	EG(user_error_handler) = PANCAKE_SAPI_GLOBALS(errorHandler);
-	EG(user_error_handler_error_reporting) = E_ALL;
-
-	// Reset exception handler stack
-	zend_ptr_stack_destroy(&EG(user_exception_handlers));
-	zend_ptr_stack_init(&EG(user_exception_handlers));
-
-	// Reset exception handler
-	if (EG(user_exception_handler)) {
-		zval_ptr_dtor(&EG(user_exception_handler));
-	}
-
-	// Load output layer
-	php_output_activate(TSRMLS_C);
-
-	// Tell Pancake not to shutdown
-	PANCAKE_GLOBALS(inSAPIReboot) = 1;
-
-	// Run RSHUTDOWN for modules
-	zend_hash_reverse_apply(&module_registry, (apply_func_t) PancakeSAPIShutdownModule TSRMLS_CC);
-
-	// Initialize modules again
-	zend_hash_reverse_apply(&module_registry, (apply_func_t) PancakeSAPIStartupModule TSRMLS_CC);
-	PANCAKE_GLOBALS(inSAPIReboot) = 0;
-
-	// Restore ini entries
-	zend_try {
-		zend_ini_deactivate(TSRMLS_C);
-	} zend_end_try();
-
-	// Destroy uploaded files array
-	if(SG(rfc1867_uploaded_files)) {
-		zend_hash_destroy(SG(rfc1867_uploaded_files));
-		FREE_HASHTABLE(SG(rfc1867_uploaded_files));
-		SG(rfc1867_uploaded_files) = NULL;
-	}
-
-	// Destroy functions
-	if(PANCAKE_SAPI_GLOBALS(autoDeleteFunctions) && EG(function_table)->nNumOfElements > PANCAKE_SAPI_GLOBALS(functionsPre)) {
-		char *functionName;
-		uint functionName_len;
-		int iterationCount = EG(function_table)->nNumOfElements - PANCAKE_SAPI_GLOBALS(functionsPre);
-
-		for(zend_hash_internal_pointer_end_ex(EG(function_table), NULL);
-			iterationCount--
-			&& zend_hash_get_current_key_ex(EG(function_table), &functionName, &functionName_len, NULL, 0, NULL) == HASH_KEY_IS_STRING;) {
-			if(PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes)
-			&&	zend_hash_quick_exists(PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes), functionName, functionName_len, EG(function_table)->pInternalPointer->h)) {
-				zend_hash_move_backwards(EG(function_table));
-				continue;
-			}
-
-			if(EG(function_table)->pInternalPointer->h == HASH_OF___autoload) {
-				EG(autoload_func) = NULL;
-			}
-
-			zend_hash_quick_del(EG(function_table), functionName, functionName_len, EG(function_table)->pInternalPointer->h);
-			zend_hash_internal_pointer_end(EG(function_table));
-		}
-	}
-
-	PANCAKE_SAPI_GLOBALS(functionsPre) = EG(function_table)->nNumOfElements;
-
-	// Destroy includes
-	if(PANCAKE_SAPI_GLOBALS(autoDeleteIncludes)) {
-		if(PANCAKE_SAPI_GLOBALS(autoDeleteIncludesExcludes) || PANCAKE_SAPI_GLOBALS(includesPre)) {
-			char *fileName;
-			int fileName_len;
-			int iterationCount = EG(included_files).nNumOfElements - PANCAKE_SAPI_GLOBALS(includesPre);
-
-			for(zend_hash_internal_pointer_end(&EG(included_files));
-				iterationCount--
-				&& zend_hash_get_current_key_ex(&EG(included_files), &fileName, &fileName_len, NULL, 0, NULL) == HASH_KEY_IS_STRING;){
-				if(PANCAKE_SAPI_GLOBALS(autoDeleteIncludesExcludes)
-				&& zend_hash_quick_exists(PANCAKE_SAPI_GLOBALS(autoDeleteIncludesExcludes), fileName, fileName_len, EG(included_files).pInternalPointer->h)) {
-					zend_hash_move_forward(&EG(included_files));
-					continue;
-				}
-
-				zend_hash_quick_del(&EG(included_files), fileName, fileName_len, EG(included_files).pInternalPointer->h);
-				zend_hash_internal_pointer_end(&EG(included_files));
-			}
-		} else {
-			zend_hash_clean(&EG(included_files));
-		}
-	}
-
-	PANCAKE_SAPI_GLOBALS(includesPre) = EG(included_files).nNumOfElements;
 }
 
 PHP_FUNCTION(SAPIExitHandler) {

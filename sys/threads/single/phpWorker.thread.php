@@ -299,8 +299,6 @@
             } catch(ExitException $e) {
                 unset($e);
             }
-                        
-            SAPIPostRequestCleanup();
             
             // Clean uploaded files
             if(vars::$Pancake_request->uploadedFileTempNames) {
