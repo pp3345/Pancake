@@ -293,51 +293,6 @@
 	        } catch(ExitException $e) {
 	        	unset($e);
 	        }
-
-	        #.if Pancake\DEBUG_MODE === true
-		        if(array_key_exists('pancakephpdebug', vars::$Pancake_request->getGETParams())) {
-		            $body = 'Dump of RequestObject:' . "\r\n";
-		            $body .= print_r(vars::$Pancake_request, true);
-		            $body .= "\r\n";
-		            $body .= 'New classes:' . "\r\n";
-		            foreach(get_declared_classes() as $class)
-		                if(!in_array($class, vars::$Pancake_classesPre))
-		                    $body .= $class . "\r\n";
-		            $body .= "\r\n";
-		            $body .= 'New constants:' . "\r\n";
-		            $consts = get_defined_constants(true);
-		            foreach($consts['user'] as $const => $constValue)
-		                if(!array_key_exists($const, vars::$Pancake_constsPre['user']))
-		                    $body .= $const . " = " . $constValue . "\r\n";
-		            $body .= "\r\n";
-		            $body .= 'New interfaces:' . "\r\n";
-		            foreach(get_declared_interfaces() as $interface)
-		                if(!in_array($interface, vars::$Pancake_interfacesPre))
-		                    $body .= $interface . "\r\n";
-		            $body .= "\r\n";
-		            $body .= 'New functions:' . "\r\n";
-		            $funcs = get_defined_functions();
-		            foreach($funcs['user'] as $func)
-		                if(!in_array($func, vars::$Pancake_funcsPre['user']))
-		                    $body .= $func . "\r\n";
-		            $body .= "\r\n";
-	                $body .= 'New traits:' . "\r\n";
-	                foreach(get_declared_traits() as $trait)
-	                    if(!in_array($trait, vars::$Pancake_traitsPre))
-	                        $body .= $trait . "\r\n";
-	                $body .= "\r\n";
-		            $body .= 'New includes:' . "\r\n";
-		            foreach(get_included_files() as $include)
-		                if(!in_array($include, vars::$Pancake_includesPre))
-		                    $body .= $include . "\r\n";
-
-		            $body .= "\r\nContent Body: \r\n";
-		            $body .= $contents;
-		            $contents = $body;
-		            vars::$Pancake_request->setHeader('Content-Type', 'text/plain');
-		            vars::$Pancake_request->answerCode = 200;
-		        }
-	        #.endif
 	        
             try {
                 SAPIFinishRequest();
