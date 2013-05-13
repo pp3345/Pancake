@@ -1489,7 +1489,7 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 	FAST_READ_PROPERTY(POSTParameters, this_ptr, "POSTParameters", sizeof("POSTParameters") - 1, HASH_OF_POSTParameters);
 
 	if(Z_TYPE_P(POSTParameters) != IS_ARRAY) {
-		zval *rawPOSTData, *files, *tempNames;
+		zval *rawPOSTData, *files;
 
 		FAST_READ_PROPERTY(rawPOSTData, this_ptr, "rawPOSTData", sizeof("rawPOSTData") - 1, HASH_OF_rawPOSTData);
 
@@ -1498,9 +1498,6 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 
 		MAKE_STD_ZVAL(files);
 		array_init(files);
-
-		MAKE_STD_ZVAL(tempNames);
-		array_init(tempNames);
 
 		if(SG(rfc1867_uploaded_files)) {
 			zend_hash_destroy(SG(rfc1867_uploaded_files));
@@ -1646,7 +1643,6 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 								efree(buffer);
 								close(fd);
 								Z_LVAL_P(zError) = 0; // UPLOAD_ERR_OK
-								add_next_index_string(tempNames, tempNam, 1);
 								zend_hash_add(SG(rfc1867_uploaded_files), tempNam, tempNam_len + 1, &tempNam_dupe, sizeof(char*), NULL);
 							}
 
@@ -1702,7 +1698,6 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 
 		PancakeQuickWriteProperty(this_ptr, files, "uploadedFiles", sizeof("uploadedFiles"), HASH_OF_uploadedFiles TSRMLS_CC);
 		PancakeQuickWriteProperty(this_ptr, POSTParameters, "POSTParameters", sizeof("POSTParameters"), HASH_OF_POSTParameters TSRMLS_CC);
-		PancakeQuickWriteProperty(this_ptr, tempNames, "uploadedFileTempNames", sizeof("uploadedFileTempNames"), HASH_OF_uploadedFileTempNames TSRMLS_CC);
 
 		if(PG(http_globals)[TRACK_VARS_POST]) {
 			zval_ptr_dtor(&PG(http_globals)[TRACK_VARS_POST]);
@@ -1714,8 +1709,6 @@ zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 
 		PG(http_globals)[TRACK_VARS_POST] = POSTParameters;
 		PG(http_globals)[TRACK_VARS_FILES] = files;
-
-		Z_DELREF_P(tempNames);
 	}
 
 	return POSTParameters;

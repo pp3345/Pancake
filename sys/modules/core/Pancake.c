@@ -306,7 +306,6 @@ PHP_MINIT_FUNCTION(Pancake) {
 	zend_declare_property_null(HTTPRequest_ce, "cookies", sizeof("cookies") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_null(HTTPRequest_ce, "POSTParameters", sizeof("POSTParameters") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_null(HTTPRequest_ce, "uploadedFiles", sizeof("uploadedFiles") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_null(HTTPRequest_ce, "uploadedFileTempNames", sizeof("uploadedFileTempNames") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_long(HTTPRequest_ce, "rangeFrom", sizeof("rangeFrom") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_long(HTTPRequest_ce, "rangeTo", sizeof("rangeTo") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_stringl(HTTPRequest_ce, "pathInfo", sizeof("pathInfo") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);

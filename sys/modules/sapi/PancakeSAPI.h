@@ -15,6 +15,7 @@
 
 #include "../core/Pancake.h"
 #include "ext/standard/php_string.h"
+#include "ext/standard/file.h"
 #include <sys/epoll.h>
 
 extern zend_module_entry PancakeSAPI_module_entry;
@@ -26,11 +27,10 @@ extern zend_module_entry PancakeSAPI_module_entry;
 #define PANCAKE_SAPI_GLOBALS(v) (PancakeSAPI_globals.v)
 #endif
 
-void (*PHP_headers_sent)(INTERNAL_FUNCTION_PARAMETERS);
-void Pancake_headers_sent(INTERNAL_FUNCTION_PARAMETERS);
-
 void (*PHP_session_start)(INTERNAL_FUNCTION_PARAMETERS);
 void Pancake_session_start(INTERNAL_FUNCTION_PARAMETERS);
+
+void (*PHP_list_entry_destructor)(void *ptr);
 
 ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)
 	zval *request;
@@ -42,8 +42,10 @@ ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)
 	zend_bool autoDeleteFunctions;
 	zend_bool autoDeleteClasses;
 	zend_bool autoDeleteIncludes;
+	zend_bool autoDeleteConstants;
 	HashTable *autoDeleteFunctionsExcludes;
 	HashTable *autoDeleteIncludesExcludes;
+	HashTable *autoDeleteClassesExcludes;
 	uint functionsPre;
 	uint classesPre;
 	uint includesPre;
@@ -57,6 +59,10 @@ ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)
 	long processedRequests;
 	zend_bool exit;
 	long timeout;
+	zend_uint objectsStoreOffset;
+	HashTable *persistentSymbols;
+	zend_bool CodeCache;
+	zend_bool haveCriticalDeletions;
 ZEND_END_MODULE_GLOBALS(PancakeSAPI)
 extern ZEND_DECLARE_MODULE_GLOBALS(PancakeSAPI);
 
@@ -68,7 +74,11 @@ PHP_FUNCTION(SAPIPrepare);
 PHP_FUNCTION(SAPIFinishRequest);
 PHP_FUNCTION(SAPIWait);
 PHP_FUNCTION(SAPIExitHandler);
+PHP_FUNCTION(SAPICodeCachePrepare);
 
 PHP_FUNCTION(apache_child_terminate);
+
+/* Persistent constants that are not actually persistent */
+#define PANCAKE_PSEUDO_PERSISTENT 1 << 5
 
 #endif

@@ -126,9 +126,6 @@
     	#.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_TRAITS'
     	public static $Pancake_traitsPre = array();
     	#.endif
-        #.ifdef 'SUPPORT_CODECACHE'
-        public static $Pancake_exclude = array();
-        #.endif
         #.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetClassNonObjects || $Pancake_currentThread->vHost->resetClassObjects || $Pancake_currentThread->vHost->resetFunctionObjects || $Pancake_currentThread->vHost->resetFunctionNonObjects;' false
         public static $classes = array();
         #.endif

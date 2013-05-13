@@ -15,6 +15,7 @@ const zend_function_entry PancakeSAPI_functions[] = {
 	ZEND_NS_FE("Pancake", SAPIFinishRequest, NULL)
 	ZEND_NS_FE("Pancake", SAPIWait, NULL)
 	ZEND_NS_FE("Pancake", SAPIExitHandler, NULL)
+	ZEND_NS_FE("Pancake", SAPICodeCachePrepare, NULL)
 	ZEND_FE(apache_child_terminate, NULL)
 	ZEND_FE_END
 };
@@ -43,8 +44,12 @@ PHP_MINIT_FUNCTION(PancakeSAPI) {
 
 	PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes) = NULL;
 	PANCAKE_SAPI_GLOBALS(autoDeleteIncludesExcludes) = NULL;
+	PANCAKE_SAPI_GLOBALS(autoDeleteClassesExcludes) = NULL;
 	PANCAKE_SAPI_GLOBALS(processedRequests) = 0;
 	PANCAKE_SAPI_GLOBALS(exit) = 0;
+	PANCAKE_SAPI_GLOBALS(persistentSymbols) = NULL;
+	PANCAKE_SAPI_GLOBALS(CodeCache) = 0;
+	PANCAKE_SAPI_GLOBALS(haveCriticalDeletions) = 0;
 
 	return SUCCESS;
 }
@@ -65,6 +70,15 @@ static int PancakeSAPIStartupModule(zend_module_entry *module TSRMLS_DC) {
 	return 0;
 }
 
+static int PancakeSAPICleanNonPersistentConstant(const zend_constant *c TSRMLS_DC) {
+	if(c->flags & PANCAKE_PSEUDO_PERSISTENT) {
+		return ZEND_HASH_APPLY_STOP;
+	} else {
+		PANCAKE_SAPI_GLOBALS(haveCriticalDeletions) = 1;
+		return ZEND_HASH_APPLY_REMOVE;
+	}
+}
+
 static int PancakeSAPISendHeaders(sapi_headers_struct *sapi_headers TSRMLS_DC) {
 	zval *answerHeaders;
 	php_serialize_data_t varHash;
@@ -73,7 +87,7 @@ static int PancakeSAPISendHeaders(sapi_headers_struct *sapi_headers TSRMLS_DC) {
 	short responseCode = (short) sapi_headers->http_response_code;
 
 	if(!PANCAKE_SAPI_GLOBALS(inExecution)) {
-		return SUCCESS;
+		return SAPI_HEADER_SENT_SUCCESSFULLY;
 	}
 
 	FAST_READ_PROPERTY(answerHeaders, PANCAKE_SAPI_GLOBALS(request), "answerHeaders", sizeof("answerHeaders") - 1, HASH_OF_answerHeaders);
@@ -85,6 +99,7 @@ static int PancakeSAPISendHeaders(sapi_headers_struct *sapi_headers TSRMLS_DC) {
 	/* Write packet type */
 	if(write(PANCAKE_SAPI_GLOBALS(clientSocket), "\0", sizeof(char)) == -1) {
 		/* What do we do here? */
+		smart_str_free(&buf);
 		return SAPI_HEADER_SEND_FAILED;
 	}
 
@@ -96,17 +111,21 @@ static int PancakeSAPISendHeaders(sapi_headers_struct *sapi_headers TSRMLS_DC) {
 		ssize_t result = write(PANCAKE_SAPI_GLOBALS(clientSocket), &buf.c[offset], buf.len - offset);
 		if(result == -1) {
 			/* What do we do here? */
+			smart_str_free(&buf);
 			return SAPI_HEADER_SEND_FAILED;
 		}
 
 		offset += result;
 	}
 
+	/* Free buffer */
+	smart_str_free(&buf);
+
 	/* Write status code */
 	write(PANCAKE_SAPI_GLOBALS(clientSocket), &responseCode, sizeof(short));
 
 	if(sapi_headers->http_status_line && strlen(sapi_headers->http_status_line) >= sizeof("HTTP/1.0 200 ") && sapi_headers->http_status_line[12] == ' ') {
-		char *answerCodeString = &(SG(sapi_headers).http_status_line[13]);
+		char *answerCodeString = &(sapi_headers->http_status_line[13]);
 		short statusLineLength = (short) strlen(answerCodeString);
 		offset = 0;
 
@@ -237,6 +256,11 @@ static HashTable *PancakeSAPITransformHashTableValuesToKeys(HashTable *table) {
 	return new;
 }
 
+static int PancakeSAPIUnlinkFile(char **file TSRMLS_DC) {
+	VCWD_UNLINK(*file);
+	return ZEND_HASH_APPLY_REMOVE;
+}
+
 PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zend_function *function;
 	zend_class_entry **vars;
@@ -281,6 +305,7 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	PANCAKE_SAPI_GLOBALS(autoDeleteFunctions) = Z_TYPE_P(autoDelete) == IS_ARRAY && zend_hash_exists(Z_ARRVAL_P(autoDelete), "functions", sizeof("functions"));
 	PANCAKE_SAPI_GLOBALS(autoDeleteClasses) = Z_TYPE_P(autoDelete) == IS_ARRAY && zend_hash_exists(Z_ARRVAL_P(autoDelete), "classes", sizeof("classes"));
 	PANCAKE_SAPI_GLOBALS(autoDeleteIncludes) = Z_TYPE_P(autoDelete) == IS_ARRAY && zend_hash_exists(Z_ARRVAL_P(autoDelete), "includes", sizeof("includes"));
+	PANCAKE_SAPI_GLOBALS(autoDeleteConstants) = Z_TYPE_P(autoDelete) == IS_ARRAY && zend_hash_exists(Z_ARRVAL_P(autoDelete), "constants", sizeof("constants"));
 
 	autoDeleteExcludes = zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "autoDeleteExcludes", sizeof("autoDeleteExcludes") - 1, 0 TSRMLS_CC);
 	if(Z_TYPE_P(autoDeleteExcludes) == IS_ARRAY) {
@@ -294,6 +319,11 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 		if(zend_hash_find(Z_ARRVAL_P(autoDeleteExcludes), "includes", sizeof("includes"), (void**) &data) == SUCCESS
 		&& Z_TYPE_PP(data) == IS_ARRAY) {
 			PANCAKE_SAPI_GLOBALS(autoDeleteIncludesExcludes) = PancakeSAPITransformHashTableValuesToKeys(Z_ARRVAL_PP(data));
+		}
+
+		if(zend_hash_find(Z_ARRVAL_P(autoDeleteExcludes), "classes", sizeof("classes"), (void**) &data) == SUCCESS
+		&& Z_TYPE_PP(data) == IS_ARRAY) {
+			PANCAKE_SAPI_GLOBALS(autoDeleteClassesExcludes) = PancakeSAPITransformHashTableValuesToKeys(Z_ARRVAL_PP(data));
 		}
 	}
 
@@ -322,15 +352,13 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 		PANCAKE_SAPI_GLOBALS(timeout) = 0;
 	}
 
-	// Hook some functions
-	zend_hash_find(EG(function_table), "headers_sent", sizeof("headers_sent"), (void**) &function);
-	PHP_headers_sent = function->internal_function.handler;
-	function->internal_function.handler = Pancake_headers_sent;
-
 	if(zend_hash_find(EG(function_table), "session_start", sizeof("session_start"), (void**) &function) == SUCCESS) {
 		PHP_session_start = function->internal_function.handler;
 		function->internal_function.handler = Pancake_session_start;
 	}
+
+	// Fetch rsrc list destructor
+	PHP_list_entry_destructor = EG(regular_list).pDestructor;
 
 	// Set current php.ini state as initial
 	if (EG(modified_ini_directives)) {
@@ -405,7 +433,17 @@ PHP_RSHUTDOWN_FUNCTION(PancakeSAPI) {
 		efree(PANCAKE_SAPI_GLOBALS(autoDeleteIncludesExcludes));
 	}
 
+	if(PANCAKE_SAPI_GLOBALS(persistentSymbols)) {
+		zend_hash_destroy(PANCAKE_SAPI_GLOBALS(persistentSymbols));
+		efree(PANCAKE_SAPI_GLOBALS(persistentSymbols));
+	}
+
 	return SUCCESS;
+}
+
+static int PancakeSAPIMarkConstantPersistent(zend_constant *constant TSRMLS_DC) {
+	constant->flags |= PANCAKE_PSEUDO_PERSISTENT;
+	return ZEND_HASH_APPLY_KEEP;
 }
 
 PHP_FUNCTION(SAPIPrepare) {
@@ -428,6 +466,10 @@ PHP_FUNCTION(SAPIPrepare) {
 
 	PANCAKE_SAPI_GLOBALS(clientSocket) = -1;
 
+	// Reset header linked list
+	zend_llist_destroy(&SG(sapi_headers).headers);
+	zend_llist_init(&SG(sapi_headers).headers, sizeof(sapi_header_struct), (void (*)(void *)) sapi_free_header, 0);
+
 	// Fetch amount of currently existing functions
 	if(PANCAKE_SAPI_GLOBALS(autoDeleteFunctions)) {
 		PANCAKE_SAPI_GLOBALS(functionsPre) = EG(function_table)->nNumOfElements;
@@ -437,9 +479,17 @@ PHP_FUNCTION(SAPIPrepare) {
 	if(PANCAKE_SAPI_GLOBALS(autoDeleteIncludes)) {
 		PANCAKE_SAPI_GLOBALS(includesPre) = EG(included_files).nNumOfElements;
 	}
+
+	// Fetch classes
+	if(PANCAKE_SAPI_GLOBALS(autoDeleteClasses)) {
+		PANCAKE_SAPI_GLOBALS(classesPre) = EG(class_table)->nNumOfElements;
+	}
+
+	// Mark all constants persistent (so that we can do faster auto-deletion later on)
+	zend_hash_apply(EG(zend_constants), (apply_func_t) PancakeSAPIMarkConstantPersistent TSRMLS_CC);
 }
 
-static zend_bool PancakeSAPIInitializeRequest(zval *request) {
+static zend_bool PancakeSAPIInitializeRequest(zval *request TSRMLS_DC) {
 	zval *requestFilePath, *queryString;
 	char *directory;
 
@@ -489,61 +539,132 @@ static zend_bool PancakeSAPIInitializeRequest(zval *request) {
 		zend_set_timeout(PANCAKE_SAPI_GLOBALS(timeout), 1);
 	}
 
+	if (PG(output_handler) && PG(output_handler)[0]) {
+		zval *oh;
+
+		MAKE_STD_ZVAL(oh);
+		ZVAL_STRING(oh, PG(output_handler), 1);
+		php_output_start_user(oh, 0, PHP_OUTPUT_HANDLER_STDFLAGS TSRMLS_CC);
+		zval_ptr_dtor(&oh);
+	} else if (PG(output_buffering)) {
+		php_output_start_user(NULL, PG(output_buffering) > 1 ? PG(output_buffering) : 0, PHP_OUTPUT_HANDLER_STDFLAGS TSRMLS_CC);
+	} else if (PG(implicit_flush)) {
+		php_output_set_implicit_flush(1 TSRMLS_CC);
+	}
+
+	// Set objects store offset for userspace objects
+	PANCAKE_SAPI_GLOBALS(objectsStoreOffset) = EG(objects_store).top;
+	//printf("Offset @%i\n", PANCAKE_SAPI_GLOBALS(objectsStoreOffset));
+
 	zend_activate_auto_globals(TSRMLS_C);
 	return 1;
 }
 
+PHP_FUNCTION(SAPICodeCachePrepare) {
+	if(zend_hash_num_elements(&EG(symbol_table))) {
+		// We probably have persistent symbols
+		zval **value;
+		char *key;
+		uint key_len;
+
+		ALLOC_HASHTABLE(PANCAKE_SAPI_GLOBALS(persistentSymbols));
+		zend_hash_init(PANCAKE_SAPI_GLOBALS(persistentSymbols), 0, NULL, NULL, 0);
+
+		PANCAKE_FOREACH_KEY(&EG(symbol_table), key, key_len, value) {
+			// Ignore auto globals
+			if(zend_hash_quick_exists(CG(auto_globals), key, key_len, EG(symbol_table).pInternalPointer->h)) {
+				continue;
+			}
+
+			zend_hash_add_empty_element(PANCAKE_SAPI_GLOBALS(persistentSymbols), key, key_len);
+		}
+
+		// It might happen that only the auto globals existed, in this case we don't need the table
+		if(!zend_hash_num_elements(PANCAKE_SAPI_GLOBALS(persistentSymbols))) {
+			zend_hash_destroy(PANCAKE_SAPI_GLOBALS(persistentSymbols));
+			FREE_HASHTABLE(PANCAKE_SAPI_GLOBALS(persistentSymbols));
+			PANCAKE_SAPI_GLOBALS(persistentSymbols) = NULL;
+		}
+	}
+
+	PANCAKE_SAPI_GLOBALS(CodeCache) = 1;
+}
+
+static int zval_call_destructor(zval **zv TSRMLS_DC) {
+	if (Z_TYPE_PP(zv) == IS_OBJECT && Z_REFCOUNT_PP(zv) == 1) {
+		return ZEND_HASH_APPLY_REMOVE;
+	} else {
+		return ZEND_HASH_APPLY_KEEP;
+	}
+}
+
+static int PancakeSAPIClearRuntimeCache(zend_function *func TSRMLS_DC) {
+	if(func->type != ZEND_USER_FUNCTION) {
+		return ZEND_HASH_APPLY_STOP;
+	}
+
+	if(func->op_array.last_cache_slot == 0 || func->op_array.run_time_cache == NULL) {
+		return ZEND_HASH_APPLY_KEEP;
+	}
+
+	memset(func->op_array.run_time_cache, 0, (func->op_array.last_cache_slot) * sizeof(void*));
+	return ZEND_HASH_APPLY_KEEP;
+}
+
+static int PancakeSAPIClearClassRuntimeCache(zend_class_entry **class TSRMLS_DC) {
+	if((*class)->type != ZEND_USER_CLASS) {
+		return ZEND_HASH_APPLY_STOP;
+	}
+
+	zend_hash_apply(&(*class)->function_table, (apply_func_t) PancakeSAPIClearRuntimeCache TSRMLS_CC);
+	return ZEND_HASH_APPLY_KEEP;
+}
+
 PHP_FUNCTION(SAPIFinishRequest) {
-	zval *answerCode;
+	zval *answerCode, *zeh;
+	int symbols, i;
+	// Since Pancake currently can't recover from fatal errors anyway we don't use zend_try
 
 	// Disable tick functions
 	zend_llist_clean(&PG(tick_functions));
 
-	zend_try {
-		php_call_shutdown_functions(TSRMLS_C);
-	} zend_end_try();
+	// Call registered shutdown functions
+	php_call_shutdown_functions(TSRMLS_C);
 
-	php_output_end_all(TSRMLS_C);
-	php_output_deactivate(TSRMLS_C);
-	PANCAKE_SAPI_GLOBALS(inExecution) = 0;
-	SG(headers_sent) = 0;
+	// Call destructors
+	do {
+		symbols = zend_hash_num_elements(&EG(symbol_table));
+		zend_hash_reverse_apply(&EG(symbol_table), (apply_func_t) zval_call_destructor TSRMLS_CC);
+	} while (symbols != zend_hash_num_elements(&EG(symbol_table)));
 
-	write(PANCAKE_SAPI_GLOBALS(clientSocket), "\2", sizeof(char));
+	for(i = PANCAKE_SAPI_GLOBALS(objectsStoreOffset); i < EG(objects_store).top; i++) {
+		if (EG(objects_store).object_buckets[i].valid) {
+			struct _store_object *obj = &EG(objects_store).object_buckets[i].bucket.obj;
 
-	if((PANCAKE_SAPI_GLOBALS(processingLimit)
-	&& ++PANCAKE_SAPI_GLOBALS(processedRequests) >= PANCAKE_SAPI_GLOBALS(processingLimit))
-	|| PANCAKE_SAPI_GLOBALS(exit)) {
-		write(PANCAKE_SAPI_GLOBALS(controlSocket), "EXPECTED_SHUTDOWN", sizeof("EXPECTED_SHUTDOWN") - 1);
-		zend_bailout();
+			//printf("Will destruct object of class %s\n", ((zend_object*) EG(objects_store).object_buckets[i].bucket.obj.object)->ce->name);
+			if (!EG(objects_store).object_buckets[i].destructor_called) {
+				EG(objects_store).object_buckets[i].destructor_called = 1;
+				if (obj->dtor && obj->object) {
+					obj->refcount++;
+					obj->dtor(obj->object, i TSRMLS_CC);
+					obj = &EG(objects_store).object_buckets[i].bucket.obj;
+					obj->refcount--;
+				}
+			}
+		}
 	}
+
+	// In case we have an unhandled exception we should return here as Zend is going to bail out
+	if(EG(exception)
+	&& strcmp("Pancake\\ExitException", Z_OBJ_P(EG(exception))->ce->name)) {
+		return;
+	}
+
+	// Flush all output buffers
+	php_output_end_all(TSRMLS_C);
 
 	// Disable time limit
-	zend_try {
-		zend_unset_timeout(TSRMLS_C);
-	} zend_end_try();
-
-	// Reset error handler stack
-	zend_stack_destroy(&EG(user_error_handlers_error_reporting));
-	zend_stack_init(&EG(user_error_handlers_error_reporting));
-
-	// Set Pancake error handler
-	if(EG(user_error_handler)) {
-		zval_ptr_dtor(&EG(user_error_handler));
-	}
-	EG(user_error_handler) = PANCAKE_SAPI_GLOBALS(errorHandler);
-	EG(user_error_handler_error_reporting) = E_ALL;
-
-	// Reset exception handler stack
-	zend_ptr_stack_destroy(&EG(user_exception_handlers));
-	zend_ptr_stack_init(&EG(user_exception_handlers));
-
-	// Reset exception handler
-	if (EG(user_exception_handler)) {
-		zval_ptr_dtor(&EG(user_exception_handler));
-	}
-
-	// Load output layer
-	php_output_activate(TSRMLS_C);
+	zend_unset_timeout(TSRMLS_C);
 
 	// Tell Pancake not to shutdown
 	PANCAKE_GLOBALS(inSAPIReboot) = 1;
@@ -551,17 +672,141 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	// Run RSHUTDOWN for modules
 	zend_hash_reverse_apply(&module_registry, (apply_func_t) PancakeSAPIShutdownModule TSRMLS_CC);
 
-	// Initialize modules again
-	zend_hash_reverse_apply(&module_registry, (apply_func_t) PancakeSAPIStartupModule TSRMLS_CC);
-	PANCAKE_GLOBALS(inSAPIReboot) = 0;
+	// Disable output layer
+	php_output_deactivate(TSRMLS_C);
+
+	// End request
+	write(PANCAKE_SAPI_GLOBALS(clientSocket), "\2", sizeof(char));
+
+	// We have finished executing the script
+	PANCAKE_SAPI_GLOBALS(inExecution) = 0;
+	SG(headers_sent) = 0;
+
+	// Have we reached the processing limit or should we exit?
+	if((PANCAKE_SAPI_GLOBALS(processingLimit)
+	&& ++PANCAKE_SAPI_GLOBALS(processedRequests) >= PANCAKE_SAPI_GLOBALS(processingLimit))
+	|| PANCAKE_SAPI_GLOBALS(exit)) {
+		PANCAKE_GLOBALS(inSAPIReboot) = 0;
+		write(PANCAKE_SAPI_GLOBALS(controlSocket), "EXPECTED_SHUTDOWN", sizeof("EXPECTED_SHUTDOWN") - 1);
+		zend_bailout();
+	}
+
+	// Enable output layer
+	php_output_activate(TSRMLS_C);
+
+	// Free error information
+	if (PG(last_error_message)) {
+		free(PG(last_error_message));
+		PG(last_error_message) = NULL;
+	}
+	if (PG(last_error_file)) {
+		free(PG(last_error_file));
+		PG(last_error_file) = NULL;
+	}
+
+	if(PANCAKE_SAPI_GLOBALS(persistentSymbols) == NULL) {
+		// Clean global variables
+		zend_hash_graceful_reverse_destroy(&EG(symbol_table));
+		// Zend uses a default size of 50 for the symbol table, we tweak this a little bit
+		zend_hash_init(&EG(symbol_table), 100, NULL, ZVAL_PTR_DTOR, 0);
+	} else {
+		Bucket *p;
+
+		p = EG(symbol_table).pListTail;
+		while (p != NULL) {
+			if(!zend_hash_quick_exists(PANCAKE_SAPI_GLOBALS(persistentSymbols), p->arKey, p->nKeyLength, p->h)) {
+				Bucket *q = p;
+				p = p->pListLast;
+				zend_hash_quick_del(&EG(symbol_table), q->arKey, q->nKeyLength, q->h);
+			} else {
+				p = p->pListLast;
+			}
+		}
+	}
+
+	// PHP now calls zend_deactivate() - we will just do the necessary things
+	if (EG(user_error_handler)) {
+		zeh = EG(user_error_handler);
+		EG(user_error_handler) = NULL;
+		zval_dtor(zeh);
+		FREE_ZVAL(zeh);
+	}
+
+	if (EG(user_exception_handler)) {
+		zeh = EG(user_exception_handler);
+		EG(user_exception_handler) = NULL;
+		zval_dtor(zeh);
+		FREE_ZVAL(zeh);
+	}
+
+	zend_stack_destroy(&EG(user_error_handlers_error_reporting));
+	zend_stack_init(&EG(user_error_handlers_error_reporting));
+	zend_ptr_stack_clean(&EG(user_error_handlers), ZVAL_DESTRUCTOR, 1);
+	zend_ptr_stack_clean(&EG(user_exception_handlers), ZVAL_DESTRUCTOR, 1);
+
+	// Set Pancake error handler
+	EG(user_error_handler) = PANCAKE_SAPI_GLOBALS(errorHandler);
+	EG(user_error_handler_error_reporting) = E_ALL;
+
+	// Cleanup class and function data
+	zend_hash_reverse_apply(EG(function_table), (apply_func_t) zend_cleanup_function_data TSRMLS_CC);
+	zend_hash_reverse_apply(EG(class_table), (apply_func_t) zend_cleanup_user_class_data TSRMLS_CC);
+	zend_cleanup_internal_classes(TSRMLS_C);
+
+	// Destroy resource list
+	zend_hash_graceful_reverse_destroy(&EG(regular_list));
+	// See zend_init_rsrc_list()
+	zend_hash_init(&EG(regular_list), 0, NULL, PHP_list_entry_destructor, 0);
+	EG(regular_list).nNextFreeElement = 1;
 
 	// Restore ini entries
 	zend_try {
 		zend_ini_deactivate(TSRMLS_C);
 	} zend_end_try();
 
+	// Shutdown stream hashes
+	if (FG(stream_wrappers)) {
+		zend_hash_destroy(FG(stream_wrappers));
+		efree(FG(stream_wrappers));
+		FG(stream_wrappers) = NULL;
+	}
+
+	if (FG(stream_filters)) {
+		zend_hash_destroy(FG(stream_filters));
+		efree(FG(stream_filters));
+		FG(stream_filters) = NULL;
+	}
+
+    if (FG(wrapper_errors)) {
+		zend_hash_destroy(FG(wrapper_errors));
+		efree(FG(wrapper_errors));
+		FG(wrapper_errors) = NULL;
+    }
+
+    // SAPI reset
+    SG(callback_run) = 0;
+	if (SG(callback_func)) {
+		zval_ptr_dtor(&SG(callback_func));
+		SG(callback_func) = NULL;
+	}
+	zend_llist_destroy(&SG(sapi_headers).headers);
+	zend_llist_init(&SG(sapi_headers).headers, sizeof(sapi_header_struct), (void (*)(void *)) sapi_free_header, 0);
+
+	// Reset executor
+	EG(ticks_count) = 0;
+
+	// Initialize modules again
+	zend_hash_reverse_apply(&module_registry, (apply_func_t) PancakeSAPIStartupModule TSRMLS_CC);
+	PANCAKE_GLOBALS(inSAPIReboot) = 0;
+
+	// Destroy constants
+	if(PANCAKE_SAPI_GLOBALS(autoDeleteConstants)) {
+		zend_hash_reverse_apply(EG(zend_constants), (apply_func_t) PancakeSAPICleanNonPersistentConstant TSRMLS_CC);
+	}
+
 	// Destroy uploaded files array
 	if(SG(rfc1867_uploaded_files)) {
+		zend_hash_apply(SG(rfc1867_uploaded_files), (apply_func_t) PancakeSAPIUnlinkFile TSRMLS_CC);
 		zend_hash_destroy(SG(rfc1867_uploaded_files));
 		FREE_HASHTABLE(SG(rfc1867_uploaded_files));
 		SG(rfc1867_uploaded_files) = NULL;
@@ -586,12 +831,36 @@ PHP_FUNCTION(SAPIFinishRequest) {
 				EG(autoload_func) = NULL;
 			}
 
+			PANCAKE_SAPI_GLOBALS(haveCriticalDeletions) = 1;
 			zend_hash_quick_del(EG(function_table), functionName, functionName_len, EG(function_table)->pInternalPointer->h);
 			zend_hash_internal_pointer_end(EG(function_table));
 		}
 	}
 
 	PANCAKE_SAPI_GLOBALS(functionsPre) = EG(function_table)->nNumOfElements;
+
+	// Destroy classes
+	if(PANCAKE_SAPI_GLOBALS(autoDeleteClasses) && EG(class_table)->nNumOfElements > PANCAKE_SAPI_GLOBALS(classesPre)) {
+		char *className;
+		uint className_len;
+		int iterationCount = EG(class_table)->nNumOfElements - PANCAKE_SAPI_GLOBALS(classesPre);
+
+		for(zend_hash_internal_pointer_end_ex(EG(class_table), NULL);
+			iterationCount--
+			&& zend_hash_get_current_key_ex(EG(class_table), &className, &className_len, NULL, 0, NULL) == HASH_KEY_IS_STRING;) {
+			if(PANCAKE_SAPI_GLOBALS(autoDeleteClassesExcludes)
+			&&	zend_hash_quick_exists(PANCAKE_SAPI_GLOBALS(autoDeleteClassesExcludes), className, className_len, EG(class_table)->pInternalPointer->h)) {
+				zend_hash_move_backwards(EG(class_table));
+				continue;
+			}
+
+			PANCAKE_SAPI_GLOBALS(haveCriticalDeletions) = 1;
+			zend_hash_quick_del(EG(class_table), className, className_len, EG(class_table)->pInternalPointer->h);
+			zend_hash_internal_pointer_end(EG(class_table));
+		}
+	}
+
+	PANCAKE_SAPI_GLOBALS(classesPre) = EG(class_table)->nNumOfElements;
 
 	// Destroy includes
 	if(PANCAKE_SAPI_GLOBALS(autoDeleteIncludes)) {
@@ -618,13 +887,20 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	}
 
 	PANCAKE_SAPI_GLOBALS(includesPre) = EG(included_files).nNumOfElements;
+
+	// In case elements whose pointers may have been cached have been destroyed we need to reset the runtime cache (only when CodeCache is used)
+	if(PANCAKE_SAPI_GLOBALS(CodeCache) && PANCAKE_SAPI_GLOBALS(haveCriticalDeletions)) {
+		zend_hash_reverse_apply(EG(function_table), (apply_func_t) PancakeSAPIClearRuntimeCache TSRMLS_CC);
+		zend_hash_reverse_apply(EG(class_table), (apply_func_t) PancakeSAPIClearClassRuntimeCache TSRMLS_CC);
+	}
+
+	PANCAKE_SAPI_GLOBALS(haveCriticalDeletions) = 0;
 }
 
-zend_bool PancakeSAPIFetchRequest(int fd, zval *return_value) {
+zend_bool PancakeSAPIFetchRequest(int fd, zval *return_value TSRMLS_DC) {
 	size_t length, offset = 0;
 	unsigned char *buf, *bufP;
 	php_unserialize_data_t varHash;
-	zval *HTTPRequest;
 
 	read(fd, &length, sizeof(size_t));
 	buf = emalloc(length + 1);
@@ -641,15 +917,14 @@ zend_bool PancakeSAPIFetchRequest(int fd, zval *return_value) {
 		offset += readLength;
 	}
 
-	MAKE_STD_ZVAL(HTTPRequest);
-
 	bufP = buf;
 
 	PHP_VAR_UNSERIALIZE_INIT(varHash);
-	if (!php_var_unserialize(&HTTPRequest, (const unsigned char**) &buf, buf + length, &varHash TSRMLS_CC)) {
+	if (!php_var_unserialize(&return_value, (const unsigned char**) &buf, buf + length, &varHash TSRMLS_CC)) {
 		/* Malformed value */
 		PHP_VAR_UNSERIALIZE_DESTROY(varHash);
-		zval_ptr_dtor(&HTTPRequest);
+		zval_dtor(return_value);
+
 		close(fd);
 		efree(bufP);
 
@@ -659,7 +934,7 @@ zend_bool PancakeSAPIFetchRequest(int fd, zval *return_value) {
 
 	efree(bufP);
 
-	if(!PancakeSAPIInitializeRequest(HTTPRequest)) {
+	if(!PancakeSAPIInitializeRequest(return_value TSRMLS_CC)) {
 		// Reload output layer
 		php_output_end_all(TSRMLS_C);
 		php_output_deactivate(TSRMLS_C);
@@ -668,11 +943,10 @@ zend_bool PancakeSAPIFetchRequest(int fd, zval *return_value) {
 		write(fd, "\2", sizeof(char));
 
 		SG(headers_sent) = 0;
-		zval_ptr_dtor(&HTTPRequest);
+		zval_dtor(return_value);
 		return 0;
 	}
 
-	RETVAL_ZVAL(HTTPRequest, 0, 0);
 	return 1;
 }
 
@@ -696,7 +970,7 @@ PHP_FUNCTION(SAPIWait) {
 		event.data.fd = PANCAKE_SAPI_GLOBALS(clientSocket) = fd;
 		epoll_ctl(PANCAKE_SAPI_GLOBALS(epoll), EPOLL_CTL_ADD, fd, &event);
 
-		if(PancakeSAPIFetchRequest(fd, return_value)) {
+		if(PancakeSAPIFetchRequest(fd, return_value TSRMLS_CC)) {
 			return;
 		} else {
 			goto wait;
@@ -742,7 +1016,7 @@ PHP_FUNCTION(SAPIWait) {
 
 		PANCAKE_SAPI_GLOBALS(clientSocket) = events[0].data.fd;
 
-		if(PancakeSAPIFetchRequest(events[0].data.fd, return_value)) {
+		if(PancakeSAPIFetchRequest(events[0].data.fd, return_value TSRMLS_CC)) {
 			return;
 		} else {
 			goto wait;
