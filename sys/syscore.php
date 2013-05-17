@@ -32,7 +32,7 @@
     error_reporting(ERROR_REPORTING);
 
     // Get start options
-    $startOptions = getopt('-h', array('debug', 'daemon', 'help', 'config:', 'use-malloc', 'pidfile:'));
+    $startOptions = getopt('h', array('debug', 'daemon', 'help', 'config:', 'use-malloc', 'pidfile:'));
 
     // Display help if requested
     if(isset($startOptions['h']) || isset($startOptions['help'])) {
