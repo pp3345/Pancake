@@ -161,7 +161,7 @@ PHP_METHOD(SAPIClient, makeRequest) {
 PHP_METHOD(SAPIClient, SAPIData) {
 	long fd;
 	zval *HTTPRequest;
-	char packetType;
+	char packetType = -1;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lz", &fd, &HTTPRequest) == FAILURE) {
 		RETURN_FALSE;
@@ -303,5 +303,11 @@ PHP_METHOD(SAPIClient, SAPIData) {
 			}
 			RETURN_FALSE;
 		} break;
+		default: {
+			close(fd);
+			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("PHP SAPI returned malformed value",
+								sizeof("PHP SAPI returned malformed value") - 1, 500);
+			RETURN_FALSE;
+		}
 	}
 }
