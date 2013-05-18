@@ -295,6 +295,12 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	PHP_SAPI->value.value.str.val = sapi_module.name;
 	PHP_SAPI->value.value.str.len = sizeof("pancake") - 1;
 
+	// Hook exceptions
+	if(zend_throw_exception_hook) {
+		PancakeSAPIPreviousExceptionHook = zend_throw_exception_hook;
+	}
+	zend_throw_exception_hook = PancakeSAPIExceptionHook;
+
 	// Disable functions
 	disabledFunctions = zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "phpDisabledFunctions", sizeof("phpDisabledFunctions") - 1, 0 TSRMLS_CC);
 

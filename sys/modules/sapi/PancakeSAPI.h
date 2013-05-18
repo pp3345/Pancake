@@ -36,6 +36,9 @@ void Pancake_debug_print_backtrace(INTERNAL_FUNCTION_PARAMETERS);
 
 void (*PHP_list_entry_destructor)(void *ptr);
 
+void PancakeSAPIExceptionHook(zval *exception TSRMLS_DC);
+ZEND_API void (*PancakeSAPIPreviousExceptionHook)(zval *ex TSRMLS_DC);
+
 ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)
 	zval *request;
 	zend_bool inExecution;

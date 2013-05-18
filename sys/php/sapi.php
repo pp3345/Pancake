@@ -148,31 +148,4 @@
     function getallheaders() {
     	return Pancake\vars::$Pancake_request->requestHeaders;
     }
-
-    dt_rename_method('\Exception', 'getTrace', 'Pancake_getTraceOrig');
-    dt_add_method('\Exception', 'getTrace', null, <<<'FUNCTIONBODY'
-$trace = $this->Pancake_getTraceOrig();
-unset($trace[count($trace)-1]);
-unset($trace[count($trace)-1]);
-return $trace;
-FUNCTIONBODY
-	);
-
-    dt_rename_method('\Exception', 'getTraceAsString', 'Pancake_getTraceAsStringOrig');
-    dt_add_method('\Exception', 'getTraceAsString', null, <<<'FUNCTIONBODY'
-$backtrace = explode("\n", $this->Pancake_getTraceAsStringOrig());
-$trace = "";
-$i = 0;
-
-foreach($backtrace as $traceElement) {
-	if(strpos($traceElement, '/sys/compilecache/phpWorker.thread'))
-    	break;
-    $trace .= $traceElement . "\n";
-    $i++;
-}
-$trace .= '#' . $i . ' {main}';
-
-return $trace;
-FUNCTIONBODY
-	);
 ?>

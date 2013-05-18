@@ -65,3 +65,25 @@ void Pancake_debug_print_backtrace(INTERNAL_FUNCTION_PARAMETERS) {
 	PHPWRITE(Z_STRVAL_P(output), offset - Z_STRVAL_P(output) + 1);
 	zval_ptr_dtor(&output);
 }
+
+void PancakeSAPIExceptionHook(zval *exception TSRMLS_DC) {
+	zval *trace;
+
+	// Call previous hook first
+	if(PancakeSAPIPreviousExceptionHook) {
+		PancakeSAPIPreviousExceptionHook(exception TSRMLS_CC);
+	}
+
+	// For whatever reason Zend often calls zend_throw_exception_internal with NULL
+	if(exception == NULL) {
+		return;
+	}
+
+	trace = zend_read_property(zend_exception_get_default(TSRMLS_C), exception, "trace", sizeof("trace") - 1, 0 TSRMLS_CC);
+
+	zend_hash_internal_pointer_end(Z_ARRVAL_P(trace));
+	zend_hash_index_del(Z_ARRVAL_P(trace), Z_ARRVAL_P(trace)->pInternalPointer->h);
+
+	zend_hash_internal_pointer_end(Z_ARRVAL_P(trace));
+	zend_hash_index_del(Z_ARRVAL_P(trace), Z_ARRVAL_P(trace)->pInternalPointer->h);
+}
