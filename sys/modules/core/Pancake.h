@@ -9,6 +9,8 @@
 #ifndef PANCAKE_H
 #define PANCAKE_H
 
+#define _GNU_SOURCE
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
