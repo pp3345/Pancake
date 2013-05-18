@@ -14,8 +14,6 @@
         exit;
     #.endif
 
-    const PHP_SAPI = 'pancake';
-
     #.ifdef 'HAVE_FILTER_EXTENSION'
     function filter_input($type, $variable_name, $filter = /* .constant 'FILTER_DEFAULT' */, $options = /* .constant 'FILTER_FLAG_NONE' */) {
         // Create bitmask of flags

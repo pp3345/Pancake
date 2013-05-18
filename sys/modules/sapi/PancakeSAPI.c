@@ -265,6 +265,7 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zend_function *function;
 	zend_class_entry **vars;
 	zval *disabledFunctions, *autoDelete, *autoDeleteExcludes, *HTMLErrors, *documentRoot, *processingLimit, *timeout;
+	zend_constant *PHP_SAPI;
 
 	if(PANCAKE_GLOBALS(inSAPIReboot) == 1) {
 		return SUCCESS;
@@ -287,6 +288,11 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	sapi_module.ub_write = PancakeSAPIOutputHandler;
 	sapi_module.send_headers = PancakeSAPISendHeaders;
 	sapi_module.flush = NULL;
+
+	// Set PHP_SAPI constant
+	zend_hash_find(EG(zend_constants), "PHP_SAPI", sizeof("PHP_SAPI"), (void**) &PHP_SAPI);
+	PHP_SAPI->value.value.str.val = sapi_module.name;
+	PHP_SAPI->value.value.str.len = sizeof("pancake") - 1;
 
 	// Disable functions
 	disabledFunctions = zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "phpDisabledFunctions", sizeof("phpDisabledFunctions") - 1, 0 TSRMLS_CC);
