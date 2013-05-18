@@ -1,5 +1,7 @@
 # [Pancake HTTP Server](http://pancakehttp.net)
 
+[![Build Status](http://ci.pp3345.net/job/Pancake/badge/icon)](http://ci.pp3345.net/job/Pancake/)
+
 ## What is Pancake?
 
 Pancake is a lightweight and fast web server created by [Yussuf Khalil](https://github.com/pp3345), mainly written in C, PHP and Moody.
