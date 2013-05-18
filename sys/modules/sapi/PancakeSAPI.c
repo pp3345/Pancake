@@ -768,6 +768,13 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	zend_ptr_stack_clean(&EG(user_error_handlers), ZVAL_DESTRUCTOR, 1);
 	zend_ptr_stack_clean(&EG(user_exception_handlers), ZVAL_DESTRUCTOR, 1);
 
+	// Destroy autoload table
+	if (EG(in_autoload)) {
+		zend_hash_destroy(EG(in_autoload));
+		FREE_HASHTABLE(EG(in_autoload));
+		EG(in_autoload) = NULL;
+	}
+
 	// Set Pancake error handler
 	EG(user_error_handler) = PANCAKE_SAPI_GLOBALS(errorHandler);
 	EG(user_error_handler_error_reporting) = E_ALL;
@@ -837,7 +844,6 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	}
 
 	// Reset autoloading
-	EG(in_autoload) = NULL;
 	EG(autoload_func) = NULL;
 
 	// Destroy functions
