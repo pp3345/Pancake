@@ -1014,7 +1014,7 @@ PHP_METHOD(HTTPRequest, init) {
 
 PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 	zval *vHost, *answerHeaderArray, *answerCodez, *answerBodyz, *protocolVersion, **contentLength, *requestHeaderArray, *connectionAnswer, **connection, *requestType,
-		*contentLengthM, *writeBuffer, *answerCodeStringz, *remoteIP, *requestLine, **host = NULL, **referer = NULL, **userAgent = NULL, *vHostName, *TLS;
+		*contentLengthM, *writeBuffer, *answerCodeStringz, *remoteIP, *requestLine, **host = NULL, **referer = NULL, **userAgent = NULL, *vHostName, *TLS, *fd;
 	long answerCode;
 	int answerBody_len, logLine_len = 0, TLSCipherName_len;
 	char *logLine, *logLine_p, *TLSCipherName = NULL;
@@ -1024,6 +1024,7 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 	FAST_READ_PROPERTY(answerBodyz, this_ptr, "answerBody", sizeof("answerBody") - 1, HASH_OF_answerBody);
 	FAST_READ_PROPERTY(protocolVersion, this_ptr, "protocolVersion", sizeof("protocolVersion") - 1, HASH_OF_protocolVersion);
 	FAST_READ_PROPERTY(requestType, this_ptr, "requestType", sizeof("requestType") - 1, HASH_OF_requestType);
+	FAST_READ_PROPERTY(fd, this_ptr, "socket", sizeof("socket") - 1, HASH_OF_socket);
 	answerCode = Z_LVAL_P(answerCodez);
 	answerBody_len = Z_STRLEN_P(answerBodyz);
 
@@ -1066,7 +1067,10 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 	&& answerCode < 400
 	&& zend_hash_quick_find(Z_ARRVAL_P(requestHeaderArray), "connection", sizeof("connection"), HASH_OF_connection, (void**) &connection) == SUCCESS
 	&& *connection == ZVAL_CACHE(KEEP_ALIVE)) {
+		long set = 1;
+
 		connectionAnswer = ZVAL_CACHE(KEEP_ALIVE);
+		setsockopt(Z_LVAL_P(fd), SOL_SOCKET, SO_KEEPALIVE, &set, sizeof(long));
 	} else {
 		connectionAnswer = ZVAL_CACHE(CLOSE);
 	}
@@ -1168,9 +1172,6 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 	logLine_len = answerCode_len + Z_STRLEN_P(remoteIP) + Z_STRLEN_P(requestLine) + Z_STRLEN_P(vHostName) + sizeof("   on vHost  ()") - 1;
 
 	if(Z_LVAL_P(TLS)) {
-		zval *fd;
-
-		FAST_READ_PROPERTY(fd, this_ptr, "socket", sizeof("socket") - 1, HASH_OF_socket);
 		TLSCipherName = PancakeTLSCipherName(Z_LVAL_P(fd) TSRMLS_CC);
 		logLine_len += (TLSCipherName_len = strlen(TLSCipherName)) + sizeof(" - ") - 1;
 	}

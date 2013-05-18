@@ -841,10 +841,6 @@
         }
 #.endif
 
-	    // Check if user wants keep-alive connection
-        if($requestObject->answerHeaders["connection"] == 'keep-alive')
-            KeepAlive($socket, true);
-
 #.if 0 < #.call 'Pancake\Config::get' 'main.requestworkerlimit'
 	        // Increment amount of processed requests
 	        $processedRequests++;
