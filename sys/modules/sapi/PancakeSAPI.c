@@ -288,6 +288,7 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	sapi_module.ub_write = PancakeSAPIOutputHandler;
 	sapi_module.send_headers = PancakeSAPISendHeaders;
 	sapi_module.flush = NULL;
+	sapi_module.phpinfo_as_text = 0;
 
 	// Set PHP_SAPI constant
 	zend_hash_find(EG(zend_constants), "PHP_SAPI", sizeof("PHP_SAPI"), (void**) &PHP_SAPI);
