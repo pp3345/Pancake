@@ -836,6 +836,10 @@ PHP_FUNCTION(SAPIFinishRequest) {
 		SG(rfc1867_uploaded_files) = NULL;
 	}
 
+	// Reset autoloading
+	EG(in_autoload) = NULL;
+	EG(autoload_func) = NULL;
+
 	// Destroy functions
 	if(PANCAKE_SAPI_GLOBALS(autoDeleteFunctions) && EG(function_table)->nNumOfElements > PANCAKE_SAPI_GLOBALS(functionsPre)) {
 		char *functionName;
@@ -849,10 +853,6 @@ PHP_FUNCTION(SAPIFinishRequest) {
 			&&	zend_hash_quick_exists(PANCAKE_SAPI_GLOBALS(autoDeleteFunctionsExcludes), functionName, functionName_len, EG(function_table)->pInternalPointer->h)) {
 				zend_hash_move_backwards(EG(function_table));
 				continue;
-			}
-
-			if(EG(function_table)->pInternalPointer->h == HASH_OF___autoload) {
-				EG(autoload_func) = NULL;
 			}
 
 			PANCAKE_SAPI_GLOBALS(haveCriticalDeletions) = 1;
