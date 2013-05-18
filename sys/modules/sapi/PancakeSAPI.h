@@ -84,6 +84,8 @@ PHP_FUNCTION(SAPIExitHandler);
 PHP_FUNCTION(SAPICodeCachePrepare);
 
 PHP_FUNCTION(apache_child_terminate);
+PHP_FUNCTION(apache_request_headers);
+PHP_FUNCTION(apache_response_headers);
 
 /* Persistent constants that are not actually persistent */
 #define PANCAKE_PSEUDO_PERSISTENT 1 << 5

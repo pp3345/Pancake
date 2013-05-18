@@ -137,15 +137,4 @@
     }
     #.endif
 
-    function apache_request_headers() {
-    	return Pancake\vars::$Pancake_request->requestHeaders;
-    }
-
-    function apache_response_headers() {
-    	return Pancake\vars::$Pancake_request->answerHeaders;
-    }
-
-    function getallheaders() {
-    	return Pancake\vars::$Pancake_request->requestHeaders;
-    }
 ?>

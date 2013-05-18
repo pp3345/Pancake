@@ -17,6 +17,9 @@ const zend_function_entry PancakeSAPI_functions[] = {
 	ZEND_NS_FE("Pancake", SAPIExitHandler, NULL)
 	ZEND_NS_FE("Pancake", SAPICodeCachePrepare, NULL)
 	ZEND_FE(apache_child_terminate, NULL)
+	ZEND_FE(apache_request_headers, NULL)
+	ZEND_FALIAS(getallheaders, apache_request_headers, NULL)
+	ZEND_FE(apache_response_headers, NULL)
 	ZEND_FE_END
 };
 
