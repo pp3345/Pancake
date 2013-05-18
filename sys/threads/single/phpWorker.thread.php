@@ -13,32 +13,8 @@
 	#.config 'compressvariables' false
 	#.config 'compressproperties' false
 
-	#.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpInfoConfig;' false
-		#.define 'EXPOSE_PANCAKE_IN_PHPINFO' true
-	#.endif
-
-	#.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->phpInfovHosts;' false
-		#.define 'EXPOSE_VHOSTS_IN_PHPINFO' true
-	#.endif
-
 	#.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->phpCodeCache;' false
 		#.define 'SUPPORT_CODECACHE' true
-	#.endif
-
-	#.if #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["classes"]) ? $Pancake_currentThread->vHost->autoDelete["classes"] : true);' false
-		#.AUTODELETE_CLASSES = true
-	#.endif
-
-	#.if #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["traits"]) ? $Pancake_currentThread->vHost->autoDelete["traits"] : true);' false
-		#.AUTODELETE_TRAITS = true
-	#.endif
-
-	#.if #.eval 'global $Pancake_currentThread; return (bool) (isset($Pancake_currentThread->vHost->autoDelete["interfaces"]) ? $Pancake_currentThread->vHost->autoDelete["interfaces"] : true);' false
-		#.AUTODELETE_INTERFACES = true
-	#.endif
-
-	#.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->forceDeletes;' false
-		#.HAVE_FORCED_DELETES = true
 	#.endif
 
 	#.if #.extension_loaded 'filter'
@@ -224,26 +200,6 @@
 		   	
 		   	SAPICodeCachePrepare();
 	   	#.endif
-
-	    // Get currently defined funcs, consts, classes, interfaces, traits and includes
-	    #.if Pancake\DEBUG_MODE
-	    vars::$Pancake_funcsPre = get_defined_functions();
-	    #.endif
-	    #.if Pancake\DEBUG_MODE
-	    vars::$Pancake_constsPre = get_defined_constants(true);
-	    #.endif
-	    #.if Pancake\DEBUG_MODE
-	    vars::$Pancake_includesPre = get_included_files();
-	    #.endif
-	    #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_CLASSES'
-	    vars::$Pancake_classesPre = get_declared_classes();
-	    #.endif
-	    #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_INTERFACES'
-	    vars::$Pancake_interfacesPre = get_declared_interfaces();
-	    #.endif
-	    #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_TRAITS'
-	    	vars::$Pancake_traitsPre = get_declared_traits();
-	    #.endif
 
 	    // Seed random number generators
 	    mt_srand();

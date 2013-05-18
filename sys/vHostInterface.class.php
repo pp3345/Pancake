@@ -18,7 +18,7 @@
         public $id = 0;
         public $name = "";
         public $documentRoot = "";
-		#.if !/* .isDefined 'PHPWORKER' */ || #.isDefined 'EXPOSE_VHOSTS_IN_PHPINFO'
+		#.ifndef 'PHPWORKER'
 	        public $listen = array();
 	        public $phpWorkers = 0;
 	        public $indexFiles = array();
@@ -27,8 +27,6 @@
 			public $gzipLevel = -1;
 			public $allowGZIP = false;
 			public $isDefault = false;
-        #.endif
-        #.ifndef 'PHPWORKER'
 	        public $authDirectories = array();
 	        public $authFiles = array();
 	        public $onEmptyPage204 = true;
@@ -49,17 +47,13 @@
 	        public $gzipMimeTypes = array();
 	        #.endif
 	        public static $defaultvHost = "";
-	    #.endif
-	    #.ifdef 'PHPWORKER'
+        #.else
 	        public $phpWorkerLimit = 0;
 	        #.ifdef 'SUPPORT_CODECACHE'
 	        public $phpCodeCache = array();
 	        public $phpCodeCacheExcludes = array();
 	        #.endif
 	        public $autoDeleteExcludes = array();
-	        #.ifdef 'HAVE_FORCED_DELETES'
-	        public $forceDeletes = array();
-	        #.endif
 	        public $phpSocket = 0;
 	        public $phpDisabledFunctions = array();
 	        public $phpMaxExecutionTime = 0;

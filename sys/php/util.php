@@ -89,24 +89,6 @@
          * @var PHPWorker
          */
         public static $Pancake_currentThread = null;
-        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_CONSTANTS'
-        public static $Pancake_constsPre = array();
-        #.endif
-        #.if Pancake\DEBUG_MODE
-        public static $Pancake_funcsPre = array();
-        #.endif
-        #.if Pancake\DEBUG_MODE
-        public static $Pancake_includesPre = array();
-        #.endif
-        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_CLASSES'
-        public static $Pancake_classesPre = array();
-        #.endif
-        #.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_INTERFACES'
-        public static $Pancake_interfacesPre = array();
-        #.endif
-    	#.if Pancake\DEBUG_MODE || #.isDefined 'AUTODELETE_TRAITS'
-    	public static $Pancake_traitsPre = array();
-    	#.endif
         #.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetClassNonObjects || $Pancake_currentThread->vHost->resetClassObjects || $Pancake_currentThread->vHost->resetFunctionObjects || $Pancake_currentThread->vHost->resetFunctionNonObjects;' false
         public static $classes = array();
         #.endif

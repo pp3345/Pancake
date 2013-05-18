@@ -35,13 +35,10 @@
         public $gzipLevel = -1;
         public $allowGZIP = false;
         public $isDefault = false;
-        public $phpInfoConfig = true;
-        public $phpInfovHosts = true;
         public $onEmptyPage204 = true;
         public $rewriteRules = array();
         public $autoDelete = array();
         public $autoDeleteExcludes = array();
-        public $forceDeletes = array();
         public $phpSocket = null;
         public $phpSocketName = null;
         public $phpHTMLErrors = true;
@@ -108,8 +105,6 @@
             $this->phpWorkerLimit = (int) $config['phpworkerlimit'];
             $this->allowGZIP = (bool) $config['enablegzip'];
             $this->isDefault = (bool) $config['isdefault'];
-            $this->phpInfoConfig = (bool) $config['phpinfopancake'];
-            $this->phpInfovHosts = (bool) $config['phpinfopancakevhosts'];
             $this->onEmptyPage204 = (bool) $config['204onemptypage'];
             $this->phpHTMLErrors = (bool) $config['phphtmlerrors'];
             $this->phpDisabledFunctions = (array) $config['phpdisabledfunctions'];
@@ -140,10 +135,6 @@
             else
                 $this->autoDelete = true;
             $this->autoDeleteExcludes = (array) $config['excludedelete'];
-            foreach((array) $config['forcedelete'] as $type => $deletes) {
-                foreach((array) $deletes as $delete)
-                    $this->forceDeletes[] = array('type' => $type, 'name' => $delete);
-            }
 
             // Load rewrite rules
             foreach((array) $config['rewrite'] as $rewriteRule) {
