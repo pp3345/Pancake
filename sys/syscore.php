@@ -293,7 +293,7 @@
             $thread = new PHPWorker($vHost);
             if(isset($Pancake_currentThread)) {
                 require $thread->codeFile;
-                goto do_exit;
+                return;
             }
             if(Config::get('main.waitphpworkerboot')) {
 	            SigWaitInfo(array(\SIGUSR1), $x, (int) Config::get('main.workerboottime'));
@@ -314,7 +314,7 @@
     for($i = 0;$i < Config::get('main.requestworkers');$i++) {
         $thread = new RequestWorker();
         if($thread->start() === "THREAD_EXIT")
-        	goto do_exit;
+        	return;
         SigWaitInfo(array(\SIGUSR1), $x, (int) Config::get('main.workerboottime'));
         if(!$x) {
             $thread->kill();
@@ -356,10 +356,10 @@
                     $thread->start(false);
                     if(isset($Pancake_currentThread)) {
                         require $thread->codeFile;
-                        break 2;
+                        return;
                     }
                 } else if($thread->start() === "THREAD_EXIT")
-                	break 2;
+                	return;
                 break;
             case \SIGINT:
             case \SIGTERM:
@@ -376,6 +376,4 @@
 
         unset($info);
     }
-
-    do_exit:
 ?>
