@@ -69,8 +69,11 @@ PANCAKE_API int PancakeLoadFilePointers(TSRMLS_D) {
 			return 0;
 		}
 
-		if(Z_TYPE(retval) == IS_STRING)
-			*stream = fopen(Z_STRVAL(retval), "a+");
+		if(Z_TYPE(retval) != IS_STRING || !Z_STRLEN(retval)) {
+			continue;
+		}
+
+		*stream = fopen(Z_STRVAL(retval), "a+");
 
 		zval_ptr_dtor(&arg);
 
@@ -202,7 +205,7 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 
 	if((flags & OUTPUT_LOG)) {
 		if((flags & OUTPUT_SYSTEM)) {
-			if((!PANCAKE_GLOBALS(systemLogStream) && PancakeLoadFilePointers(TSRMLS_C))
+			if((!PANCAKE_GLOBALS(systemLogStream) && PancakeLoadFilePointers(TSRMLS_C) && PANCAKE_GLOBALS(systemLogStream))
 			|| PANCAKE_GLOBALS(systemLogStream)) {
 				fwrite(outputString, outputString_len, 1, PANCAKE_GLOBALS(systemLogStream));
 				fflush(PANCAKE_GLOBALS(systemLogStream));
@@ -210,7 +213,7 @@ PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_D
 		}
 
 		if((flags & OUTPUT_REQUEST)) {
-			if((!PANCAKE_GLOBALS(requestLogStream) && PancakeLoadFilePointers(TSRMLS_C))
+			if((!PANCAKE_GLOBALS(requestLogStream) && PancakeLoadFilePointers(TSRMLS_C) && PANCAKE_GLOBALS(requestLogStream))
 			|| PANCAKE_GLOBALS(requestLogStream)) {
 				fwrite(outputString, outputString_len, 1, PANCAKE_GLOBALS(requestLogStream));
 				fflush(PANCAKE_GLOBALS(requestLogStream));
@@ -263,7 +266,7 @@ PHP_FUNCTION(errorHandler)
 		PancakeOutput(&errorMessage, message_len, OUTPUT_SYSTEM TSRMLS_CC);
 		efree(errorMessage_d);
 
-		if((!PANCAKE_GLOBALS(errorLogStream) && PancakeLoadFilePointers(TSRMLS_C))
+		if((!PANCAKE_GLOBALS(errorLogStream) && PancakeLoadFilePointers(TSRMLS_C) && PANCAKE_GLOBALS(errorLogStream))
 		|| PANCAKE_GLOBALS(errorLogStream)) {
 			fwrite(errorMessage, strlen(errorMessage), 1, PANCAKE_GLOBALS(errorLogStream));
 			fflush(PANCAKE_GLOBALS(errorLogStream));
