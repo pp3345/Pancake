@@ -493,6 +493,8 @@ zend_class_entry *PancakeObjectGetClass(const zval *object TSRMLS_DC);
 static union _zend_function *PancakeFastObjectGetMethod(zval **object_ptr, char *method_name, int method_len, const zend_literal *key TSRMLS_DC);
 static int PancakeFastHasProperty(zval *object, zval *member, int has_set_exists, const zend_literal *key TSRMLS_DC);
 
+char *PancakeTLSCipherName(int fd TSRMLS_DC);
+
 #define FAST_READ_PROPERTY(destination, object, name, nameLen, hash) {\
 	zval *__property; \
 	MAKE_STD_ZVAL(__property); \
@@ -584,5 +586,9 @@ static int PancakeFastHasProperty(zval *object, zval *member, int has_set_exists
 #define HASH_OF___autoload 13862708775328875964U
 #define HASH_OF_freeSocket 13874316547539494416U
 #define HASH_OF_address 7572151963013451U
+#define HASH_OF_name 210721608966U
+#define HASH_OF_user_agent 13897337148223481344U
+#define HASH_OF_referer 7572877831317744U
+#define HASH_OF_socket 229482825869550U
 
 #endif	/* PANCAKE_H */

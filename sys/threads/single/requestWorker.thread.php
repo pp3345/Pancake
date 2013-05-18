@@ -617,6 +617,8 @@
                 if(isset($TLSConnections[$socket]))
                     $requestObject->TLS = true;
 #.endif
+
+                $requestObject->socket = $socket;
                 $requestObject->init($socketData[$socket]);
 
                 unset($socketData[$socket]);
@@ -717,7 +719,6 @@
          && /* .VHOST_PHP_WORKERS */
 #.endif
         ) {
-            $requestObject->socket = $socket;
             try {
                 $socket = $requestObject->vHost->SAPIClient->makeRequest($requestObject);
             } catch(invalidHTTPRequestException $exception) {
@@ -839,22 +840,6 @@
             $requestObject->writeBuffer .= fread($requestObject->fileHandle, /* .number #.Pancake\Config::get("main.prebuffer", 0)*/);
         }
 #.endif
-
-        #.OUTPUT_TYPE = Pancake\OUTPUT_REQUEST | Pancake\OUTPUT_LOG
-        
-        // Output request information
-        out('REQ ' 
-        . $requestObject->answerCode . ' ' 
-        . $requestObject->remoteIP . ': ' 
-        . $requestObject->requestLine . ' on vHost ' 
-        . /* .VHOST_NAME */
-        . ' (via ' . $requestObject->requestHeaders["host"] 
-        . ' from ' . (isset($requestObject->requestHeaders["referer"]) ? $requestObject->requestHeaders["referer"] : "") . ') - ' 
-        . (isset($requestObject->requestHeaders["user-agent"]) ? $requestObject->requestHeaders["user-agent"] : "")
-#.ifdef 'SUPPORT_TLS'
-        . (isset($TLSConnections[$socket]) ? " - " . TLSCipherName($socket) : "")
-#.endif
-        , /* .OUTPUT_TYPE */);
 
 	    // Check if user wants keep-alive connection
         if($requestObject->answerHeaders["connection"] == 'keep-alive')

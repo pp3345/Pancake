@@ -1014,9 +1014,10 @@ PHP_METHOD(HTTPRequest, init) {
 
 PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 	zval *vHost, *answerHeaderArray, *answerCodez, *answerBodyz, *protocolVersion, **contentLength, *requestHeaderArray, *connectionAnswer, **connection, *requestType,
-		*contentLengthM, *writeBuffer, *answerCodeStringz;
+		*contentLengthM, *writeBuffer, *answerCodeStringz, *remoteIP, *requestLine, **host = NULL, **referer = NULL, **userAgent = NULL, *vHostName, *TLS;
 	long answerCode;
-	int answerBody_len;
+	int answerBody_len, logLine_len = 0, TLSCipherName_len;
+	char *logLine, *logLine_p, *TLSCipherName = NULL;
 
 	FAST_READ_PROPERTY(answerHeaderArray, this_ptr, "answerHeaders", sizeof("answerHeaders") - 1, HASH_OF_answerHeaders);
 	FAST_READ_PROPERTY(answerCodez, this_ptr, "answerCode", sizeof("answerCode") - 1, HASH_OF_answerCode);
@@ -1155,7 +1156,89 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 	// old implementation
 	//returnValue_len = spprintf(&returnValue, 0, "HTTP/%s %lu %s\r\n%s\r\n", Z_STRVAL_P(protocolVersion), answerCode, answerCodeString, answerHeaders);
 	efree(answerHeaders);
+
+	// Build log line
+	offset = answerCode_len;
+	FAST_READ_PROPERTY(remoteIP, this_ptr, "remoteIP", sizeof("remoteIP") - 1, HASH_OF_remoteIP);
+	FAST_READ_PROPERTY(requestLine, this_ptr, "requestLine", sizeof("requestLine") - 1, HASH_OF_requestLine);
+	FAST_READ_PROPERTY(vHost, this_ptr, "vHost", sizeof("vHost") - 1, HASH_OF_vHost);
+	FAST_READ_PROPERTY(vHostName, vHost, "name", sizeof("name") - 1, HASH_OF_name);
+	FAST_READ_PROPERTY(TLS, this_ptr, "TLS", sizeof("TLS") - 1, HASH_OF_TLS);
+
+	logLine_len = answerCode_len + Z_STRLEN_P(remoteIP) + Z_STRLEN_P(requestLine) + Z_STRLEN_P(vHostName) + sizeof("   on vHost  ()") - 1;
+
+	if(Z_LVAL_P(TLS)) {
+		zval *fd;
+
+		FAST_READ_PROPERTY(fd, this_ptr, "socket", sizeof("socket") - 1, HASH_OF_socket);
+		TLSCipherName = PancakeTLSCipherName(Z_LVAL_P(fd) TSRMLS_CC);
+		logLine_len += (TLSCipherName_len = strlen(TLSCipherName)) + sizeof(" - ") - 1;
+	}
+
+	if(zend_hash_quick_find(Z_ARRVAL_P(requestHeaderArray), "host", sizeof("host"), HASH_OF_host, (void**) &host) == SUCCESS) {
+		logLine_len += Z_STRLEN_PP(host) + sizeof("via ") - 1;
+	}
+	if(zend_hash_quick_find(Z_ARRVAL_P(requestHeaderArray), "referer", sizeof("referer"), HASH_OF_referer, (void**) &referer) == SUCCESS) {
+		logLine_len += Z_STRLEN_PP(referer) + sizeof(" from ") - 1;
+	}
+	if(zend_hash_quick_find(Z_ARRVAL_P(requestHeaderArray), "user-agent", sizeof("user-agent"), HASH_OF_user_agent, (void**) &userAgent) == SUCCESS) {
+		logLine_len += Z_STRLEN_PP(userAgent) + sizeof(" - ") - 1;
+	}
+
+	logLine = emalloc(logLine_len + 1);
+	memcpy(logLine, answerCodeAsString, answerCode_len);
+	logLine[offset] = ' ';
+	offset++;
+	memcpy(logLine + offset, Z_STRVAL_P(remoteIP), Z_STRLEN_P(remoteIP));
+	offset += Z_STRLEN_P(remoteIP);
+	logLine[offset] = ' ';
+	offset++;
+	memcpy(logLine + offset, Z_STRVAL_P(requestLine), Z_STRLEN_P(requestLine));
+	offset += Z_STRLEN_P(requestLine);
+	memcpy(logLine + offset, " on vHost ", sizeof(" on vHost ") - 1);
+	offset += sizeof(" on vHost ") - 1;
+	memcpy(logLine + offset, Z_STRVAL_P(vHostName), Z_STRLEN_P(vHostName));
+	offset += Z_STRLEN_P(vHostName);
+	logLine[offset] = ' ';
+	logLine[offset + 1] = '(';
+	offset += 2;
+	if(host) {
+		memcpy(logLine + offset, "via ", sizeof("via ") - 1);
+		offset += sizeof("via ") - 1;
+		memcpy(logLine + offset, Z_STRVAL_PP(host), Z_STRLEN_PP(host));
+		offset += Z_STRLEN_PP(host);
+	}
+	if(referer) {
+		memcpy(logLine + offset, " from ", sizeof(" from ") - 1);
+		offset += sizeof(" from ") - 1;
+		memcpy(logLine + offset, Z_STRVAL_PP(referer), Z_STRLEN_PP(referer));
+		offset += Z_STRLEN_PP(referer);
+	}
+
+	logLine[offset] = ')';
+	offset++;
+
+	if(userAgent) {
+		memcpy(logLine + offset, " - ", sizeof(" - ") - 1);
+		offset += sizeof(" - ") - 1;
+		memcpy(logLine + offset, Z_STRVAL_PP(userAgent), Z_STRLEN_PP(userAgent));
+		offset += Z_STRLEN_PP(userAgent);
+	}
+
+	if(TLSCipherName) {
+		memcpy(logLine + offset, " - ", sizeof(" - ") - 1);
+		offset += sizeof(" - ") - 1;
+		memcpy(logLine + offset, TLSCipherName, TLSCipherName_len);
+		offset += TLSCipherName_len;
+	}
+
+	logLine[offset] = '\0';
+	logLine_p = logLine;
+	PancakeOutput(&logLine, logLine_len, OUTPUT_LOG | OUTPUT_REQUEST TSRMLS_CC);
+
 	efree(answerCodeAsString);
+	efree(logLine);
+	efree(logLine_p);
 
 	// Another request served by Pancake.
 	// Let's deliver the result to the client

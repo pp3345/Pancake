@@ -21,7 +21,6 @@ const zend_function_entry PancakeTLS_functions[] = {
 	ZEND_NS_FE("Pancake", TLSRead, NULL)
 	ZEND_NS_FE("Pancake", TLSWrite, NULL)
 	ZEND_NS_FE("Pancake", TLSShutdown, NULL)
-	ZEND_NS_FE("Pancake", TLSCipherName, NULL)
 	ZEND_FE_END
 };
 
@@ -234,24 +233,11 @@ PHP_FUNCTION(TLSShutdown) {
 	zend_hash_index_del(PANCAKE_TLS_GLOBALS(TLSSessions), socketID);
 }
 
-PHP_FUNCTION(TLSCipherName) {
-	long socketID;
+PANCAKE_API char *PancakeTLSCipherName(int fd TSRMLS_DC) {
 	SSL **ssl;
 	const SSL_CIPHER *cipher;
-	const char *cipherName;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &socketID) == FAILURE) {
-		RETURN_FALSE;
-	}
+	zend_hash_index_find(PANCAKE_TLS_GLOBALS(TLSSessions), fd, (void**) &ssl);
 
-	zend_hash_index_find(PANCAKE_TLS_GLOBALS(TLSSessions), socketID, (void**) &ssl);
-
-	cipher = SSL_get_current_cipher(*ssl);
-
-	if(cipher == NULL) {
-		RETURN_STRINGL("", 0, 1);
-	}
-
-	cipherName = SSL_CIPHER_get_name(cipher);
-	RETURN_STRING(cipherName, 1);
+	return (char*) SSL_CIPHER_get_name(SSL_get_current_cipher(*ssl));
 }
