@@ -137,34 +137,6 @@
     }
     #.endif
 
-    function debug_print_backtrace($options = 0, $limit = 0) {
-		if($limit)
-    		$limit += 3;
-
-        ob_start();
-        Pancake\PHPFunctions\debugPrintBacktrace($options, $limit);
-
-        $backtrace = ob_get_clean();
-
-        $trace = "";
-        $i = 0;
-
-        foreach(explode("\n", $backtrace) as $index => $tracePart) {
-            if(!$index)
-                continue;
-            if(strpos($tracePart, '/sys/compilecache/phpWorker.thread'))
-                break;
-            if($index-1)
-                $trace .= "\n";
-            $tracePart = explode(" ", $tracePart, 2);
-
-            $trace .= "#" . $i . " " . $tracePart[1];
-
-            $i++;
-        }
-        echo $trace;
-    }
-
     function apache_request_headers() {
     	return Pancake\vars::$Pancake_request->requestHeaders;
     }

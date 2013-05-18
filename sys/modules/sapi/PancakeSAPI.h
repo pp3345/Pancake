@@ -31,6 +31,9 @@ void (*PHP_session_start)(INTERNAL_FUNCTION_PARAMETERS);
 void Pancake_session_start(INTERNAL_FUNCTION_PARAMETERS);
 void Pancake_debug_backtrace(INTERNAL_FUNCTION_PARAMETERS);
 
+void (*PHP_debug_print_backtrace)(INTERNAL_FUNCTION_PARAMETERS);
+void Pancake_debug_print_backtrace(INTERNAL_FUNCTION_PARAMETERS);
+
 void (*PHP_list_entry_destructor)(void *ptr);
 
 ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)

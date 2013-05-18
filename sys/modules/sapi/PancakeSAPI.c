@@ -368,6 +368,10 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zend_hash_find(EG(function_table), "debug_backtrace", sizeof("debug_backtrace"), (void**) &function);
 	function->internal_function.handler = Pancake_debug_backtrace;
 
+	zend_hash_find(EG(function_table), "debug_print_backtrace", sizeof("debug_print_backtrace"), (void**) &function);
+	PHP_debug_print_backtrace = function->internal_function.handler;
+	function->internal_function.handler = Pancake_debug_print_backtrace;
+
 	// Fetch rsrc list destructor
 	PHP_list_entry_destructor = EG(regular_list).pDestructor;
 
