@@ -16,3 +16,26 @@ void Pancake_session_start(INTERNAL_FUNCTION_PARAMETERS) {
 
 	PHP_session_start(INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
+
+void Pancake_debug_backtrace(INTERNAL_FUNCTION_PARAMETERS) {
+	long limit = 0;
+	long options = DEBUG_BACKTRACE_PROVIDE_OBJECT;
+
+	if(!PANCAKE_SAPI_GLOBALS(inExecution)
+	|| zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|ll", &options, &limit) == FAILURE) {
+		return;
+	}
+
+	if(limit) {
+		limit += 2;
+	}
+
+	zend_fetch_debug_backtrace(return_value, 1, options, limit TSRMLS_CC);
+
+	// Delete Pancake trace parts
+	zend_hash_internal_pointer_end(Z_ARRVAL_P(return_value));
+	zend_hash_index_del(Z_ARRVAL_P(return_value), Z_ARRVAL_P(return_value)->pInternalPointer->h);
+
+	zend_hash_internal_pointer_end(Z_ARRVAL_P(return_value));
+	zend_hash_index_del(Z_ARRVAL_P(return_value), Z_ARRVAL_P(return_value)->pInternalPointer->h);
+}

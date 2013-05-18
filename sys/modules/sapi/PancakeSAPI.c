@@ -359,10 +359,14 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 		PANCAKE_SAPI_GLOBALS(timeout) = 0;
 	}
 
+	// Hook some functions
 	if(zend_hash_find(EG(function_table), "session_start", sizeof("session_start"), (void**) &function) == SUCCESS) {
 		PHP_session_start = function->internal_function.handler;
 		function->internal_function.handler = Pancake_session_start;
 	}
+
+	zend_hash_find(EG(function_table), "debug_backtrace", sizeof("debug_backtrace"), (void**) &function);
+	function->internal_function.handler = Pancake_debug_backtrace;
 
 	// Fetch rsrc list destructor
 	PHP_list_entry_destructor = EG(regular_list).pDestructor;

@@ -111,7 +111,6 @@
         dt_remove_function('filter_has_var');
         dt_remove_function('filter_input_array');
     }
-    dt_rename_function('debug_backtrace', 'Pancake\PHPFunctions\debugBacktrace');
     dt_rename_function('debug_print_backtrace', 'Pancake\PHPFunctions\debugPrintBacktrace');
 
     // Set PANCAKE_DEBUG_MODE

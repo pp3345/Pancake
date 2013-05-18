@@ -42,25 +42,6 @@
     #.endif
 
     /**
-    * A function that does the work on debug_backtrace()
-    *
-    * @param array $backtrace Backtrace as returned by PHP's debug_backtrace()
-    * @return array Modified Backtrace
-    */
-    function workBacktrace($backtrace) {
-        unset($backtrace[count($backtrace)-1]);
-        unset($backtrace[count($backtrace)-1]);
-        unset($backtrace[0]);
-
-        $newBacktrace = array();
-
-        foreach($backtrace as $tracePart) {
-        	$newBacktrace[] = $tracePart;
-        }
-        return $newBacktrace;
-    }
-
-    /**
      * Removes all objects stored in an array
      *
      * @param array $data

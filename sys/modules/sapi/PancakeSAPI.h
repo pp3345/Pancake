@@ -29,6 +29,7 @@ extern zend_module_entry PancakeSAPI_module_entry;
 
 void (*PHP_session_start)(INTERNAL_FUNCTION_PARAMETERS);
 void Pancake_session_start(INTERNAL_FUNCTION_PARAMETERS);
+void Pancake_debug_backtrace(INTERNAL_FUNCTION_PARAMETERS);
 
 void (*PHP_list_entry_destructor)(void *ptr);
 

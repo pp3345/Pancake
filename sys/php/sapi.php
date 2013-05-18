@@ -137,12 +137,6 @@
     }
     #.endif
 
-    function debug_backtrace($options = /* .constant 'DEBUG_BACKTRACE_PROVIDE_OBJECT' */, $limit = 0) {
-    	if($limit)
-    		$limit += 3;
-        return Pancake\workBacktrace(Pancake\PHPFunctions\debugBacktrace($options, $limit));
-    }
-
     function debug_print_backtrace($options = 0, $limit = 0) {
 		if($limit)
     		$limit += 3;
