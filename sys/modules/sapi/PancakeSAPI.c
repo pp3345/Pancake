@@ -16,6 +16,8 @@ const zend_function_entry PancakeSAPI_functions[] = {
 	ZEND_NS_FE("Pancake", SAPIWait, NULL)
 	ZEND_NS_FE("Pancake", SAPIExitHandler, NULL)
 	ZEND_NS_FE("Pancake", SAPICodeCachePrepare, NULL)
+	ZEND_NS_FE("Pancake", SAPICodeCacheJIT, NULL)
+	ZEND_NS_FE("Pancake", SAPIFetchSERVER, NULL)
 	ZEND_FE(apache_child_terminate, NULL)
 	ZEND_FE(apache_request_headers, NULL)
 	ZEND_FALIAS(getallheaders, apache_request_headers, NULL)
@@ -53,7 +55,13 @@ PHP_MINIT_FUNCTION(PancakeSAPI) {
 	PANCAKE_SAPI_GLOBALS(persistentSymbols) = NULL;
 	PANCAKE_SAPI_GLOBALS(CodeCache) = 0;
 	PANCAKE_SAPI_GLOBALS(haveCriticalDeletions) = 0;
-
+	PANCAKE_SAPI_GLOBALS(JIT_GET) = PG(auto_globals_jit);
+	PANCAKE_SAPI_GLOBALS(JIT_COOKIE) = PG(auto_globals_jit);
+	PANCAKE_SAPI_GLOBALS(JIT_SERVER) = PG(auto_globals_jit);
+	PANCAKE_SAPI_GLOBALS(JIT_REQUEST) = PG(auto_globals_jit);
+	PANCAKE_SAPI_GLOBALS(JIT_POST) = PG(auto_globals_jit);
+	PANCAKE_SAPI_GLOBALS(JIT_FILES) = PG(auto_globals_jit);
+	PANCAKE_SAPI_GLOBALS(JIT_ENV) = PG(auto_globals_jit);
 	return SUCCESS;
 }
 
@@ -511,13 +519,15 @@ PHP_FUNCTION(SAPIPrepare) {
 
 	// Mark all constants persistent (so that we can do faster auto-deletion later on)
 	zend_hash_apply(EG(zend_constants), (apply_func_t) PancakeSAPIMarkConstantPersistent TSRMLS_CC);
+
+	PancakeSAPIGlobalsPrepare(TSRMLS_C);
 }
 
 static zend_bool PancakeSAPIInitializeRequest(zval *request TSRMLS_DC) {
 	zval *requestFilePath, *queryString;
 	char *directory;
 
-	PANCAKE_GLOBALS(JITGlobalsHTTPRequest) = PANCAKE_SAPI_GLOBALS(request) = request;
+	PANCAKE_SAPI_GLOBALS(request) = request;
 
 	PANCAKE_SAPI_GLOBALS(inExecution) = 1;
 
@@ -1009,7 +1019,6 @@ zend_bool PancakeSAPIFetchRequest(int fd, zval *return_value TSRMLS_DC) {
 
 		zval_ptr_dtor(variable_ptr);
 		*variable_ptr = property;
-		php_var_dump(&property, 1);
 	}
 
 	efree(buf);

@@ -46,7 +46,7 @@
                 $var = $COOKIE[$variable_name];
                 break;
             case /* .constant 'INPUT_SERVER' */:
-                $SERVER = Pancake\vars::$Pancake_request->createSERVER();
+                $SERVER = Pancake\SAPIFetchSERVER();
                 if(!array_key_exists($variable_name, $SERVER))
                     return $flags & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
                 $var = $SERVER[$variable_name];
@@ -96,7 +96,7 @@
                     $var = $COOKIE[$key];
                     break;
                 case /* .constant 'INPUT_SERVER' */:
-                    $SERVER = Pancake\vars::$Pancake_request->createSERVER();
+                    $SERVER = Pancake\SAPIFetchSERVER();
                     if(!array_key_exists($key, $SERVER)) {
                         $endArray[$key] = ($options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null);
                         continue 2;
@@ -128,7 +128,7 @@
             case /* .INPUT_COOKIE */:
                 return array_key_exists($variable_name, Pancake\vars::$Pancake_request->getCookies());
             case /* .INPUT_SERVER */:
-                return array_key_exists($variable_name, Pancake\vars::$Pancake_request->createSERVER());
+                return array_key_exists($variable_name, Pancake\SAPIFetchSERVER());
             case /* .INPUT_ENV */:
                 return array_key_exists($variable_name, $_ENV);
             default:

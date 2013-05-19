@@ -39,6 +39,8 @@ void (*PHP_list_entry_destructor)(void *ptr);
 void PancakeSAPIExceptionHook(zval *exception TSRMLS_DC);
 ZEND_API void (*PancakeSAPIPreviousExceptionHook)(zval *ex TSRMLS_DC);
 
+void PancakeSAPIGlobalsPrepare(TSRMLS_D);
+
 ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)
 	zval *request;
 	zend_bool inExecution;
@@ -70,6 +72,14 @@ ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)
 	HashTable *persistentSymbols;
 	zend_bool CodeCache;
 	zend_bool haveCriticalDeletions;
+
+	int JIT_GET;
+	int JIT_COOKIE;
+	int JIT_SERVER;
+	int JIT_REQUEST;
+	int JIT_POST;
+	int JIT_FILES;
+	int JIT_ENV;
 ZEND_END_MODULE_GLOBALS(PancakeSAPI)
 extern ZEND_DECLARE_MODULE_GLOBALS(PancakeSAPI);
 
@@ -82,6 +92,9 @@ PHP_FUNCTION(SAPIFinishRequest);
 PHP_FUNCTION(SAPIWait);
 PHP_FUNCTION(SAPIExitHandler);
 PHP_FUNCTION(SAPICodeCachePrepare);
+
+PHP_FUNCTION(SAPIFetchSERVER);
+PHP_FUNCTION(SAPICodeCacheJIT);
 
 PHP_FUNCTION(apache_child_terminate);
 PHP_FUNCTION(apache_request_headers);

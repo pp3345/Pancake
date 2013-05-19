@@ -103,8 +103,6 @@ PHP_RSHUTDOWN_FUNCTION(Pancake);
 PHP_FUNCTION(out);
 PHP_FUNCTION(errorHandler);
 PHP_FUNCTION(setThread);
-PHP_FUNCTION(CodeCacheJITGlobals);
-PHP_FUNCTION(ExecuteJITGlobals);
 PHP_FUNCTION(loadFilePointers);
 PHP_FUNCTION(loadModule);
 PHP_FUNCTION(makeFastClass);
@@ -143,7 +141,6 @@ PHP_METHOD(HTTPRequest, getAnswerCodeString);
 PHP_METHOD(HTTPRequest, getGETParams);
 PHP_METHOD(HTTPRequest, getPOSTParams);
 PHP_METHOD(HTTPRequest, getCookies);
-PHP_METHOD(HTTPRequest, createSERVER);
 PHP_METHOD(HTTPRequest, setCookie);
 
 PHP_METHOD(invalidHTTPRequestException, __construct);
@@ -152,17 +149,11 @@ PHP_METHOD(invalidHTTPRequestException, getHeader);
 PHP_METHOD(MIME, typeOf);
 PHP_METHOD(MIME, load);
 
-zend_bool PancakeJITFetchSERVER(const char *name, uint name_len TSRMLS_DC);
-zend_bool PancakeJITFetchGET(const char *name, uint name_len TSRMLS_DC);
-zend_bool PancakeJITFetchCookies(const char *name, uint name_len TSRMLS_DC);
-zend_bool PancakeJITFetchREQUEST(const char *name, uint name_len TSRMLS_DC);
-zend_bool PancakeJITFetchPOST(const char *name, uint name_len TSRMLS_DC);
-zend_bool PancakeJITFetchFILES(const char *name, uint name_len TSRMLS_DC);
-zend_bool PancakeJITFetchENV(const char *name, uint name_len TSRMLS_DC);
-
-static zend_bool CodeCacheJITFetch(const char *name, uint name_len TSRMLS_DC);
-
 PANCAKE_API int PancakeLoadFilePointers(TSRMLS_D);
+
+PANCAKE_API zval *PancakeFetchGET(zval *this_ptr TSRMLS_DC);
+PANCAKE_API zval *PancakeFetchCookies(zval *this_ptr TSRMLS_DC);
+PANCAKE_API zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC);
 
 extern zend_class_entry *HTTPRequest_ce;
 extern zend_class_entry *invalidHTTPRequestException_ce;
@@ -232,14 +223,6 @@ ZEND_BEGIN_MODULE_GLOBALS(Pancake)
 	int exposePancake;
 	zval *pancakeVersionString;
 	zval *defaultContentType;
-	zval *JITGlobalsHTTPRequest;
-	int JIT_GET;
-	int JIT_COOKIE;
-	int JIT_SERVER;
-	int JIT_REQUEST;
-	int JIT_POST;
-	int JIT_FILES;
-	int JIT_ENV;
 	int enableAuthentication;
 	char *tmpDir;
 	int disableModuleLoader;

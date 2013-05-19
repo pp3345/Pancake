@@ -104,8 +104,6 @@ const zend_function_entry Pancake_functions[] = {
 	ZEND_NS_FE("Pancake", out,	arginfo_pancake_out)
 	ZEND_NS_FE("Pancake", errorHandler, arginfo_pancake_errorHandler)
 	ZEND_NS_FE("Pancake", setThread, arginfo_pancake_setThread)
-	ZEND_NS_FE("Pancake", CodeCacheJITGlobals, NULL)
-	ZEND_NS_FE("Pancake", ExecuteJITGlobals, NULL)
 	ZEND_NS_FE("Pancake", loadFilePointers, NULL)
 	ZEND_NS_FE("Pancake", makeFastClass, NULL)
 	ZEND_NS_FE("Pancake", loadModule, NULL)
@@ -145,7 +143,6 @@ const zend_function_entry HTTPRequest_methods[] = {
 	ZEND_ME(HTTPRequest, getGETParams, NULL, ZEND_ACC_PUBLIC)
 	ZEND_ME(HTTPRequest, getPOSTParams, NULL, ZEND_ACC_PUBLIC)
 	ZEND_ME(HTTPRequest, getCookies, NULL, ZEND_ACC_PUBLIC)
-	ZEND_ME(HTTPRequest, createSERVER, NULL, ZEND_ACC_PUBLIC)
 	ZEND_ME(HTTPRequest, setCookie, arginfo_pancake_HTTPRequest_setCookie, ZEND_ACC_PUBLIC)
 	ZEND_FE_END
 };
@@ -195,13 +192,6 @@ void php_Pancake_init_globals(zend_Pancake_globals *Pancake_globals) {
 	Pancake_globals->allowTRACE = 0;
 	Pancake_globals->allowOPTIONS = 0;
 	Pancake_globals->exposePancake = 0;
-	Pancake_globals->JIT_COOKIE = PG(auto_globals_jit);
-	Pancake_globals->JIT_GET = PG(auto_globals_jit);
-	Pancake_globals->JIT_SERVER = PG(auto_globals_jit);
-	Pancake_globals->JIT_REQUEST = PG(auto_globals_jit);
-	Pancake_globals->JIT_POST = PG(auto_globals_jit);
-	Pancake_globals->JIT_FILES = PG(auto_globals_jit);
-	Pancake_globals->JIT_ENV = PG(auto_globals_jit);
 	Pancake_globals->disableModuleLoader = 0;
 	Pancake_globals->naglesAlgorithm = 0;
 	Pancake_globals->initialized = 0;

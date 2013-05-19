@@ -175,7 +175,7 @@
 		    foreach(vars::$Pancake_currentThread->vHost->phpCodeCache as $cacheFile)
 		        cacheFile($cacheFile);
 
-		    CodeCacheJITGlobals();
+		    SAPICodeCacheJIT();
 
 		    // Load CodeCache
 		    foreach($Pancake_cacheFiles as $cacheFile) {
@@ -214,8 +214,6 @@
 	    	benchmarkFunction('Pancake\recursiveClearObjects');
 			benchmarkFunction('serialize');
 	    #.endif
-
-	    ExecuteJITGlobals();
 
         // Set blocking for signals
         SigProcMask(/* .constant 'SIG_BLOCK' */, array(/* .constant 'SIGINT' */, /* .constant 'SIGHUP' */));
