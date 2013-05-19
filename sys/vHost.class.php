@@ -184,6 +184,13 @@
             // Spawn socket for PHPWorkers
             if($this->phpWorkers) {
                 $this->phpSocketName = Config::get('main.tmppath') . mt_rand() . '_' . $this->name . '_socket';
+                if(strlen($this->phpSocketName) > 107) {
+                    // Someone thought it was a great idea to limit UNIX socket path names to 108 bytes in Linux
+                    $this->phpSocketName = '/tmp' . mt_rand() . '_' . $this->name . '_panso';
+                    if(strlen($this->phpSocketName) > 107) {
+                        throw new \Exception('UNIX socket name is too long to bind on. Please chosse a shorter value for main.tmppath and try to shorten the vHost name.');
+                    }
+                }
 
                 $this->phpSocket = Socket(\AF_UNIX, \SOCK_STREAM, 0);
                 Bind($this->phpSocket, \AF_UNIX, $this->phpSocketName);
