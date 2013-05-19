@@ -66,6 +66,10 @@
             $this->doGracefulExit = true;
 
             $this->socketName = Config::get('main.tmppath') . mt_rand() . "_rworker_local";
+            if(strlen($this->socketName) > 107) {
+                $this->socketName = '/tmp/' . mt_rand() . "_rworker_panso";
+            }
+            
             $this->socket = Socket(\AF_UNIX, \SOCK_STREAM, 0);
             Bind($this->socket, \AF_UNIX, $this->socketName);
             Listen($this->socket);
