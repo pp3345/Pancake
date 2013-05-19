@@ -281,41 +281,47 @@ PHP_MINIT_FUNCTION(Pancake) {
 	INIT_NS_CLASS_ENTRY(http, "Pancake", "HTTPRequest", HTTPRequest_methods);
 	http.create_object = PancakeCreateObject;
 	HTTPRequest_ce = zend_register_internal_class(&http TSRMLS_CC);
-	zend_declare_property_stringl(HTTPRequest_ce, "answerBody", sizeof("answerBody") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_stringl(HTTPRequest_ce, "queryString", sizeof("queryString") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_null(HTTPRequest_ce, "acceptedCompressions", sizeof("acceptedCompressions") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_null(HTTPRequest_ce, "requestHeaders", sizeof("requestHeaders") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_null(HTTPRequest_ce, "answerHeaders", sizeof("answerHeaders") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_stringl(HTTPRequest_ce, "protocolVersion", sizeof("protocolVersion") - 1, "1.0", 3, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_null(HTTPRequest_ce, "vHost", sizeof("vHost") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_stringl(HTTPRequest_ce, "localIP", sizeof("localIP") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_stringl(HTTPRequest_ce, "remoteIP", sizeof("remoteIP") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_long(HTTPRequest_ce, "localPort", sizeof("localPort") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_long(HTTPRequest_ce, "remotePort", sizeof("remotePort") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_long(HTTPRequest_ce, "requestTime", sizeof("requestTime") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_double(HTTPRequest_ce, "requestMicrotime", sizeof("requestMicrotime") - 1, (double) 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_bool(HTTPRequest_ce, "TLS", sizeof("TLS") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC); /* offset 4 */
+	zend_declare_property_stringl(HTTPRequest_ce, "queryString", sizeof("queryString") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_stringl(HTTPRequest_ce, "protocolVersion", sizeof("protocolVersion") - 1, "1.0", 3, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_stringl(HTTPRequest_ce, "localIP", sizeof("localIP") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_stringl(HTTPRequest_ce, "remoteIP", sizeof("remoteIP") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_stringl(HTTPRequest_ce, "pathInfo", sizeof("pathInfo") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_stringl(HTTPRequest_ce, "requestLine", sizeof("requestLine") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_stringl(HTTPRequest_ce, "requestType", sizeof("requestType") - 1, "GET", 3, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_stringl(HTTPRequest_ce, "originalRequestURI", sizeof("originalRequestURI") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_stringl(HTTPRequest_ce, "requestURI", sizeof("requestURI") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_stringl(HTTPRequest_ce, "requestFilePath", sizeof("requestFilePath") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_stringl(HTTPRequest_ce, "mimeType", sizeof("mimeType") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_long(HTTPRequest_ce, "requestTime", sizeof("requestTime") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_double(HTTPRequest_ce, "requestMicrotime", sizeof("requestMicrotime") - 1, (double) 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_stringl(HTTPRequest_ce, "rawPOSTData", sizeof("rawPOSTData") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC); /* offset 15 */
+
+	/* Scalar properties that are only sent from SAPI -> SAPIClient */
 	zend_declare_property_long(HTTPRequest_ce, "answerCode", sizeof("answerCode") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_null(HTTPRequest_ce, "GETParameters", sizeof("GETParameters") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_stringl(HTTPRequest_ce, "rawPOSTData", sizeof("rawPOSTData") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_null(HTTPRequest_ce, "cookies", sizeof("cookies") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_null(HTTPRequest_ce, "POSTParameters", sizeof("POSTParameters") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_null(HTTPRequest_ce, "uploadedFiles", sizeof("uploadedFiles") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_long(HTTPRequest_ce, "rangeFrom", sizeof("rangeFrom") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_long(HTTPRequest_ce, "rangeTo", sizeof("rangeTo") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_stringl(HTTPRequest_ce, "pathInfo", sizeof("pathInfo") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_long(HTTPRequest_ce, "fCGISocket", sizeof("fCGISocket") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_null(HTTPRequest_ce, "headerDataCompleted", sizeof("headerDataCompleted") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_bool(HTTPRequest_ce, "TLS", sizeof("TLS") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_stringl(HTTPRequest_ce, "answerBody", sizeof("answerBody") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_stringl(HTTPRequest_ce, "answerCodeString", sizeof("answerCodeString") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC); /* offset 18 */
+
+	/* Non-scalar properties that are required by the Pancake SAPI */
+	zend_declare_property_null(HTTPRequest_ce, "requestHeaders", sizeof("requestHeaders") - 1, ZEND_ACC_PUBLIC TSRMLS_CC); /* offset 19 */
+	zend_declare_property_null(HTTPRequest_ce, "answerHeaders", sizeof("answerHeaders") - 1, ZEND_ACC_PUBLIC TSRMLS_CC); /* offset 20 */
+
+	/* Properties that are not required by the Pancake SAPI */
 	zend_declare_property_stringl(HTTPRequest_ce, "writeBuffer", sizeof("writeBuffer") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_null(HTTPRequest_ce, "fileHandle", sizeof("fileHandle") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_stringl(HTTPRequest_ce, "answerCodeString", sizeof("answerCodeString") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_long(HTTPRequest_ce, "socket", sizeof("socket") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_null(HTTPRequest_ce, "cookies", sizeof("cookies") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_long(HTTPRequest_ce, "rangeFrom", sizeof("rangeFrom") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_long(HTTPRequest_ce, "rangeTo", sizeof("rangeTo") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_null(HTTPRequest_ce, "POSTParameters", sizeof("POSTParameters") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_null(HTTPRequest_ce, "uploadedFiles", sizeof("uploadedFiles") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_stringl(HTTPRequest_ce, "mimeType", sizeof("mimeType") - 1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_null(HTTPRequest_ce, "GETParameters", sizeof("GETParameters") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_null(HTTPRequest_ce, "vHost", sizeof("vHost") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_null(HTTPRequest_ce, "acceptedCompressions", sizeof("acceptedCompressions") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_long(HTTPRequest_ce, "fCGISocket", sizeof("fCGISocket") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_null(HTTPRequest_ce, "headerDataCompleted", sizeof("headerDataCompleted") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
 
 	INIT_NS_CLASS_ENTRY(exception, "Pancake", "invalidHTTPRequestException", invalidHTTPRequestException_methods);
 	exception.create_object = PancakeCreateObject;
