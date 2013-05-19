@@ -70,13 +70,28 @@ PHP_METHOD(SAPIClient, __construct) {
 	PancakeQuickWritePropertyLong(this_ptr, "freeSocket", sizeof("freeSocket"), HASH_OF_freeSocket, 0);
 }
 
+static inline void PancakeSAPIClientWriteHeaderSet(int sock, HashTable *headers TSRMLS_DC) {
+	char *key;
+	int key_len, numElements = zend_hash_num_elements(headers);
+	zval **value;
+
+	write(sock, &numElements, sizeof(int));
+	PANCAKE_FOREACH_KEY(headers, key, key_len, value) {
+		key_len--;
+		write(sock, &key_len, sizeof(int));
+		write(sock, key, key_len);
+		write(sock, &Z_STRLEN_PP(value), sizeof(int));
+		write(sock, Z_STRVAL_PP(value), Z_STRLEN_PP(value));
+	}
+}
+
 PHP_METHOD(SAPIClient, makeRequest) {
-	zval **HTTPRequest, *freeSocket;
-	int sock;
-	php_serialize_data_t varHash;
-	smart_str buf = {0};
-	ssize_t offset = 0;
+	zval **HTTPRequest, *freeSocket, *headers;
+	int sock, i, propertiesSize;
+	char *properties;
+	ssize_t offset = 0, wOffset = 0;
 	zend_bool newSocketUsed = 0;
+	zend_object *zobj;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Z", &HTTPRequest) == FAILURE) {
 		RETURN_FALSE;
@@ -112,37 +127,39 @@ PHP_METHOD(SAPIClient, makeRequest) {
 		}
 	}
 
-	PHP_VAR_SERIALIZE_INIT(varHash);
-	php_var_serialize(&buf, HTTPRequest, &varHash TSRMLS_CC);
-	PHP_VAR_SERIALIZE_DESTROY(varHash);
+	zobj = Z_OBJ_P(*HTTPRequest);
+	propertiesSize = (PANCAKE_HTTP_REQUEST_LAST_RECV_SCALAR_OFFSET + 1) * (sizeof(zval) - sizeof(zend_uchar)) + 140;
+	properties = emalloc(propertiesSize);
 
-	/* PHP serialize() checks for EG(exception) so probably it is a good idea here too */
-	if(EG(exception)) {
-		smart_str_free(&buf);
-		close(sock);
-		RETURN_FALSE;
-	}
+	/* Write scalar properties */
+	for(i = 0;i <= PANCAKE_HTTP_REQUEST_LAST_RECV_SCALAR_OFFSET;i++) {
+		zval *property = zobj->properties_table[i];
 
-	/* Write packet length */
-	if(write(sock, &buf.len, sizeof(size_t)) == -1) {
-		smart_str_free(&buf);
-		close(sock);
+		/* We only need the value + its type */
+		/* However, since the order is <value> <refcount> <type> we still need to transmit the refcount */
+		memcpy(properties + offset, property, sizeof(zval) - sizeof(zend_uchar));
+		offset += sizeof(zval) - sizeof(zend_uchar);
 
-		if(!newSocketUsed) {
-			goto fetchSocket;
-		} else {
-			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("Failed to send request to PHP SAPI",
-				sizeof("Failed to send request to PHP SAPI") - 1, 500);
-			return;
+		if(i >= PANCAKE_HTTP_REQUEST_FIRST_STRING_OFFSET) {
+			/* Transmit string value */
+			if(propertiesSize < (offset + Z_STRLEN_P(property) + (sizeof(zval) - sizeof(zend_uchar)))) {
+				/* Optimized reallocation behavior */
+				propertiesSize += Z_STRLEN_P(property) + 140;
+				properties = erealloc(properties, propertiesSize);
+			}
+
+			memcpy(properties + offset, Z_STRVAL_P(property), Z_STRLEN_P(property));
+			offset += Z_STRLEN_P(property);
 		}
 	}
 
-	/* Write packet */
-	while(offset < buf.len) {
-		ssize_t result = write(sock, &buf.c[offset], buf.len - offset);
+	write(sock, &offset, sizeof(ssize_t));
+
+	while(wOffset < offset) {
+		ssize_t result = write(sock, &properties[wOffset], offset - wOffset);
 		if(result == -1) {
 			close(sock);
-			smart_str_free(&buf);
+			efree(properties);
 			zend_error(E_WARNING, "%s", strerror(errno));
 
 			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("Failed to send request to PHP SAPI",
@@ -150,10 +167,16 @@ PHP_METHOD(SAPIClient, makeRequest) {
 			return;
 		}
 
-		offset += result;
+		wOffset += result;
 	}
 
-	smart_str_free(&buf);
+	efree(properties);
+
+	/* Write headers */
+	headers = zobj->properties_table[PANCAKE_HTTP_REQUEST_REQUEST_HEADERS_OFFSET];
+	PancakeSAPIClientWriteHeaderSet(sock, Z_ARRVAL_P(headers) TSRMLS_CC);
+	headers = zobj->properties_table[PANCAKE_HTTP_REQUEST_ANSWER_HEADERS_OFFSET];
+	PancakeSAPIClientWriteHeaderSet(sock, Z_ARRVAL_P(headers) TSRMLS_CC);
 
 	RETURN_LONG(sock);
 }

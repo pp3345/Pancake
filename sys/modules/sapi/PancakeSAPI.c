@@ -927,17 +927,53 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	PANCAKE_SAPI_GLOBALS(haveCriticalDeletions) = 0;
 }
 
+static void PancakeSAPIReadHeaderSet(int fd, zval **headerArray TSRMLS_DC) {
+	int numHeaders = 0, i;
+
+	read(fd, &numHeaders, sizeof(int));
+
+	zval_ptr_dtor(headerArray);
+	MAKE_STD_ZVAL(*headerArray);
+	array_init_size(*headerArray, numHeaders);
+
+	if(!numHeaders) {
+		return;
+	}
+
+	for(i = 0;i < numHeaders;i++) {
+		char *key;
+		int key_len;
+		zval *value;
+
+		MAKE_STD_ZVAL(value);
+		Z_TYPE_P(value) = IS_STRING;
+
+		read(fd, &key_len, sizeof(int));
+		key = emalloc(key_len + 1);
+		read(fd, key, key_len);
+		key[key_len] = '\0';
+
+		read(fd, &Z_STRLEN_P(value), sizeof(int));
+		Z_STRVAL_P(value) = emalloc(Z_STRLEN_P(value) + 1);
+		read(fd, Z_STRVAL_P(value), Z_STRLEN_P(value));
+		Z_STRVAL_P(value)[Z_STRLEN_P(value)] = '\0';
+
+		zend_hash_add(Z_ARRVAL_PP(headerArray), key, key_len + 1, (void*) &value, sizeof(zval*), NULL);
+		efree(key);
+	}
+}
+
 zend_bool PancakeSAPIFetchRequest(int fd, zval *return_value TSRMLS_DC) {
-	size_t length, offset = 0;
-	unsigned char *buf, *bufP;
-	php_unserialize_data_t varHash;
+	ssize_t length, offset = 0;
+	unsigned char *buf;
+	int i = 0, numHeaders = 0;
+	zend_object *zobj;
 
-	read(fd, &length, sizeof(size_t));
-	buf = emalloc(length + 1);
-	buf[length] = '\0';
-
+	read(fd, &length, sizeof(ssize_t));
+	buf = emalloc(length);
 	while(offset < length) {
-		size_t readLength = read(fd, &buf[offset], length - offset);
+		ssize_t readLength = read(fd, &buf[offset], length - offset);
+
 		if(readLength == -1) {
 			efree(buf);
 			close(fd);
@@ -947,22 +983,39 @@ zend_bool PancakeSAPIFetchRequest(int fd, zval *return_value TSRMLS_DC) {
 		offset += readLength;
 	}
 
-	bufP = buf;
+	object_init_ex(return_value, HTTPRequest_ce);
+	zobj = Z_OBJ_P(return_value);
 
-	PHP_VAR_UNSERIALIZE_INIT(varHash);
-	if (!php_var_unserialize(&return_value, (const unsigned char**) &buf, buf + length, &varHash TSRMLS_CC)) {
-		/* Malformed value */
-		PHP_VAR_UNSERIALIZE_DESTROY(varHash);
-		zval_dtor(return_value);
+	offset = 0;
 
-		close(fd);
-		efree(bufP);
+	for(i = 0;i <= PANCAKE_HTTP_REQUEST_LAST_RECV_SCALAR_OFFSET;i++) {
+		/* Read properties */
+		zval *property;
+		zval **variable_ptr = &zobj->properties_table[i];
 
-		return 0;
+		ALLOC_ZVAL(property);
+		memcpy(property, &buf[offset], sizeof(zval) - sizeof(zend_uchar));
+		offset += sizeof(zval) - sizeof(zend_uchar);
+		property->is_ref__gc = 0;
+		property->refcount__gc = 1;
+
+		/* Fetch string value */
+		if(Z_TYPE_P(property) == IS_STRING) {
+			Z_STRVAL_P(property) = emalloc(Z_STRLEN_P(property) + 1);
+			memcpy(Z_STRVAL_P(property), &buf[offset], Z_STRLEN_P(property));
+			offset += Z_STRLEN_P(property);
+			Z_STRVAL_P(property)[Z_STRLEN_P(property)] = '\0';
+		}
+
+		zval_ptr_dtor(variable_ptr);
+		*variable_ptr = property;
+		php_var_dump(&property, 1);
 	}
-	PHP_VAR_UNSERIALIZE_DESTROY(varHash);
 
-	efree(bufP);
+	efree(buf);
+
+	PancakeSAPIReadHeaderSet(fd, &zobj->properties_table[PANCAKE_HTTP_REQUEST_REQUEST_HEADERS_OFFSET] TSRMLS_CC);
+	PancakeSAPIReadHeaderSet(fd, &zobj->properties_table[PANCAKE_HTTP_REQUEST_ANSWER_HEADERS_OFFSET] TSRMLS_CC);
 
 	if(!PancakeSAPIInitializeRequest(return_value TSRMLS_CC)) {
 		// Reload output layer
