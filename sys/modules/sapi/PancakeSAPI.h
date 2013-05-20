@@ -72,6 +72,8 @@ ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)
 	HashTable *persistentSymbols;
 	zend_bool CodeCache;
 	zend_bool haveCriticalDeletions;
+	char *SAPIPHPVersionHeader;
+	ushort SAPIPHPVersionHeader_len;
 
 	int JIT_GET;
 	int JIT_COOKIE;

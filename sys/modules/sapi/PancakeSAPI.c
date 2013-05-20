@@ -277,6 +277,7 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zend_class_entry **vars;
 	zval *disabledFunctions, *autoDelete, *autoDeleteExcludes, *HTMLErrors, *documentRoot, *processingLimit, *timeout;
 	zend_constant *PHP_SAPI;
+	zend_module_entry *core;
 
 	if(PANCAKE_GLOBALS(inSAPIReboot) == 1) {
 		return SUCCESS;
@@ -436,6 +437,13 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 
 	zend_llist_clean(&SG(sapi_headers).headers);
 
+	// Fetch PHP version
+	zend_hash_find(&module_registry, "core", sizeof("core"), (void**) &core);
+	PANCAKE_SAPI_GLOBALS(SAPIPHPVersionHeader_len) = sizeof("X-Powered-By: PHP/") + strlen(core->version) - 1;
+	PANCAKE_SAPI_GLOBALS(SAPIPHPVersionHeader) = emalloc(PANCAKE_SAPI_GLOBALS(SAPIPHPVersionHeader_len) + 1);
+	memcpy(PANCAKE_SAPI_GLOBALS(SAPIPHPVersionHeader), "X-Powered-By: PHP/", sizeof("X-Powered-By: PHP/") - 1);
+	memcpy(PANCAKE_SAPI_GLOBALS(SAPIPHPVersionHeader) + sizeof("X-Powered-By: PHP/") - 1, core->version, strlen(core->version) + 1);
+
 	return SUCCESS;
 }
 
@@ -469,6 +477,8 @@ PHP_RSHUTDOWN_FUNCTION(PancakeSAPI) {
 		zend_hash_destroy(PANCAKE_SAPI_GLOBALS(persistentSymbols));
 		efree(PANCAKE_SAPI_GLOBALS(persistentSymbols));
 	}
+
+	efree(PANCAKE_SAPI_GLOBALS(SAPIPHPVersionHeader));
 
 	return SUCCESS;
 }
@@ -533,7 +543,7 @@ static zend_bool PancakeSAPIInitializeRequest(zval *request TSRMLS_DC) {
 
 	// X-Powered-By
 	if (PG(expose_php)) {
-		sapi_add_header(SAPI_PHP_VERSION_HEADER, sizeof(SAPI_PHP_VERSION_HEADER)-1, 1);
+		sapi_add_header(PANCAKE_SAPI_GLOBALS(SAPIPHPVersionHeader), PANCAKE_SAPI_GLOBALS(SAPIPHPVersionHeader_len), 1);
 	}
 
 	// Set request info data
