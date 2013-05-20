@@ -85,12 +85,34 @@ static inline void PancakeSAPIClientWriteHeaderSet(int sock, HashTable *headers 
 	}
 }
 
+static int PancakeSAPIClientReconnect(zval *this_ptr TSRMLS_DC) {
+	zval *address;
+	struct sockaddr_un s_un = {0};
+	int sock;
+
+	FAST_READ_PROPERTY(address, this_ptr, "address", sizeof("address") - 1, HASH_OF_address);
+
+	s_un.sun_family = AF_UNIX;
+	memcpy(&s_un.sun_path, Z_STRVAL_P(address), Z_STRLEN_P(address));
+
+	sock = socket(AF_UNIX, SOCK_STREAM, 0);
+
+	if(connect(sock, (struct sockaddr*) &s_un, (socklen_t)(XtOffsetOf(struct sockaddr_un, sun_path) + Z_STRLEN_P(address)))) {
+		close(sock);
+		zend_error(E_WARNING, "%s", strerror(errno));
+		PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("Failed to establish connection to PHP SAPI",
+			sizeof("Failed to establish connection to PHP SAPI") - 1, 500);
+		return -1;
+	}
+
+	return sock;
+}
+
 PHP_METHOD(SAPIClient, makeRequest) {
 	zval **HTTPRequest, *freeSocket, *headers;
 	int sock, i, propertiesSize;
 	char *properties;
 	ssize_t offset = 0, wOffset = 0;
-	zend_bool newSocketUsed = 0;
 	zend_object *zobj;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Z", &HTTPRequest) == FAILURE) {
@@ -104,27 +126,7 @@ PHP_METHOD(SAPIClient, makeRequest) {
 		sock = Z_LVAL_P(freeSocket);
 		Z_LVAL_P(freeSocket) = 0;
 	} else {
-		fetchSocket: {
-			zval *address;
-			struct sockaddr_un s_un = {0};
-
-			newSocketUsed = 1;
-
-			FAST_READ_PROPERTY(address, this_ptr, "address", sizeof("address") - 1, HASH_OF_address);
-
-			s_un.sun_family = AF_UNIX;
-			memcpy(&s_un.sun_path, Z_STRVAL_P(address), Z_STRLEN_P(address));
-
-			sock = socket(AF_UNIX, SOCK_STREAM, 0);
-
-			if(connect(sock, (struct sockaddr*) &s_un, (socklen_t)(XtOffsetOf(struct sockaddr_un, sun_path) + Z_STRLEN_P(address)))) {
-				close(sock);
-				zend_error(E_WARNING, "%s", strerror(errno));
-				PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("Failed to establish connection to PHP SAPI",
-					sizeof("Failed to establish connection to PHP SAPI") - 1, 500);
-				return;
-			}
-		}
+		sock = PancakeSAPIClientReconnect(this_ptr TSRMLS_CC);
 	}
 
 	zobj = Z_OBJ_P(*HTTPRequest);
@@ -153,7 +155,13 @@ PHP_METHOD(SAPIClient, makeRequest) {
 		}
 	}
 
-	write(sock, &offset, sizeof(ssize_t));
+	if(write(sock, &offset, sizeof(ssize_t)) == -1) {
+		if((sock = PancakeSAPIClientReconnect(this_ptr TSRMLS_CC)) == -1) {
+			return;
+		}
+
+		write(sock, &offset, sizeof(ssize_t));
+	}
 
 	while(wOffset < offset) {
 		ssize_t result = write(sock, &properties[wOffset], offset - wOffset);
