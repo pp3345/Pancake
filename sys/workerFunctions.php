@@ -117,6 +117,4 @@
     	return true;
     }
     #.endif
-    
-    function dummy() {return true;}
 ?>
