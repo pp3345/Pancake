@@ -71,12 +71,6 @@
 	   #.endif
 	#.endif
 
-	#.if Pancake\DEBUG_MODE === true
-		#.define 'BENCHMARK' false
-	#.else
-		#.define 'BENCHMARK' false
-	#.endif
-
     namespace {
     	#.include 'php/sapi.php'
     }
@@ -207,13 +201,6 @@
 
 	    // Ready
 	    vars::$Pancake_currentThread->parentSignal(/* .constant 'SIGUSR1' */);
-
-	    #.if BENCHMARK === true
-	    	benchmarkFunction('gc_collect_cycles');
-	    	benchmarkFunction('Pancake\cleanGlobals');
-	    	benchmarkFunction('Pancake\recursiveClearObjects');
-			benchmarkFunction('serialize');
-	    #.endif
 
         // Set blocking for signals
         SigProcMask(/* .constant 'SIG_BLOCK' */, array(/* .constant 'SIGINT' */, /* .constant 'SIGHUP' */));

@@ -132,12 +132,6 @@
     #.macro 'VHOST_GZIP_LEVEL' '/* .VHOST */->gzipLevel'
     #.macro 'VHOST_NAME' '/* .VHOST */->name'
         
-    #.if Pancake\DEBUG_MODE === true
-    	#.define 'BENCHMARK' false
-    #.else
-    	#.define 'BENCHMARK' false
-    #.endif
-
     global $Pancake_sockets;
     global $Pancake_vHosts;
 
@@ -297,11 +291,7 @@
     $waitSlotsOrig = array();
     $waits = array();
 #.endif
-    
-#.if BENCHMARK === true
-    benchmarkFunction("hexdec");
-#.endif
-    
+        
 #.if #.Pancake\Config::get("main.naglesalgorithm", 0)
     // Disable Nagle's algorithm if requested
     NaglesAlgorithm(/*.bool #.Pancake\Config::get("main.naglesalgorithm", 0)*/);
@@ -959,23 +949,6 @@
 #.endif
 
         unset($liveWriteSocketsOrig[$socket]);
-
-#.if Pancake\DEBUG_MODE === true
-        // Pancake profiler
-        if($results = benchmarkFunction(null, true)) {
-        	foreach($results as $function => $functionResults) {
-        		foreach($functionResults as $result)
-        			$total += $result;
-
-        		out('Benchmark of function ' . $function . '(): ' . count($functionResults) . ' calls' . ( $functionResults ? ' - ' . (min($functionResults) * 1000) . ' ms min - ' . ($total / count($functionResults) * 1000) . ' ms ave - ' . (max($functionResults) * 1000) . ' ms max - ' . ($total * 1000) . ' ms total' : "") , OUTPUT_DEBUG | OUTPUT_SYSTEM | OUTPUT_LOG);
-        		unset($total);
-        	}
-
-        	unset($result);
-        	unset($functionResults);
-        	unset($results);
-        }
-#.endif
 
 #.if 0 < #.call 'Pancake\Config::get' 'main.requestworkerlimit'
         // Check if request-limit is reached
