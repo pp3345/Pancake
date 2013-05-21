@@ -1,83 +1,91 @@
 vhosts:
   default:                                                      # Name of the vHost REMEMBER TO SET THIS WHEN CREATING A NEW VHOST
-    enabled: true
-    docRoot: ../vhosts/default/                                 # Path to document root
-    listen:                                                     # Named hosts to listen on
+    Enabled: true
+    DocRoot: ../vhosts/default/                                 # Path to document root
+    Listen:                                                     # Named hosts to listen on
       - 127.0.0.1
       - localhost
       - "[::1]"
-    PHPWorkers: 2                                               # Amount of PHPWorkers to run
-    gzipMin: 1048576                                            # Minimum size of a static file to use GZIP compression
-    gzipLevel: 1                                                # Level of GZIP compression - Lower = bigger size, less CPU-usage
-    enableGZIP: false                                           # Enable and disable GZIP compression - We recommend leaving it disabled, it's better to precompress big files - GZIP compression may create very heavy CPU load
-    gzipStatic: false                                           # If enabled and for example /jquery.js is requested and /jquery.js.gz exists on the disk, Pancake will deliver the GZIP-compressed file
-    gzipMimeTypes:                                              # Allow limiting automatic GZIP compression to specific MIME types (does not apply to gzipStatic)
+
+### We recommend leaving GZIP compression disabled, it's better to precompress big files - GZIP compression may create very heavy CPU load
+    EnableGZIP: false                                           # Enable and disable GZIP compression - 
+    GZIPMin: 1048576                                            # Minimum size of a static file to use GZIP compression
+    GZIPLevel: 1                                                # Level of GZIP compression - Lower = bigger size, less CPU-usage
+    GZIPStatic: false                                           # If enabled and for example /jquery.js is requested and /jquery.js.gz exists on the disk, Pancake will deliver the GZIP-compressed file
+    GZIPMimeTypes:                                              # Allow limiting automatic GZIP compression to specific MIME types (does not apply to gzipStatic)
 #      - image/png
 #      - application/x-javascript
-    allowDirectoryListings: true                                # Enable directory listings
-    isDefault: true                                             # Whether this vHost is the default vHost or not (one of your vHosts MUST have this settings enabled)
+    AllowDirectoryListings: true                                # Enable directory listings
+    IsDefault: true                                             # Whether this vHost is the default vHost or not (one of your vHosts MUST have this settings enabled)
     204OnEmptyPage: false                                       # If true, Pancake will send 204 No Content instead of 200 OK when the page is empty
-    PHPWorkerLimit: 1000                                        # Limit of requests a PHPWorker may process until it has to be restarted (0 for no limit)
-    PHPInfoPancake: true                                        # Expose information about Pancake configuration in phpinfo()
-    PHPInfoPancakevHosts: false                                 # Expose information about Pancake vHosts in phpinfo() (requires PHPInfoPancake to be true)
-    autoDelete:                                                 # Automatically delete non-cached PHP elements after a request
-      classes: true
-      functions: true
-      interfaces: true
-      constants: true
-      traits: true
-      includes: true
-    forceDelete:                                                # Force deletion of the specified PHP elements after a request
-    excludeDelete:                                              # Exclude the specified PHP elements from automatic deletion after a request
-    PHPHTMLErrors: true                                         # Enable HTML errors instead of plain text
-    PHPSocketBacklog: 100                                       # Connection backlog for internal worker communication sockets (recommendation: less workers => higher backlog; more workers => lower backlog - should not be lower than 1)
-    PHPResetClassStaticObjects: true                            # Whether the SAPI should search for objects inside static class properties and reset them - Try this setting when the SAPI often crashes or acts strange
-    PHPResetClassStaticNonObjects: false                        # Whether the SAPI should set all static class properties to null after finishing a request (will still destroy objects before if PHPResetClassStaticObjects is enabled)
-    PHPResetFunctionStaticObjects: true                         # Whether the SAPI should search for objects inside static function variables and reset them - Try this setting when the SAPI often crashes or acts strange
-    PHPResetFunctionStaticNonObjects: false                     # Whether the SAPI should set all static function variables to null after finishing a request (will still destroy objects before if PHPResetFunctionStaticObjects is enabled)
-    PHPResetObjectsDestroyDestructors: true                     # Whether the SAPI should not execute object destructors when destroying objects (true = will not execute; false = will execute)
-    PHPMaxExecutionTime: 10                                     # Same as PHPs max_execution_time setting
-#    PHPModules:                                                # Load custom PHP modules for this vHost
-#      - gd
-#    PHPINISettings:                                            # Set custom php.ini settings for this vHost
-#      session.name: "myGreatSession"
-#    PHPPredefinedConstants:                                    # A list of constants that should be predefined before script-execution in the SAPI
-#      myConst: 123
-#      iLovePancakes: true
-#    PHPDeletePredefinedConstantsAfterCodeCacheLoad: false      # Whether the predefined constants should be deleted again after loading the CodeCache
-#    PHPDisabledFunctions:                                      # A list of functions that will be disabled inside the SAPI (acts like the php.ini setting disabled_functions)
-#      - posix_getpid
-#      - posix_kill
-#    PHPCache:                                                  # Files or directories that should be cached by Pancake
-#      - my.class.php
-#      - inc/functions.php
-#      - inc/
-#    PHPCacheExclude:                                           # Files that should be excluded from caching (useful when caching complete directories that contain a few files that should not be cached)
-#      - inc/functions.old.php
-#    auth:                                                      # Files and directories that should require authentication
+    
+#    Auth:                                                      # HTTP authentication
 #      /index.html:
 #        type: basic
 #        realm: "Authorization required"
 #        authfiles:
 #          - /usr/local/Pancake/vhosts/passwords
-#    rewrite:                                                    # Rewrite URLs
-#      - location: /users/
+#    Rewrite:                                                    # Rewrite URLs
+#      - location: /users/                                       # /users/1337/ -> /user.php?id=1337
 #        pattern: ~^/users/(.*)$~
 #        replace: /user.php?id=$1
-#      - precondition: 404
+#      - precondition: 404                                       # /DoesNotExist.html -> Google
 #        destination: http://google.com/
-#      - precondition: 403
+#      - precondition: 403                                       # /DoNotOpen.html -> 500 Internal Server Error "This should not happen"
 #        exception: 500
 #        exceptionMessage: "This should not happen"
 #        headers:
 #          X-Reason: 403
 #      - pathinfo: ~^((?U).+\.php)(/?.+)$~
-    index:                                                      # List of files allowed as directory indexes
+    Index:                                                      # List of files allowed as directory indexes
       - index.php
       - index.html
       - index.htm
+
+### FastCGI and AJP13 configurations can be used in multiple virtual hosts
     FastCGI:                                                    # List of FastCGI configurations enabled for this vHost
 #      - php
 #    AJP13: jenkins                                              # AJP13 configuration to use for this vHost
-#    directoryPageHandler: /var/vhosts/default/directory.php
-#    exceptionPageHandler: /var/vhosts/default/exception.php
+
+### See Pancake documentation for more information on customizing system pages
+#    DirectoryPageHandler: /var/vhosts/default/directory.php
+#    ExceptionPageHandler: /var/vhosts/default/exception.php
+    
+### PHP settings
+    PHPWorkers: 2                                               # Amount of PHPWorkers to run
+    PHPSocketBacklog: 100                                       # Connection backlog for internal worker communication sockets
+    PHPWorkerLimit: 50000                                       # Limit of requests a PHPWorker may process until it has to be restarted (0 for no limit)
+    PHPHTMLErrors: true                                         # Enable PHP HTML errors instead of plain text
+    PHPMaxExecutionTime: 10                                     # Same as PHPs max_execution_time setting
+
+    PHPDestroyObjects: true                                     # Destroy objects after PHP execution?
+    PHPCleanUserClassData: true                                 # Clean user class data after PHP execution?
+    PHPCleanUserFunctionData: true                              # Clean user function data after PHP execution?
+    AutoDelete:                                                 # Automatically delete non-cached PHP elements after finishing a request
+      classes: true                                             # Classes means actual classes + interfaces + traits
+      functions: true
+      constants: true
+      includes: true
+    ExcludeDelete:                                              # Exclude the specified PHP elements from automatic deletion after a request (not available for constants)
+#      classes:
+#        - MyGreatPHPClass
+#      functions:
+#      includes:
+
+#    PHPModules:                                                # Load custom PHP modules for this vHost
+#      - gd
+#    PHPINISettings:                                            # Set custom php.ini settings for this vHost
+#      session.name: "myGreatSession"
+#    PHPPredefinedConstants:                                    # A list of constants that should be predefined before script execution
+#      myConst: 123
+#      iLovePancakes: true
+#    PHPDeletePredefinedConstantsAfterCodeCacheLoad: false      # Whether predefined constants should be deleted again after loading the CodeCache
+#    PHPDisabledFunctions:                                      # Equal to php.ini disabled_functions
+#      - posix_getpid
+#      - posix_kill
+#    PHPCache:                                                  # Pancake CodeCache
+#      - my.class.php
+#      - inc/functions.php
+#      - inc/
+#    PHPCacheExclude:                                           # Files that should be excluded from caching (useful when caching complete directories that contain a few files that should not be cached)
+#      - inc/functions.old.php
