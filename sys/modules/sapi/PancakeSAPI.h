@@ -68,7 +68,6 @@ ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)
 	long processedRequests;
 	zend_bool exit;
 	long timeout;
-	zend_uint objectsStoreOffset;
 	HashTable *persistentSymbols;
 	zend_bool CodeCache;
 	zend_bool haveCriticalDeletions;

@@ -230,11 +230,10 @@
 	        	unset($e);
 	        }
 	        
-            try {
-                SAPIFinishRequest();
-            } catch(ExitException $e) {
-                unset($e);
-            }
+            SAPIFinishRequest();
+            
+            /* We should set this to null in order to keep the Zend objects store alignment as it is across requests */            
+            vars::$Pancake_request = null;
         }
     }
 ?>

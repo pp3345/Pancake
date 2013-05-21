@@ -596,10 +596,6 @@ static zend_bool PancakeSAPIInitializeRequest(zval *request TSRMLS_DC) {
 		php_output_set_implicit_flush(1 TSRMLS_CC);
 	}
 
-	// Set objects store offset for userspace objects
-	PANCAKE_SAPI_GLOBALS(objectsStoreOffset) = EG(objects_store).top;
-	//printf("Offset @%i\n", PANCAKE_SAPI_GLOBALS(objectsStoreOffset));
-
 	zend_activate_auto_globals(TSRMLS_C);
 	return 1;
 }
@@ -635,7 +631,9 @@ PHP_FUNCTION(SAPICodeCachePrepare) {
 }
 
 static int zval_call_destructor(zval **zv TSRMLS_DC) {
-	if (Z_TYPE_PP(zv) == IS_OBJECT && Z_REFCOUNT_PP(zv) == 1) {
+	if(EG(exception)) {
+		return ZEND_HASH_APPLY_STOP;
+	} else if (Z_TYPE_PP(zv) == IS_OBJECT && Z_REFCOUNT_PP(zv) == 1) {
 		return ZEND_HASH_APPLY_REMOVE;
 	} else {
 		return ZEND_HASH_APPLY_KEEP;
@@ -664,6 +662,25 @@ static int PancakeSAPIClearClassRuntimeCache(zend_class_entry **class TSRMLS_DC)
 	return ZEND_HASH_APPLY_KEEP;
 }
 
+static void PancakeSAPIMarkObjectsStoreDestructed(TSRMLS_D) {
+	zend_uint i;
+
+	if (!EG(objects_store).object_buckets) {
+		return;
+	}
+	for (i = 1; i < EG(objects_store).top ; i++) {
+		if (EG(objects_store).object_buckets[i].valid) {
+			zend_object *object = (zend_object*) EG(objects_store).object_buckets[i].bucket.obj.object;
+
+			if(object->ce->name[0] == 'P' && !strncmp(object->ce->name, "Pancake\\", sizeof("Pancake\\") - 1)) {
+				continue;
+			}
+
+			EG(objects_store).object_buckets[i].destructor_called = 1;
+		}
+	}
+}
+
 PHP_FUNCTION(SAPIFinishRequest) {
 	zval *answerCode, *zeh;
 	int symbols, i;
@@ -679,13 +696,33 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	do {
 		symbols = zend_hash_num_elements(&EG(symbol_table));
 		zend_hash_reverse_apply(&EG(symbol_table), (apply_func_t) zval_call_destructor TSRMLS_CC);
+
+		if(EG(exception)) {
+			PancakeSAPIMarkObjectsStoreDestructed(TSRMLS_C);
+
+			/* We have an exception and should bailout */
+			if(!strcmp("Pancake\\ExitException", Z_OBJ_P(EG(exception))->ce->name)) {
+				/* Discard exception */
+				zend_clear_exception(TSRMLS_C);
+				goto destructionDone;
+			}
+
+			/* This isn't going to be cleaned */
+			Z_DELREF_P(PANCAKE_SAPI_GLOBALS(errorHandler));
+			zval_ptr_dtor(&PANCAKE_SAPI_GLOBALS(errorHandler));
+			return;
+		}
 	} while (symbols != zend_hash_num_elements(&EG(symbol_table)));
 
-	for(i = PANCAKE_SAPI_GLOBALS(objectsStoreOffset); i < EG(objects_store).top; i++) {
+	for(i = 1; i < EG(objects_store).top; i++) {
 		if (EG(objects_store).object_buckets[i].valid) {
 			struct _store_object *obj = &EG(objects_store).object_buckets[i].bucket.obj;
+			zend_object *object = (zend_object*) obj->object;
 
-			//printf("Will destruct object of class %s\n", ((zend_object*) EG(objects_store).object_buckets[i].bucket.obj.object)->ce->name);
+			if(object->ce->name[0] == 'P' && !strncmp(object->ce->name, "Pancake\\", sizeof("Pancake\\") - 1)) {
+				continue;
+			}
+
 			if (!EG(objects_store).object_buckets[i].destructor_called) {
 				EG(objects_store).object_buckets[i].destructor_called = 1;
 				if (obj->dtor && obj->object) {
@@ -693,16 +730,28 @@ PHP_FUNCTION(SAPIFinishRequest) {
 					obj->dtor(obj->object, i TSRMLS_CC);
 					obj = &EG(objects_store).object_buckets[i].bucket.obj;
 					obj->refcount--;
+
+					if(EG(exception)) {
+						PancakeSAPIMarkObjectsStoreDestructed(TSRMLS_C);
+
+						/* We have an exception and should bailout */
+						if(!strcmp("Pancake\\ExitException", Z_OBJ_P(EG(exception))->ce->name)) {
+							/* Discard exception */
+							zend_clear_exception(TSRMLS_C);
+							goto destructionDone;
+						}
+
+						/* This isn't going to be cleaned */
+						Z_DELREF_P(PANCAKE_SAPI_GLOBALS(errorHandler));
+						zval_ptr_dtor(&PANCAKE_SAPI_GLOBALS(errorHandler));
+						return;
+					}
 				}
 			}
 		}
 	}
 
-	// In case we have an unhandled exception we should return here as Zend is going to bail out
-	if(EG(exception)
-	&& strcmp("Pancake\\ExitException", Z_OBJ_P(EG(exception))->ce->name)) {
-		return;
-	}
+	destructionDone:
 
 	// Flush all output buffers
 	php_output_end_all(TSRMLS_C);
