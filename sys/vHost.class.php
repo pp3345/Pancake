@@ -44,14 +44,8 @@
         public $phpHTMLErrors = true;
         public $phpDisabledFunctions = array();
         public $phpMaxExecutionTime = 0;
-        public $resetClassObjects = false;
-        public $resetClassNonObjects = false;
-        public $resetFunctionObjects = false;
-        public $resetFunctionNonObjects = false;
-        public $resetObjectsDestroyDestructor = false;
         public $predefinedConstants = array();
         public $deletePredefinedConstantsAfterCodeCacheLoad = false;
-        public $fixStaticMethodCalls = false;
         public $fastCGI = array();
         public $AJP13 = null;
         public $exceptionPageHandler = "";
@@ -60,6 +54,10 @@
         public $gzipMimeTypes = array();
 		public $phpINISettings = array();
         public $phpModules = array();
+        
+        public $phpDestroyObjects = true;
+        public $phpCleanUserFunctionData = true;
+        public $phpCleanUserClassData = true;
 
         /**
         * Loads a vHost
@@ -108,15 +106,9 @@
             $this->onEmptyPage204 = (bool) $config['204onemptypage'];
             $this->phpHTMLErrors = (bool) $config['phphtmlerrors'];
             $this->phpDisabledFunctions = (array) $config['phpdisabledfunctions'];
-            $this->resetClassObjects = (bool) $config['phpresetclassstaticobjects'];
-            $this->resetClassNonObjects = (bool) $config['phpresetclassstaticnonobjects'];
-            $this->resetFunctionObjects = (bool) $config['phpresetfunctionstaticobjects'];
-            $this->resetFunctionNonObjects = (bool) $config['phpresetfunctionstaticnonobjects'];
-            $this->resetObjectsDestroyDestructor = (bool) $config['phpresetobjectsdestroydestructors'];
             $this->predefinedConstants = (array) $config['phppredefinedconstants'];
             $this->deletePredefinedConstantsAfterCodeCacheLoad = (bool) $config['phpdeletepredefinedconstantsaftercodecacheload'];
             $this->phpMaxExecutionTime = (int) $config['phpmaxexecutiontime'];
-            $this->fixStaticMethodCalls = (!$this->phpCodeCache) || ($this->phpCodeCache && $config['phpfixstaticmethodcalls'] === false) ? false : true;
             $this->fastCGI = $this->AJP13 ? array() : (array) $config['fastcgi'];
             $this->exceptionPageHandler = $config['exceptionpagehandler'] && is_readable($config['exceptionpagehandler']) ? $config['exceptionpagehandler'] : getcwd() . '/php/exceptionPageHandler.php';
             $this->directoryPageHandler = $config['directorypagehandler'] && is_readable($config['directorypagehandler']) ? $config['directorypagehandler'] : getcwd() . '/php/directoryPageHandler.php';
@@ -124,6 +116,10 @@
             $this->gzipMimeTypes = (array) $config['gzipmimetypes'];
 			$this->phpINISettings = (array) $config['phpinisettings'];
             $this->phpModules = (array) $config['phpmodules'];
+            
+            $this->phpCleanUserClassData = isset($config['phpcleanuserclassdata']) ? $config['phpcleanuserclassdata'] : true;
+            $this->phpCleanUserFunctionData = isset($config['phpcleanuserfunctiondata']) ? $config['phpcleanuserfunctiondata'] : true;
+            $this->phpDestroyObjects = isset($config['phpdestroyobjects']) ? $config['phpdestroyobjects'] : true;
 
             // Check for Hosts to listen on
             $this->listen = (array) $config['listen'];
@@ -175,10 +171,10 @@
                 foreach($this->phpCodeCache as $id => $codeFile)
                     if(!file_exists($this->documentRoot . $codeFile) || !is_readable($this->documentRoot . $codeFile)) {
                         unset($this->phpCodeCache[$id]);
-                        throw new \Exception('Specified CodeCache-file does not exist or isn\'t readable: '.$codeFile);
+                        throw new \Exception('Specified CodeCache file does not exist or isn\'t readable: '.$codeFile);
                     }
                 if(!$this->phpWorkers)
-                    throw new \Exception('The amount of PHPWorkers must be greater or equal 1 if you want to use the CodeCache.');
+                    throw new \Exception('You need to configure 1 or more PHPWorkers in order to use CodeCache.');
             }
 
             // Spawn socket for PHPWorkers

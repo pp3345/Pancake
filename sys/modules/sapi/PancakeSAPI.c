@@ -352,6 +352,11 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 		}
 	}
 
+	// Fetch destruction settings
+	PANCAKE_SAPI_GLOBALS(destroyObjects) = (zend_bool) zend_is_true(zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "phpDestroyObjects", sizeof("phpDestroyObjects") - 1, 0 TSRMLS_CC));
+	PANCAKE_SAPI_GLOBALS(cleanUserClassData) = (zend_bool) zend_is_true(zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "phpCleanUserClassData", sizeof("phpCleanUserClassData") - 1, 0 TSRMLS_CC));
+	PANCAKE_SAPI_GLOBALS(cleanUserFunctionData) = (zend_bool) zend_is_true(zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "phpCleanUserFunctionData", sizeof("phpCleanUserFunctionData") - 1, 0 TSRMLS_CC));
+
 	// Fetch PHPHTMLErrors setting
 	HTMLErrors = zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "phpHTMLErrors", sizeof("phpHTMLErrors") - 1, 0 TSRMLS_CC);
 	if(zend_is_true(HTMLErrors)) {
@@ -714,37 +719,39 @@ PHP_FUNCTION(SAPIFinishRequest) {
 		}
 	} while (symbols != zend_hash_num_elements(&EG(symbol_table)));
 
-	for(i = 1; i < EG(objects_store).top; i++) {
-		if (EG(objects_store).object_buckets[i].valid) {
-			struct _store_object *obj = &EG(objects_store).object_buckets[i].bucket.obj;
-			zend_object *object = (zend_object*) obj->object;
+	if(PANCAKE_SAPI_GLOBALS(destroyObjects)) {
+		for(i = 1; i < EG(objects_store).top; i++) {
+			if (EG(objects_store).object_buckets[i].valid) {
+				struct _store_object *obj = &EG(objects_store).object_buckets[i].bucket.obj;
+				zend_object *object = (zend_object*) obj->object;
 
-			if(object->ce->name[0] == 'P' && !strncmp(object->ce->name, "Pancake\\", sizeof("Pancake\\") - 1)) {
-				continue;
-			}
+				if(object->ce->name[0] == 'P' && !strncmp(object->ce->name, "Pancake\\", sizeof("Pancake\\") - 1)) {
+					continue;
+				}
 
-			if (!EG(objects_store).object_buckets[i].destructor_called) {
-				EG(objects_store).object_buckets[i].destructor_called = 1;
-				if (obj->dtor && obj->object) {
-					obj->refcount++;
-					obj->dtor(obj->object, i TSRMLS_CC);
-					obj = &EG(objects_store).object_buckets[i].bucket.obj;
-					obj->refcount--;
+				if (!EG(objects_store).object_buckets[i].destructor_called) {
+					EG(objects_store).object_buckets[i].destructor_called = 1;
+					if (obj->dtor && obj->object) {
+						obj->refcount++;
+						obj->dtor(obj->object, i TSRMLS_CC);
+						obj = &EG(objects_store).object_buckets[i].bucket.obj;
+						obj->refcount--;
 
-					if(EG(exception)) {
-						PancakeSAPIMarkObjectsStoreDestructed(TSRMLS_C);
+						if(EG(exception)) {
+							PancakeSAPIMarkObjectsStoreDestructed(TSRMLS_C);
 
-						/* We have an exception and should bailout */
-						if(!strcmp("Pancake\\ExitException", Z_OBJ_P(EG(exception))->ce->name)) {
-							/* Discard exception */
-							zend_clear_exception(TSRMLS_C);
-							goto destructionDone;
+							/* We have an exception and should bailout */
+							if(!strcmp("Pancake\\ExitException", Z_OBJ_P(EG(exception))->ce->name)) {
+								/* Discard exception */
+								zend_clear_exception(TSRMLS_C);
+								goto destructionDone;
+							}
+
+							/* This isn't going to be cleaned */
+							Z_DELREF_P(PANCAKE_SAPI_GLOBALS(errorHandler));
+							zval_ptr_dtor(&PANCAKE_SAPI_GLOBALS(errorHandler));
+							return;
 						}
-
-						/* This isn't going to be cleaned */
-						Z_DELREF_P(PANCAKE_SAPI_GLOBALS(errorHandler));
-						zval_ptr_dtor(&PANCAKE_SAPI_GLOBALS(errorHandler));
-						return;
 					}
 				}
 			}
@@ -849,8 +856,12 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	EG(user_error_handler_error_reporting) = E_ALL;
 
 	// Cleanup class and function data
-	zend_hash_reverse_apply(EG(function_table), (apply_func_t) zend_cleanup_function_data TSRMLS_CC);
-	zend_hash_reverse_apply(EG(class_table), (apply_func_t) zend_cleanup_user_class_data TSRMLS_CC);
+	if(PANCAKE_SAPI_GLOBALS(cleanUserFunctionData)) {
+		zend_hash_reverse_apply(EG(function_table), (apply_func_t) zend_cleanup_function_data TSRMLS_CC);
+	}
+	if(PANCAKE_SAPI_GLOBALS(cleanUserClassData)) {
+		zend_hash_reverse_apply(EG(class_table), (apply_func_t) zend_cleanup_user_class_data TSRMLS_CC);
+	}
 	zend_cleanup_internal_classes(TSRMLS_C);
 
 	// Destroy resource list

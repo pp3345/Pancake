@@ -74,6 +74,10 @@ ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)
 	char *SAPIPHPVersionHeader;
 	ushort SAPIPHPVersionHeader_len;
 
+	zend_bool cleanUserClassData;
+	zend_bool cleanUserFunctionData;
+	zend_bool destroyObjects;
+
 	int JIT_GET;
 	int JIT_COOKIE;
 	int JIT_SERVER;

@@ -61,7 +61,6 @@
 	        #.ifdef 'SUPPORT_CODECACHE'
 	        public $deletePredefinedConstantsAfterCodeCacheLoad = false;
 	        #.endif
-	        public $fixStaticMethodCalls = false;
 			#.ifdef 'HAVE_INI_SETTINGS'
 			public $phpINISettings = array();
 			#.endif
@@ -70,6 +69,10 @@
 			#.endif
 			public $phpHTMLErrors = true;
 			public $autoDelete = array();
+            
+            public $phpDestroyObjects = true;
+            public $phpCleanUserFunctionData = true;
+            public $phpCleanUserClassData = true;
 	    #.endif
         public $exceptionPageHandler = "";
 
