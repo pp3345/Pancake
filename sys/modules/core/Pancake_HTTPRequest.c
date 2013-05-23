@@ -1136,7 +1136,7 @@ PHP_METHOD(HTTPRequest, buildAnswerHeaders) {
 	logLine_len = answerCode_len + Z_STRLEN_P(remoteIP) + Z_STRLEN_P(requestLine) + Z_STRLEN_P(vHostName) + sizeof("   on vHost  ()") - 1;
 
 	if(Z_LVAL_P(TLS)) {
-		TLSCipherName = PancakeTLSCipherName(Z_LVAL_P(fd) TSRMLS_CC);
+		TLSCipherName = PANCAKE_GLOBALS(TLSCipherName)(Z_LVAL_P(fd) TSRMLS_CC);
 		logLine_len += (TLSCipherName_len = strlen(TLSCipherName)) + sizeof(" - ") - 1;
 	}
 

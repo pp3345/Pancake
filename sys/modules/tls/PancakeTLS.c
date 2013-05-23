@@ -45,6 +45,15 @@ PANCAKE_API void TLSFree(SSL **ssl) {
 	SSL_free(*ssl);
 }
 
+static char *PancakeTLSCipherName(int fd TSRMLS_DC) {
+	SSL **ssl;
+	const SSL_CIPHER *cipher;
+
+	zend_hash_index_find(PANCAKE_TLS_GLOBALS(TLSSessions), fd, (void**) &ssl);
+
+	return (char*) SSL_CIPHER_get_name(SSL_get_current_cipher(*ssl));
+}
+
 PHP_MINIT_FUNCTION(PancakeTLS) {
 #ifdef ZTS
 	ZEND_INIT_MODULE_GLOBALS(PancakeTLS, NULL, NULL);
@@ -54,6 +63,8 @@ PHP_MINIT_FUNCTION(PancakeTLS) {
 	OpenSSL_add_all_algorithms();
 	ALLOC_HASHTABLE(PANCAKE_TLS_GLOBALS(TLSSessions));
 	zend_hash_init(PANCAKE_TLS_GLOBALS(TLSSessions), 0, NULL, (void (*)(void *)) TLSFree, 0);
+
+	PANCAKE_GLOBALS(TLSCipherName) = PancakeTLSCipherName;
 
 	return SUCCESS;
 }
@@ -231,13 +242,4 @@ PHP_FUNCTION(TLSShutdown) {
 	// We don't check for the return value currently
 
 	zend_hash_index_del(PANCAKE_TLS_GLOBALS(TLSSessions), socketID);
-}
-
-PANCAKE_API char *PancakeTLSCipherName(int fd TSRMLS_DC) {
-	SSL **ssl;
-	const SSL_CIPHER *cipher;
-
-	zend_hash_index_find(PANCAKE_TLS_GLOBALS(TLSSessions), fd, (void**) &ssl);
-
-	return (char*) SSL_CIPHER_get_name(SSL_get_current_cipher(*ssl));
 }

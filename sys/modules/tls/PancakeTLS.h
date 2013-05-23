@@ -42,6 +42,4 @@ PHP_FUNCTION(TLSRead);
 PHP_FUNCTION(TLSWrite);
 PHP_FUNCTION(TLSShutdown);
 
-PANCAKE_API char *TLSCipherName(int fd TSRMLS_DC);
-
 #endif

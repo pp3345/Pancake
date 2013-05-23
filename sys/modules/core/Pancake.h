@@ -207,6 +207,8 @@ extern zend_class_entry *MIME_ce;
 #define PANCAKE_ZVAL_CACHE_GZIP 2
 #define PANCAKE_ZVAL_CACHE_HTTP_1_1 3
 
+typedef char* (*PancakeTLSCipherNameFunc)(int fd TSRMLS_DC);
+
 ZEND_BEGIN_MODULE_GLOBALS(Pancake)
 	FILE *systemLogStream;
 	FILE *requestLogStream;
@@ -231,6 +233,8 @@ ZEND_BEGIN_MODULE_GLOBALS(Pancake)
 	zend_bool initialized;
 	zend_bool inSAPIReboot;
 	long post_max_size;
+
+	PancakeTLSCipherNameFunc TLSCipherName;
 ZEND_END_MODULE_GLOBALS(Pancake)
 extern ZEND_DECLARE_MODULE_GLOBALS(Pancake);
 
@@ -481,8 +485,6 @@ zend_object_value PancakeCreateObject(zend_class_entry *classType TSRMLS_DC);
 zend_class_entry *PancakeObjectGetClass(const zval *object TSRMLS_DC);
 static union _zend_function *PancakeFastObjectGetMethod(zval **object_ptr, char *method_name, int method_len, const zend_literal *key TSRMLS_DC);
 static int PancakeFastHasProperty(zval *object, zval *member, int has_set_exists, const zend_literal *key TSRMLS_DC);
-
-char *PancakeTLSCipherName(int fd TSRMLS_DC);
 
 #define FAST_READ_PROPERTY(destination, object, name, nameLen, hash) {\
 	zval *__property; \
