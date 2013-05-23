@@ -852,8 +852,8 @@ PHP_METHOD(HTTPRequest, init) {
 
 			if(authorization != NULL) {
 				char *ptr1, *authorizationBase64;
-				char *authorization = estrndup(authorization, authorization_len);
 
+				authorization = estrndup(authorization, authorization_len);
 				strtok_r(authorization, " ", &ptr1);
 				authorizationBase64 = strtok_r(NULL, " ", &ptr1);
 
@@ -867,7 +867,7 @@ PHP_METHOD(HTTPRequest, init) {
 					userPassword[1] = strtok_r(NULL, ":", &ptr2);
 
 					if(EXPECTED(userPassword[0] != NULL && userPassword[1] != NULL)) {
-						zval *arg2, *arg3, *args[3] = {arg, arg2, arg3}, retval;
+						zval *arg2, *arg3, *args[3], retval;
 
 						MAKE_STD_ZVAL(callArray);
 						Z_TYPE_P(callArray) = IS_STRING;
@@ -891,6 +891,10 @@ PHP_METHOD(HTTPRequest, init) {
 
 						efree(userPassword);
 						efree(decoded);
+
+						args[0] = arg;
+						args[1] = arg2;
+						args[2] = arg3;
 
 						if(UNEXPECTED(call_user_function(CG(function_table), vHost, callArray, &retval, 3, args TSRMLS_CC) == FAILURE)) {
 							zval_ptr_dtor(&callArray);
