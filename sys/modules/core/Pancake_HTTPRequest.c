@@ -322,7 +322,7 @@ PHP_METHOD(HTTPRequest, init) {
 			efree(headerValue);
 		} else if(!strcmp(headerName, "authorization")) {
 			MAKE_STD_ZVAL(zHeaderValue);
-			Z_TYPE_P(zHeaderValue);
+			Z_TYPE_P(zHeaderValue) = IS_STRING;
 
 			Z_STRLEN_P(zHeaderValue) = authorization_len = strlen(headerValue);
 			Z_STRVAL_P(zHeaderValue) = authorization = estrndup(headerValue, authorization_len);
@@ -330,7 +330,7 @@ PHP_METHOD(HTTPRequest, init) {
 			zend_hash_quick_update(Z_ARRVAL_P(headerArray), "authorization", sizeof("authorization"), HASH_OF_authorization, (void*) &zHeaderValue, sizeof(zval*), NULL);
 		} else if(!strcmp(headerName, "if-unmodified-since")) {
 			MAKE_STD_ZVAL(zHeaderValue);
-			Z_TYPE_P(zHeaderValue);
+			Z_TYPE_P(zHeaderValue) = IS_STRING;
 
 			Z_STRLEN_P(zHeaderValue) = strlen(headerValue);
 			Z_STRVAL_P(zHeaderValue) = if_unmodified_since = estrndup(headerValue, Z_STRLEN_P(zHeaderValue));
