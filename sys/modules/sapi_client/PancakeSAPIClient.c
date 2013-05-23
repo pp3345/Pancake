@@ -82,7 +82,7 @@ static inline void PancakeSAPIClientWriteHeaderSet(int sock, HashTable *headers 
 		write(sock, key, key_len);
 
 		/* Content-Length is stored as long, however we should not convert the value itself to a string */
-		if(headers->pInternalPointer->h == HASH_OF_content_length && Z_TYPE_PP(value) == IS_LONG) {
+		if(Z_TYPE_PP(value) == IS_LONG) {
 			char *strValue;
 			int length = spprintf(&strValue, 0, "%ld", Z_LVAL_PP(value));
 
