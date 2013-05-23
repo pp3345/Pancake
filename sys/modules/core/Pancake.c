@@ -345,6 +345,7 @@ PHP_MSHUTDOWN_FUNCTION(Pancake) {
 
 PHP_RINIT_FUNCTION(Pancake) {
 	zval *errorHandler;
+	char *post_max_size;
 
 	if(PANCAKE_GLOBALS(initialized) == 1) {
 		return SUCCESS;
@@ -380,6 +381,11 @@ PHP_RINIT_FUNCTION(Pancake) {
 	Z_STRLEN_P(ZVAL_CACHE(HTTP_1_1)) = sizeof("1.1") - 1;
 
 	PANCAKE_GLOBALS(initialized) = 1;
+
+	// Fetch post_max_size
+	// Directly fetching SG(post_max_size) can lead to problems with different binary offsets
+	post_max_size = zend_ini_string("post_max_size", sizeof("post_max_size"), 0);
+	PANCAKE_GLOBALS(post_max_size) = zend_atol(post_max_size, strlen(post_max_size));
 
 	return SUCCESS;
 }

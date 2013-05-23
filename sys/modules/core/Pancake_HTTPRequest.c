@@ -430,7 +430,7 @@ PHP_METHOD(HTTPRequest, init) {
 			return;
 		}
 
-		if(contentLength > SG(post_max_size)) {
+		if(contentLength > PANCAKE_GLOBALS(post_max_size)) {
 			PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTIONL("The uploaded content is too large.",
 					sizeof("The uploaded content is too large.") - 1, 413, requestHeader, requestHeader_len);
 			efree(firstLine);

@@ -230,6 +230,7 @@ ZEND_BEGIN_MODULE_GLOBALS(Pancake)
 	zval *zvalCache[PANCAKE_ZVAL_CACHE_SIZE];
 	zend_bool initialized;
 	zend_bool inSAPIReboot;
+	long post_max_size;
 ZEND_END_MODULE_GLOBALS(Pancake)
 extern ZEND_DECLARE_MODULE_GLOBALS(Pancake);
 
