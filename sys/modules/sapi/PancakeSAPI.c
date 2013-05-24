@@ -10,6 +10,8 @@
 
 ZEND_DECLARE_MODULE_GLOBALS(PancakeSAPI)
 
+static zend_module_entry **PancakeSAPIModulePostDeactivateHandlers;
+
 const zend_function_entry PancakeSAPI_functions[] = {
 	ZEND_NS_FE("Pancake", SAPIPrepare, NULL)
 	ZEND_NS_FE("Pancake", SAPIFinishRequest, NULL)
@@ -279,7 +281,8 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zval *disabledFunctions, *autoDelete, *autoDeleteExcludes, *HTMLErrors, *documentRoot, *processingLimit, *timeout, *phpSocket,
 		*controlSocket;
 	zend_constant *PHP_SAPI;
-	zend_module_entry *core;
+	zend_module_entry *core, *module;
+	int count = 0;
 
 	if(PANCAKE_GLOBALS(inSAPIReboot) == 1) {
 		return SUCCESS;
@@ -307,6 +310,30 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 
 	// Disable dl()
 	PG(enable_dl) = 0;
+
+	// Fetch post_deactivate functions
+	for (zend_hash_internal_pointer_reset(&module_registry);
+	     zend_hash_get_current_data(&module_registry, (void *) &module) == SUCCESS;
+	     zend_hash_move_forward(&module_registry)) {
+		if (module->post_deactivate_func) {
+			count++;
+		}
+	}
+
+	if(count) {
+		PancakeSAPIModulePostDeactivateHandlers = emalloc(sizeof(zend_module_entry*) * (count + 1));
+		PancakeSAPIModulePostDeactivateHandlers[count] = NULL;
+
+		for (zend_hash_internal_pointer_reset(&module_registry);
+			 zend_hash_get_current_data(&module_registry, (void *) &module) == SUCCESS;
+			 zend_hash_move_forward(&module_registry)) {
+			if (module->post_deactivate_func) {
+				PancakeSAPIModulePostDeactivateHandlers[--count] = module;
+			}
+		}
+	} else {
+		PancakeSAPIModulePostDeactivateHandlers = NULL;
+	}
 
 	// Set SAPI module handlers
 	sapi_module.name = "pancake";
@@ -496,6 +523,10 @@ PHP_RSHUTDOWN_FUNCTION(PancakeSAPI) {
 	if(PANCAKE_SAPI_GLOBALS(persistentSymbols)) {
 		zend_hash_destroy(PANCAKE_SAPI_GLOBALS(persistentSymbols));
 		efree(PANCAKE_SAPI_GLOBALS(persistentSymbols));
+	}
+
+	if(PancakeSAPIModulePostDeactivateHandlers) {
+		efree(PancakeSAPIModulePostDeactivateHandlers);
 	}
 
 	efree(PANCAKE_SAPI_GLOBALS(SAPIPHPVersionHeader));
@@ -916,6 +947,18 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	zend_try {
 		zend_ini_deactivate(TSRMLS_C);
 	} zend_end_try();
+
+	// Call post_deactivate handlers
+	if(PancakeSAPIModulePostDeactivateHandlers) {
+		zend_module_entry **p = PancakeSAPIModulePostDeactivateHandlers;
+
+		while (*p) {
+			zend_module_entry *module = *p;
+
+			module->post_deactivate_func();
+			p++;
+		}
+	}
 
 	// Shutdown stream hashes
 	if (FG(stream_wrappers)) {
