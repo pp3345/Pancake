@@ -18,6 +18,7 @@ const zend_function_entry PancakeSAPI_functions[] = {
 	ZEND_NS_FE("Pancake", SAPICodeCachePrepare, NULL)
 	ZEND_NS_FE("Pancake", SAPICodeCacheJIT, NULL)
 	ZEND_NS_FE("Pancake", SAPIFetchSERVER, NULL)
+	ZEND_NS_FE("Pancake", SetErrorHandling, NULL)
 	ZEND_FE(apache_child_terminate, NULL)
 	ZEND_FE(apache_request_headers, NULL)
 	ZEND_FALIAS(getallheaders, apache_request_headers, NULL)
@@ -297,6 +298,10 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	PANCAKE_SAPI_GLOBALS(listenSocket) = Z_LVAL_P(phpSocket);
 	PANCAKE_SAPI_GLOBALS(controlSocket) = Z_LVAL_P(controlSocket);
 
+	// Set error handling constants
+	REGISTER_NS_LONG_CONSTANT("Pancake", "EH_THROW", EH_THROW, CONST_PERSISTENT);
+	REGISTER_NS_LONG_CONSTANT("Pancake", "EH_NORMAL", EH_NORMAL, CONST_PERSISTENT);
+
 	// Find DeepTrace (we must not shutdown DeepTrace on SAPI module init)
 	zend_hash_find(&module_registry, "deeptrace", sizeof("deeptrace"), (void**) &PANCAKE_SAPI_GLOBALS(DeepTrace));
 
@@ -493,6 +498,30 @@ PHP_RSHUTDOWN_FUNCTION(PancakeSAPI) {
 	efree(PANCAKE_SAPI_GLOBALS(SAPIPHPVersionHeader));
 
 	return SUCCESS;
+}
+
+PHP_FUNCTION(SetErrorHandling) {
+	long mode;
+	zend_class_entry *exception = NULL;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l|C", &mode, &exception) == FAILURE) {
+		RETURN_FALSE;
+	}
+
+	if(mode != EH_THROW && mode != EH_NORMAL) {
+		zend_error(E_WARNING, "Mode must be either Pancake\\EH_NORMAL or Pancake\\EH_THROW");
+		RETURN_FALSE;
+	}
+
+	if(exception && !instanceof_function(exception, zend_exception_get_default(TSRMLS_C) TSRMLS_CC)) {
+		zend_error(E_WARNING, "Class must be derived from \\Exception");
+		RETURN_FALSE;
+	}
+
+	EG(error_handling) = mode;
+	EG(exception_class) = exception;
+
+	RETURN_TRUE;
 }
 
 static int PancakeSAPIMarkConstantPersistent(zend_constant *constant TSRMLS_DC) {
@@ -787,6 +816,10 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	// We have finished executing the script
 	PANCAKE_SAPI_GLOBALS(inExecution) = 0;
 	SG(headers_sent) = 0;
+
+	// Reset error handling
+	EG(error_handling) = EH_NORMAL;
+	EG(exception_class) = NULL;
 
 	// Have we reached the processing limit or should we exit?
 	if((PANCAKE_SAPI_GLOBALS(processingLimit)

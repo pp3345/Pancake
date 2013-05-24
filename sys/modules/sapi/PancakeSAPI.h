@@ -105,6 +105,8 @@ PHP_FUNCTION(apache_child_terminate);
 PHP_FUNCTION(apache_request_headers);
 PHP_FUNCTION(apache_response_headers);
 
+PHP_FUNCTION(SetErrorHandling);
+
 /* Persistent constants that are not actually persistent */
 #define PANCAKE_PSEUDO_PERSISTENT 1 << 5
 
