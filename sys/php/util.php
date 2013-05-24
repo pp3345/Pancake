@@ -75,19 +75,8 @@
     	return $data;
     }
 
-    /**
-    * All Pancake PHP executor variables are stored in this class
-    */
     class vars {
-    	/**
-    	 *
-    	 * @var HTTPRequest
-    	 */
         public static $Pancake_request = null;
-        /**
-         *
-         * @var PHPWorker
-         */
         public static $Pancake_currentThread = null;
     }
 
