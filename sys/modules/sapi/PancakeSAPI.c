@@ -275,7 +275,8 @@ static int PancakeSAPIUnlinkFile(char **file TSRMLS_DC) {
 PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zend_function *function;
 	zend_class_entry **vars;
-	zval *disabledFunctions, *autoDelete, *autoDeleteExcludes, *HTMLErrors, *documentRoot, *processingLimit, *timeout;
+	zval *disabledFunctions, *autoDelete, *autoDeleteExcludes, *HTMLErrors, *documentRoot, *processingLimit, *timeout, *phpSocket,
+		*controlSocket;
 	zend_constant *PHP_SAPI;
 	zend_module_entry *core;
 
@@ -289,6 +290,12 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 
 	// Fetch vHost
 	FAST_READ_PROPERTY(PANCAKE_SAPI_GLOBALS(vHost), PANCAKE_GLOBALS(currentThread), "vHost", sizeof("vHost") - 1, HASH_OF_vHost);
+
+	// Fetch sockets
+	phpSocket = zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "phpSocket", sizeof("phpSocket") - 1, 0 TSRMLS_CC);
+	controlSocket = zend_read_property(NULL, PANCAKE_GLOBALS(currentThread), "socket", sizeof("socket") - 1, 0 TSRMLS_CC);
+	PANCAKE_SAPI_GLOBALS(listenSocket) = Z_LVAL_P(phpSocket);
+	PANCAKE_SAPI_GLOBALS(controlSocket) = Z_LVAL_P(controlSocket);
 
 	// Find DeepTrace (we must not shutdown DeepTrace on SAPI module init)
 	zend_hash_find(&module_registry, "deeptrace", sizeof("deeptrace"), (void**) &PANCAKE_SAPI_GLOBALS(DeepTrace));
@@ -496,8 +503,7 @@ static int PancakeSAPIMarkConstantPersistent(zend_constant *constant TSRMLS_DC) 
 PHP_FUNCTION(SAPIPrepare) {
 	struct epoll_event event = {0}, event2 = {0};
 
-	if(PANCAKE_SAPI_GLOBALS(epoll)
-	|| zend_parse_parameters(ZEND_NUM_ARGS(), "ll", &PANCAKE_SAPI_GLOBALS(listenSocket), &PANCAKE_SAPI_GLOBALS(controlSocket)) == FAILURE) {
+	if(PANCAKE_SAPI_GLOBALS(epoll)) {
 		RETURN_FALSE;
 	}
 

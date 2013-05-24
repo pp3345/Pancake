@@ -216,7 +216,7 @@
         #.endif
         
         // Further prepare the Pancake SAPI module
-        SAPIPrepare(vars::$Pancake_currentThread->vHost->phpSocket, vars::$Pancake_currentThread->socket);
+        SAPIPrepare();
 
 	    // Set user and group
 	    setUser();
