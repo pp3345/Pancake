@@ -120,14 +120,6 @@
         
         unset($file);
 
-	    #.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetClassNonObjects || $Pancake_currentThread->vHost->resetClassObjects || $Pancake_currentThread->vHost->resetFunctionObjects || $Pancake_currentThread->vHost->resetFunctionNonObjects;' false
-	    	vars::$classes = get_declared_classes();
-	    #.endif
-
-	    #.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetFunctionObjects || $Pancake_currentThread->vHost->resetFunctionNonObjects;' false
-	    	vars::$functions = get_defined_functions()['user'];
-	    #.endif
-
 	    // Predefine constants
 	    #.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->predefinedConstants;' false
 		    foreach(vars::$Pancake_currentThread->vHost->predefinedConstants as $name => $value)
