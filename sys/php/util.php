@@ -41,40 +41,6 @@
     }
     #.endif
 
-    /**
-     * Removes all objects stored in an array
-     *
-     * @param array $data
-     * @return array
-     */
-    function recursiveClearObjects($data) {
-    	if(is_object($data)) {
-    		#.if #.eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->resetObjectsDestroyDestructor;'
-    			if(method_exists($data, '__destruct')) {
-	    			global $destroyedDestructors;
-
-	    			$name = 'Pancake_DestroyedDestructor' . mt_rand();
-	    			dt_rename_method(get_class($data), '__destruct', $name);
-	    			$destroyedDestructors[get_class($data)] = $name;
-	    		}
-	    	#.endif
-
-    		$data = null;
-    	} else if(is_array($data)) {
-	    	foreach($data as $index => &$val) {
-	    	    if(is_object($val))
-                    unset($data[$index]);
-                else if(is_array($val) && !($val = recursiveClearObjects($val)))
-	    			unset($data[$index]);
-	    	}
-            
-            if(!$data)
-                $data = null;
-    	}
-
-    	return $data;
-    }
-
     class vars {
         public static $Pancake_request = null;
         public static $Pancake_currentThread = null;
