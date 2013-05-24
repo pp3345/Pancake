@@ -305,6 +305,9 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	// Find DeepTrace (we must not shutdown DeepTrace on SAPI module init)
 	zend_hash_find(&module_registry, "deeptrace", sizeof("deeptrace"), (void**) &PANCAKE_SAPI_GLOBALS(DeepTrace));
 
+	// Disable dl()
+	PG(enable_dl) = 0;
+
 	// Set SAPI module handlers
 	sapi_module.name = "pancake";
 	sapi_module.pretty_name = "Pancake SAPI";
