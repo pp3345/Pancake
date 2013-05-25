@@ -1,57 +1,79 @@
+### Pancake main configuration
 main:
-  tmpPath: ../tmp/                                              # Path for temporary files
-  logging:
-    system: ../log/system.log                                   # Path to system log file
-    request: ../log/requests.log                                # Path to request log file
-    error: ../log/error.log                                     # Path to error log file
-  dateFormat: 'd.m.y H:i:s'                                     # Format for timestamps - See php.net/date for more information
-  debugMode: false                                              # Enable debugging (debugging can also be enabled for a single run by setting the option --debug)
-  user: www-data                                                # *NIX user for Pancake
-  group: www-data                                               # *NIX group for Pancake
-  listenPorts:                                                  # List of ports to listen on (Recommended for HTTP: 80)
-    - 80
-  IPv4:                                                         # IPv4 network interfaces to listen on (use 0 to listen on all available interfaces)
+### System settings
+  TmpPath: ../tmp/                                              # Path for temporary files
+  Logging:
+    System: ../log/system.log                                   # Path to system log file
+    Request: ../log/requests.log                                # Path to request log file
+    Error: ../log/error.log                                     # Path to error log file
+  DateFormat: 'Y-m-d H:i:s'                                     # See php.net/date for more information on date formatting
+  DebugMode: false                                              # Enable Pancake debug mode
+  User: www-data                                                # System user
+  Group: www-data                                               # System group
+  ExposePancake: true                                           # Expose Pancake in Server header and system messages
+  SizePrefix: bin                                               # "si" or "bin" - SI: 1000 Byte = 1 Kilobyte - Binary: 1024 Byte = 1 Kibibyte
+ 
+### Network interface settings
+## Use 0 to listen on all available IPv4 interfaces
+  IPv4:                                                         # IPv4 network interfaces
     - 0
-  IPv6:                                                         # IPv6 network interfaces to listen on (use ::0 to listen on all available interfaces)
+## Use ::0 to listen on all available IPv6 and IPv4 interfaces
+  IPv6:                                                         # IPv6 network interfaces
     - ::0
-  requestWorkers: 2                                             # Amount of RequestWorkers to run
-  exposePancake: true                                           # If true, Pancake will send a "Server" header with information about Pancake
-  sizePrefix: bin                                               # "si" or "bin" - SI: 1000 Byte = 1 Kilobyte - Binary: 1024 Byte = 1 Kibibyte
-  allowHEAD: true                                               # Whether to allow HEAD requests
-  allowTRACE: false                                              # Whether to allow TRACE requests
-  allowOPTIONS: false                                            # Whether to allow OPTIONS requests
-  requestWorkerLimit: 250000                                     # Limit of requests a RequestWorker may process until it will be restarted (0 for no limit)
-  maxConcurrent: 0                                              # Limit of concurrent connections a RequestWorker may keep open (0 for no limit)
-  workerBootTime: 5                                             # The upper time limit for a worker to boot (raise this when you're for example caching files that take long to load)
-  writeBufferMin: 10240                                         # Minimum write buffer size that should be held in RAM
-  writeBufferSoftMaxConcurrent: 50                              # Soft concurrent write buffer limit - When this limit is reached, Pancake won't allocate any buffers that are bigger than the minimum size anymore
-  writeBufferHardMaxConcurrent: 2000                            # Hard concurrent write buffer limit - When this limit is reached, Pancake will try not to allocate any buffers anymore
-  waitPHPWorkerBoot: true                                       # Wait for PHPWorkers to boot (should be disabled in shared environments)
-  waitSlotTime: 5000                                            # When there is no PHPWorker available to serve a PHP request, Pancake will check after waitslottime µsec if a slot became available (you should not use this, set PHPSocketBacklog instead in the vHost configuration)
-  waitSlotWaitLimit: 0                                          # See above; this is the upper limit of wait-cycles until Pancake gives up on searching for a slot (for example: waitslottime = 5000; waitslotwaitlimit = 5 => Client will receive 500 Internal Server Error after 25 ms if no PHPWorker became available in those 25 ms) - Set this to 0 to completely deactivate wait slots
-  socketBacklog: 200                                            # Connection backlog for incoming requests
-  writeLimit: 1048576                                           # Limits the maximum data sent to the client at once - Low value = less RAM usage, but slower - High value = faster, but more RAM usage
-  NaglesAlgorithm: false                                        # Enable or disable Nagle's algorithm (will set TCP_NODELAY when false)
+  ListenPorts:                                                  # List of TCP ports to listen on
+    - 80
+  SocketBacklog: 200                                            # Connection backlog for incoming requests
+  NaglesAlgorithm: false                                        # Enable or disable TCP Nagle's algorithm (will set TCP_NODELAY when false)
+  MaxConcurrent: 0                                              # Concurrent connection limit (0 for no limit)
+
+### Network buffering settings
   PreBuffer: 65536                                              # Buffer static file data in RAM before sending HTTP headers (can save one write cycle)
-include:                                                        # Additional configuration files to include
+  WriteBufferMin: 10240                                         # Minimum write buffer size
+  WriteLimit: 1048576                                           # Maximum write buffer size
+  WriteBufferSoftMaxConcurrent: 50                              # Soft concurrent write buffer limit - When this limit is reached, Pancake won't allocate any buffers that are bigger than WriteBufferMin
+  WriteBufferHardMaxConcurrent: 2000                            # Hard concurrent write buffer limit - When this limit is reached, Pancake will try not to allocate any buffers at all
+
+### Pancake worker settings
+  RequestWorkers: 2                                             # Amount of RequestWorkers to run
+  RequestWorkerLimit: 350000                                    # Request processing limit for RequestWorkers (0 for no limit)
+  WaitPHPWorkerBoot: true                                       # Wait for PHPWorkers to boot (should be disabled in shared environments)
+  WorkerBootTime: 5                                             # Maximum time in seconds for a worker to boot
+
+### HTTP settings
+  AllowHEAD: true                                               # Enable HTTP HEAD
+  AllowTRACE: false                                             # Enable HTTP TRACE
+  AllowOPTIONS: false                                           # Enable HTTP OPTIONS
+
+### Additional configuration files
+include:
   - ../conf/vhosts/
   - ../conf/mime.yml
+  
+### Moody PHP Preprocessor settings
 moody:
-  deletewhitespaces: false
-  deletecomments: true
-FastCGI:                                                        # FastCGI upstream server configurations
-#  php:                                                         # This example configuration could be used to use the native php-fpm SAPI instead of the Pancake SAPI for executing PHP
+  DeleteWhitespaces: false
+  DeleteComments: true
+  
+### FastCGI upstream server configurations
+FastCGI:
+## Example configuration for using php-fpm instead of Pancake SAPI for PHP execution
+#  php:
 #    type: unix
 #    address: /var/run/php5-fpm.socket
 #    mimeTypes:
 #      - text/x-php
-AJP13:                                                          # AJP13 upstream server configurations
-#  jenkins:                                                     # This example configuration could be used to run Jenkins behind Pancake
+
+### AJP13 upstream server configurations
+AJP13:
+## Example configuration for proxying Jenkins through Pancake
+#  jenkins:
 #    type: ipv4
 #    address: 127.0.0.1
 #    port: 1030
 #    maxconcurrent: 100
-TLS:                                                            # HTTPS TLS/SSL (Transport Layer Security)
+
+### Secure Socket Layer settings
+TLS:
 #  CertificateChain: /etc/ssl/certs/myCert.crt                  # SSL/TLS Certificate chain 
 #  PrivateKey: /etc/ssl/private/myKey.key                       # Private key
 #  CipherList: ECDHE-RSA-AES128-SHA256:AES128-GCM-SHA256:RC4:HIGH:!MD5:!aNULL:!EDH # List of allowed ciphers (see man ciphers(1))
