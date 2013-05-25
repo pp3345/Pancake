@@ -52,10 +52,7 @@
             			. \PHP_RELEASE_VERSION
             			. VERSION
 						. DEBUG_MODE
-                        . extension_loaded("session")
-                        . extension_loaded("filter")
-                        . ini_get("expose_php")
-                        . ini_get("session.name"));
+                        . extension_loaded("filter"));
             	if(!(file_exists('compilecache/phpWorker.thread.' . $vHost->name . '.hash')
             	&& file_get_contents('compilecache/phpWorker.thread.' . $vHost->name . '.hash') == $hash)) {
             		require_once 'threads/codeProcessor.class.php';
