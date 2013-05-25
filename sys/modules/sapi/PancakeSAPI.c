@@ -245,12 +245,6 @@ static int PancakeSAPIOutputHandler(const char *str, unsigned int str_length TSR
 	return SUCCESS;
 }
 
-static int PancakeSAPISetINIEntriesUnmodified(zend_ini_entry **ini_entry TSRMLS_DC) {
-	(*ini_entry)->modified = 0;
-
-	return 0;
-}
-
 static HashTable *PancakeSAPITransformHashTableValuesToKeys(HashTable *table) {
 	HashTable *new;
 	zval **value;
@@ -279,7 +273,7 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zend_function *function;
 	zend_class_entry **vars;
 	zval *disabledFunctions, *autoDelete, *autoDeleteExcludes, *HTMLErrors, *documentRoot, *processingLimit, *timeout, *phpSocket,
-		*controlSocket;
+		*controlSocket, *INISettings;
 	zend_constant *PHP_SAPI;
 	zend_module_entry *core, *module;
 	int count = 0;
@@ -307,6 +301,56 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 
 	// Find DeepTrace (we must not shutdown DeepTrace on SAPI module init)
 	zend_hash_find(&module_registry, "deeptrace", sizeof("deeptrace"), (void**) &PANCAKE_SAPI_GLOBALS(DeepTrace));
+
+	// Fetch vHost php.ini settings
+	INISettings = zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "phpINISettings", sizeof("phpINISettings") - 1, 0 TSRMLS_CC);
+	if(Z_TYPE_P(INISettings) == IS_ARRAY && zend_hash_num_elements(Z_ARRVAL_P(INISettings))) {
+		char *name;
+		int name_len;
+		zval **value;
+
+		PANCAKE_FOREACH_KEY(Z_ARRVAL_P(INISettings), name, name_len, value) {
+			zval constant;
+			zend_ini_entry *ini_entry;
+			char *new_value;
+			int new_value_length;
+			zend_bool modified;
+
+			if(zend_hash_find(EG(ini_directives), name, name_len, (void **) &ini_entry) == FAILURE) {
+				continue;
+			}
+
+			modified = ini_entry->modified;
+
+			convert_to_string(*value);
+
+			if(zend_get_constant(Z_STRVAL_PP(value), Z_STRLEN_PP(value), &constant)) {
+				convert_to_string(&constant);
+				new_value = estrndup(Z_STRVAL(constant), Z_STRLEN(constant));
+				new_value_length = Z_STRLEN(constant);
+				zval_dtor(&constant);
+			} else {
+				new_value = estrndup(Z_STRVAL_PP(value), Z_STRLEN_PP(value));
+				new_value_length = Z_STRLEN_PP(value);
+			}
+
+			if(!ini_entry->on_modify
+				|| ini_entry->on_modify(ini_entry, new_value, new_value_length, ini_entry->mh_arg1, ini_entry->mh_arg2, ini_entry->mh_arg3, ZEND_INI_STAGE_STARTUP TSRMLS_CC) == SUCCESS) {
+				if(modified && ini_entry->orig_value != ini_entry->value) {
+					efree(ini_entry->value);
+					ini_entry->modified = 0;
+				}
+
+				ini_entry->value = new_value;
+				ini_entry->value_length = new_value_length;
+			} else {
+				efree(new_value);
+			}
+		}
+	}
+
+	// Unset timeout
+	zend_unset_timeout(TSRMLS_C);
 
 	// Disable dl()
 	PG(enable_dl) = 0;
@@ -440,14 +484,6 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	// Fetch rsrc list destructor
 	PHP_list_entry_destructor = EG(regular_list).pDestructor;
 
-	// Set current php.ini state as initial
-	if (EG(modified_ini_directives)) {
-		zend_hash_apply(EG(modified_ini_directives), (apply_func_t) PancakeSAPISetINIEntriesUnmodified TSRMLS_CC);
-		zend_hash_destroy(EG(modified_ini_directives));
-		FREE_HASHTABLE(EG(modified_ini_directives));
-		EG(modified_ini_directives) = NULL;
-	}
-
 	// Destroy uploaded files array
 	if(SG(rfc1867_uploaded_files)) {
 		zend_hash_destroy(SG(rfc1867_uploaded_files));
@@ -464,11 +500,11 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	Z_ADDREF_P(PANCAKE_SAPI_GLOBALS(errorHandler));
 
 	// Reset last errors
-	if (PG(last_error_message)) {
+	if(PG(last_error_message)) {
 		free(PG(last_error_message));
 		PG(last_error_message) = NULL;
 	}
-	if (PG(last_error_file)) {
+	if(PG(last_error_file)) {
 		free(PG(last_error_file));
 		PG(last_error_file) = NULL;
 	}
@@ -495,6 +531,9 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 }
 
 PHP_RSHUTDOWN_FUNCTION(PancakeSAPI) {
+	zend_ini_entry **ini_entry_ptr;
+	zval *INISettings;
+
 	if(PANCAKE_GLOBALS(inSAPIReboot) == 1) {
 		return SUCCESS;
 	}
@@ -527,6 +566,25 @@ PHP_RSHUTDOWN_FUNCTION(PancakeSAPI) {
 
 	if(PancakeSAPIModulePostDeactivateHandlers) {
 		efree(PancakeSAPIModulePostDeactivateHandlers);
+	}
+
+	INISettings = zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "phpINISettings", sizeof("phpINISettings") - 1, 0 TSRMLS_CC);
+	if(Z_TYPE_P(INISettings) == IS_ARRAY && zend_hash_num_elements(Z_ARRVAL_P(INISettings))) {
+		char *name;
+		int name_len;
+		zval **value;
+
+		PANCAKE_FOREACH_KEY(Z_ARRVAL_P(INISettings), name, name_len, value) {
+			zend_ini_entry *ini_entry;
+
+			if(zend_hash_find(EG(ini_directives), name, name_len, (void **) &ini_entry) == FAILURE) {
+				continue;
+			}
+
+			if(!ini_entry->modified) {
+				efree(ini_entry->value);
+			}
+		}
 	}
 
 	efree(PANCAKE_SAPI_GLOBALS(SAPIPHPVersionHeader));

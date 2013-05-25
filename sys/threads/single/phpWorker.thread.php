@@ -22,25 +22,7 @@
 	#.endif
 		
 	#.SAPI_ERROR_REPORTING = #.Pancake\ORIGINAL_ERROR_REPORTING
-	
-	#.longDefine 'EVAL_CODE'
-	global $Pancake_currentThread;
-	if(isset($Pancake_currentThread->vHost->phpINISettings["session.name"]))
-		ini_set("session.name", $Pancake_currentThread->vHost->phpINISettings["session.name"]);
-    if(isset($Pancake_currentThread->vHost->phpINISettings["error_reporting"]))
-        ini_set("error_reporting", defined($Pancake_currentThread->vHost->phpINISettings["error_reporting"])
-                                                        ? constant($Pancake_currentThread->vHost->phpINISettings["error_reporting"])
-                                                        : $Pancake_currentThread->vHost->phpINISettings["error_reporting"]);
-    if(isset($Pancake_currentThread->vHost->phpINISettings["expose_php"]))
-        ini_set("expose_php", $Pancake_currentThread->vHost->phpINISettings["expose_php"]);
-
-	return (bool) $Pancake_currentThread->vHost->phpINISettings;
-	#.endLongDefine
-
-	#.if #.eval EVAL_CODE false
-		#.HAVE_INI_SETTINGS = true
-	#.endif
-	
+		
 	#.longDefine 'EVAL_CODE'
 	global $Pancake_currentThread;
     if(isset($Pancake_currentThread->vHost->phpINISettings["error_reporting"]))
@@ -134,17 +116,6 @@
             }
             
             unset($name);
-        #.endif
-
-        #.ifdef 'HAVE_INI_SETTINGS'
-            // Set ini settings
-
-            foreach(vars::$Pancake_currentThread->vHost->phpINISettings as $name => $value) {
-                ini_set($name, $value);
-            }
-            
-            unset($name);
-            unset($value);
         #.endif
 
         LoadModule('sapi', true);
