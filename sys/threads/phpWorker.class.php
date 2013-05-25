@@ -55,7 +55,6 @@
                         . extension_loaded("session")
                         . extension_loaded("filter")
                         . ini_get("expose_php")
-                        . ORIGINAL_ERROR_REPORTING
                         . ini_get("session.name"));
             	if(!(file_exists('compilecache/phpWorker.thread.' . $vHost->name . '.hash')
             	&& file_get_contents('compilecache/phpWorker.thread.' . $vHost->name . '.hash') == $hash)) {
