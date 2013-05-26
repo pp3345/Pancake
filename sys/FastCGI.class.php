@@ -49,6 +49,7 @@
 		private $address = "";
 		private $port = 0;
 		private $type = "";
+        public $multiplex = true;
 
 		public static function getInstance($name) {
 			if(!isset(self::$instances[$name]))
@@ -66,8 +67,11 @@
 			$this->address = $config['address'];
 			$this->port = $config['port'];
 			$this->type = strtolower($config['type']);
+            if(isset($config['multiplex']))
+                $this->multiplex = (bool) $config['multiplex'];
 
-			$this->connect();
+            if($this->multiplex)
+			    $this->connect();
 		}
 
 		private function connect() {
@@ -105,11 +109,18 @@
 
 		public function makeRequest(HTTPRequest $requestObject, $requestSocket) {
 			/* FCGI_BEGIN_REQUEST */
-			$requestIDInt = ++$this->requestID;
-			$requestID = ($requestIDInt < 256 ? "\0" . chr($requestIDInt) : chr($requestIDInt >> 8) . chr($requestIDInt));
-
-			if(!$this->socket)
-				$this->connect();
+			if($this->multiplex) {
+    			$requestIDInt = ++$this->requestID;
+    			$requestID = ($requestIDInt < 256 ? "\0" . chr($requestIDInt) : chr($requestIDInt >> 8) . chr($requestIDInt));
+    
+    			if(!$this->socket)
+    				$this->connect();
+            } else {
+                $requestIDInt = 1;
+                $requestID = "\0\1";
+                
+                $this->connect();
+            }
 
 			/* VERSION . TYPE . REQUEST_ID (2) . CONTENT_LENGTH (2) . PADDING_LENGTH . RESERVED . ROLE (2) . FLAG . RESERVED (5) */
 			if(!@Write($this->socket, "\1\1" .  $requestID . "\0\x8\0\0\0\1\1\0\0\0\0\0")) {
@@ -183,8 +194,8 @@
 
 			$requestObject->fCGISocket = (int) $this->socket;
 
-			$this->requests[$requestIDInt] = $requestObject;
-			$this->requestSockets[$requestIDInt] = $requestSocket;
+			$this->requests[$this->socket][$requestIDInt] = $requestObject;
+			$this->requestSockets[$this->socket][$requestIDInt] = $requestSocket;
 
 			if($this->requestID == 65535)
 				$this->requestID = 0;
@@ -199,8 +210,8 @@
 
 					$requestObject->invalidRequest(new invalidHTTPRequestException("The FastCGI upstream server unexpectedly closed the network connection.", 502));
 
-					$retval = array($this->requestSockets[$requestID], $requestObject, true);
-					unset($this->requestSockets[$requestID], $this->requests[$requestID]);
+					$retval = array($this->requestSockets[$socketID][$requestID], $requestObject, true);
+					unset($this->requestSockets[$socketID][$requestID], $this->requests[$socketID][$requestID]);
 					return $retval;
 				}
 
@@ -212,7 +223,7 @@
 
 			$contentLength = (ord($data[4]) << 8) + ord($data[5]);
 			$requestID = (ord($data[2]) << 8) + ord($data[3]);
-			$requestObject = $this->requests[$requestID];
+			$requestObject = $this->requests[$socketID][$requestID];
 			$paddingLength = ord($data[6]);
 
 			if(strlen($data) < (8 + $contentLength + $paddingLength))
@@ -261,8 +272,11 @@
                             break;
 					}
                     
-                    $retval = array($this->requestSockets[$requestID], $requestObject);
-                    unset($this->requestSockets[$requestID], $this->requests[$requestID]);
+                    if(!$this->multiplex)
+                        Close($socketID);
+                    
+                    $retval = array($this->requestSockets[$socketID][$requestID], $requestObject);
+                    unset($this->requestSockets[$socketID][$requestID], $this->requests[$socketID][$requestID]);
                     return $retval;
 			}
 		}

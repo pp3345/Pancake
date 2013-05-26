@@ -452,6 +452,9 @@
         				// [2] will be set on error - this will cause Pancake to return to the cycle point after answering the client
         				$listenSockets[$socket] = $socket;
         			}
+                    
+                    if(!$fastCGI->multiplex)
+                        unset($listenSocketsOrig[$socket]);
 
         			list($socket, $requestObject) = $result;
 

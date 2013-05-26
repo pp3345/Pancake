@@ -58,6 +58,7 @@ moody:
 FastCGI:
 ## Example configuration for using php-fpm instead of Pancake SAPI for PHP execution
 #  php:
+#    multiplex: true
 #    type: unix
 #    address: /var/run/php5-fpm.socket
 #    mimeTypes:
