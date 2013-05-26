@@ -571,7 +571,7 @@ PHP_METHOD(HTTPRequest, init) {
 			MethodAccepted:;
 
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "mimetype", sizeof("mimetype"), HASH_OF_mimetype, (void**) &value) == SUCCESS) {
-				zval *MIME = PancakeMIMEType(matchPath, matchPath_len);
+				zval *MIME = PancakeMIMEType(path, strlen(path));
 
 				if(Z_TYPE_PP(value) == IS_STRING && strcmp(Z_STRVAL_PP(value), Z_STRVAL_P(MIME))) {
 					continue;
