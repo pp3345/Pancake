@@ -247,14 +247,23 @@
 					return 8;
 				case /* .constant 'FCGI_END_REQUEST' */:
 					switch(ord($data[4])) {
+                        case /* .FCGI_UNKNOWN_ROLE */:
+                            $requestObject->invalidRequest(new invalidHTTPRequestException('The upstream server does not understand its FastCGI server role.', 502));
+                            break;
+                        case /* .FCGI_CANT_MPX_CONN */:
+                            $requestObject->invalidRequest(new invalidHTTPRequestException('The FastCGI upstream server is not capable of multiplexing connections.', 502));
+                            break;
 						default:
+                        case /* .FCGI_OVERLOADED */:
 							$requestObject->invalidRequest(new invalidHTTPRequestException('The upstream server is currently overloaded.', 502));
-							// fallthrough
+							break;
 						case /* .constant 'FCGI_REQUEST_COMPLETE' */:
-							$retval = array($this->requestSockets[$requestID], $requestObject);
-							unset($this->requestSockets[$requestID], $this->requests[$requestID]);
-							return $retval;
+                            break;
 					}
+                    
+                    $retval = array($this->requestSockets[$requestID], $requestObject);
+                    unset($this->requestSockets[$requestID], $this->requests[$requestID]);
+                    return $retval;
 			}
 		}
 	}
