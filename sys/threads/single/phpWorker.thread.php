@@ -156,16 +156,6 @@
 
         // Set blocking for signals
         SigProcMask(/* .constant 'SIG_BLOCK' */, array(/* .constant 'SIGINT' */, /* .constant 'SIGHUP' */));
-
-        #.ifdef 'STDOUT'
-            dt_remove_constant('STDOUT');
-        #.endif
-        #.ifdef 'STDIN'
-            dt_remove_constant('STDIN');
-        #.endif
-        #.ifdef 'STDERR'
-            dt_remove_constant('STDERR');
-        #.endif
         
         // Further prepare the Pancake SAPI module
         SAPIPrepare();

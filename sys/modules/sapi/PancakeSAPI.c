@@ -302,6 +302,11 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	// Find DeepTrace (we must not shutdown DeepTrace on SAPI module init)
 	zend_hash_find(&module_registry, "deeptrace", sizeof("deeptrace"), (void**) &PANCAKE_SAPI_GLOBALS(DeepTrace));
 
+	// Delete STDOUT, STDERR and STDIN
+	zend_hash_del(EG(zend_constants), "STDOUT", sizeof("STDOUT"));
+	zend_hash_del(EG(zend_constants), "STDERR", sizeof("STDERR"));
+	zend_hash_del(EG(zend_constants), "STDIN", sizeof("STDIN"));
+
 	// Fetch vHost php.ini settings
 	INISettings = zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "phpINISettings", sizeof("phpINISettings") - 1, 0 TSRMLS_CC);
 	if(Z_TYPE_P(INISettings) == IS_ARRAY && zend_hash_num_elements(Z_ARRVAL_P(INISettings))) {
