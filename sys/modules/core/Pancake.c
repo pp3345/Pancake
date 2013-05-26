@@ -51,17 +51,6 @@ ZEND_BEGIN_ARG_INFO(arginfo_pancake_HTTPRequest_getAnswerCodeString, 0)
 	ZEND_ARG_INFO(0, "answerCode")
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO(arginfo_pancake_HTTPRequest_setCookie, 0)
-	ZEND_ARG_INFO(0, "name")
-	ZEND_ARG_INFO(0, "value")
-	ZEND_ARG_INFO(0, "expire")
-	ZEND_ARG_INFO(0, "path")
-	ZEND_ARG_INFO(0, "domain")
-	ZEND_ARG_INFO(0, "secure")
-	ZEND_ARG_INFO(0, "httpOnly")
-	ZEND_ARG_INFO(0, "raw")
-ZEND_END_ARG_INFO()
-
 ZEND_BEGIN_ARG_INFO(arginfo_pancake_invalidHTTPRequestException_construct, 0)
 	ZEND_ARG_INFO(0, "message")
 	ZEND_ARG_INFO(0, "code")
@@ -143,7 +132,6 @@ const zend_function_entry HTTPRequest_methods[] = {
 	ZEND_ME(HTTPRequest, getGETParams, NULL, ZEND_ACC_PUBLIC)
 	ZEND_ME(HTTPRequest, getPOSTParams, NULL, ZEND_ACC_PUBLIC)
 	ZEND_ME(HTTPRequest, getCookies, NULL, ZEND_ACC_PUBLIC)
-	ZEND_ME(HTTPRequest, setCookie, arginfo_pancake_HTTPRequest_setCookie, ZEND_ACC_PUBLIC)
 	ZEND_FE_END
 };
 

@@ -141,7 +141,6 @@ PHP_METHOD(HTTPRequest, getAnswerCodeString);
 PHP_METHOD(HTTPRequest, getGETParams);
 PHP_METHOD(HTTPRequest, getPOSTParams);
 PHP_METHOD(HTTPRequest, getCookies);
-PHP_METHOD(HTTPRequest, setCookie);
 
 PHP_METHOD(invalidHTTPRequestException, __construct);
 PHP_METHOD(invalidHTTPRequestException, getHeader);
