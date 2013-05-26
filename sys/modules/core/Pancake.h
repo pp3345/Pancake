@@ -582,5 +582,6 @@ static int PancakeFastHasProperty(zval *object, zval *member, int has_set_exists
 #define HASH_OF_referer 7572877831317744U
 #define HASH_OF_socket 229482825869550U
 #define HASH_OF_tls 6385731000U
+#define HASH_OF_ifnot 6953623399173U
 
 #endif	/* PANCAKE_H */

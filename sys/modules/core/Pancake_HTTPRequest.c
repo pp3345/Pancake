@@ -509,6 +509,26 @@ PHP_METHOD(HTTPRequest, init) {
 				zval_ptr_dtor(&pcre_retval);
 			}
 
+			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "ifnot", sizeof("ifnot"), HASH_OF_ifnot, (void**) &value) == SUCCESS) {
+				pcre_cache_entry *pcre;
+				zval *pcre_retval;
+
+				if(UNEXPECTED((pcre = pcre_get_compiled_regex_cache(Z_STRVAL_PP(value), Z_STRLEN_PP(value) TSRMLS_CC)) == NULL)) {
+					continue;
+				}
+
+				MAKE_STD_ZVAL(pcre_retval);
+
+				php_pcre_match_impl(pcre, firstLine[1], strlen(firstLine[1]),  pcre_retval, NULL, 0, 0, 0, 0 TSRMLS_CC);
+
+				if(Z_LVAL_P(pcre_retval)) {
+					zval_ptr_dtor(&pcre_retval);
+					continue;
+				}
+
+				zval_ptr_dtor(&pcre_retval);
+			}
+
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "tls", sizeof("tls"), HASH_OF_tls, (void**) &value) == SUCCESS) {
 				zval *TLS;
 				FAST_READ_PROPERTY(TLS, this_ptr, "TLS", sizeof("TLS") - 1, HASH_OF_TLS);
