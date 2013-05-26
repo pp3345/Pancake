@@ -37,6 +37,12 @@
 	#.define 'FCGI_UNKNOWN_ROLE'     3
 
 	#.define 'FCGI_APPEND_DATA' 1048576
+	
+	#.longDefine 'MACRO_CODE'
+	((!($__length = strlen($value)) || $__length < 128) ? (chr($__length)) : (chr(($__length >> 24) | 128) . chr($__length >> 16) . chr($__length >> 8) . chr($__length)))
+	#.endLongDefine
+	
+	#.macro 'FCGI_ENCODE_LENGTH' MACRO_CODE $value
 
 	class FastCGI {
 		private static $instances = array();
@@ -132,27 +138,32 @@
 			}
 
 			/* FCGI_PARAMS */
-			$body = "\xf" . chr(strlen(/* .VHOST_DOCUMENT_ROOT */ . $requestObject->requestFilePath)) . "SCRIPT_FILENAME" . /* .VHOST_DOCUMENT_ROOT */ . $requestObject->requestFilePath;
-			$body .= "\xc" . chr(strlen($requestObject->queryString)) . "QUERY_STRING" . $requestObject->queryString;
-			$body .= "\xe" . chr(strlen($requestObject->requestType)) . "REQUEST_METHOD" . $requestObject->requestType;
-			$body .= "\xb" . chr(strlen($requestObject->requestFilePath)) . "SCRIPT_NAME" . $requestObject->requestFilePath;
+			$body = "\xf" . /* .FCGI_ENCODE_LENGTH '$requestObject->vHost->documentRoot . $requestObject->requestFilePath' */ . "SCRIPT_FILENAME" . /* .VHOST_DOCUMENT_ROOT */ . $requestObject->requestFilePath;
+			$body .= "\xc" . /* .FCGI_ENCODE_LENGTH '$requestObject->queryString' */ . "QUERY_STRING" . $requestObject->queryString;
+			$body .= "\xe" . /* .FCGI_ENCODE_LENGTH '$requestObject->requestType' */ . "REQUEST_METHOD" . $requestObject->requestType;
+			$body .= "\xb" . /* .FCGI_ENCODE_LENGTH '$requestObject->requestFilePath' */ . "SCRIPT_NAME" . $requestObject->requestFilePath;
 			$body .= "\xf\x8SERVER_PROTOCOLHTTP/" . $requestObject->protocolVersion;
 			$body .= "\x11\x7GATEWAY_INTERFACECGI/1.1";
-			$body .= "\xb" . chr(strlen($requestObject->originalRequestURI)) . "REQUEST_URI" . $requestObject->originalRequestURI;
-			$body .= "\xc" . chr(strlen($requestObject->requestURI)) . "DOCUMENT_URI" . $requestObject->requestURI;
-			$body .= "\xb" . chr(strlen($requestObject->remoteIP)) . "REMOTE_ADDR" . $requestObject->remoteIP;
-			$body .= "\xb" . chr(strlen(/* .VHOST */->listen[0])) . "SERVER_NAME" . /* .VHOST */->listen[0];
-			$body .= "\xb" . chr(strlen($requestObject->localPort)) . "SERVER_PORT" . $requestObject->localPort;
-			$body .= /* .eval 'return "\xf" . chr(strlen("Pancake/" . \Pancake\VERSION)) . "SERVER_SOFTWAREPancake/" . \Pancake\VERSION;' */;
-			$body .= "\xb" . chr(strlen($requestObject->localIP)) . "SERVER_ADDR" . $requestObject->localIP;
+			$body .= "\xb" . /* .FCGI_ENCODE_LENGTH '$requestObject->originalRequestURI' */ . "REQUEST_URI" . $requestObject->originalRequestURI;
+			$body .= "\xc" . /* .FCGI_ENCODE_LENGTH '$requestObject->requestURI' */ . "DOCUMENT_URI" . $requestObject->requestURI;
+			$body .= "\xb" . /* .FCGI_ENCODE_LENGTH '$requestObject->remoteIP' */ . "REMOTE_ADDR" . $requestObject->remoteIP;
+			$body .= "\xb" . /* .FCGI_ENCODE_LENGTH '$requestObject->vHost->listen[0]' */ . "SERVER_NAME" . /* .VHOST */->listen[0];
+			$body .= "\xb" . /* .FCGI_ENCODE_LENGTH '$requestObject->localPort' */ . "SERVER_PORT" . $requestObject->localPort;
+            
+            #.longDefine 'EVAL_CODE'
+            return "\xf" . chr(strlen("Pancake/" . \Pancake\VERSION)) . "SERVER_SOFTWAREPancake/" . \Pancake\VERSION;
+            #.endLongDefine
+			$body .= /* .eval EVAL_CODE*/;
+            
+			$body .= "\xb" . /* .FCGI_ENCODE_LENGTH '$requestObject->localIP' */ . "SERVER_ADDR" . $requestObject->localIP;
 			if($requestObject->pathInfo) {
-				$body .= "\x9" . chr(strlen($requestObject->pathInfo)) . "PATH_INFO" . $requestObject->pathInfo;
-				$body .= "\xf" . chr(strlen($requestObject->vHost->documentRoot . $requestObject->pathInfo)) . "PATH_TRANSLATED" . $requestObject->vHost->documentRoot . $requestObject->pathInfo;
+				$body .= "\x9" . /* .FCGI_ENCODE_LENGTH '$requestObject->pathInfo' */ . "PATH_INFO" . $requestObject->pathInfo;
+				$body .= "\xf" . /* .FCGI_ENCODE_LENGTH '$requestObject->vHost->documentRoot . $requestObject->pathInfo' */ . "PATH_TRANSLATED" . $requestObject->vHost->documentRoot . $requestObject->pathInfo;
 			}
 
 			if($requestObject->rawPOSTData) {
-				$body .= "\xc" . chr(strlen($requestObject->requestHeaders["content-type"])) . "CONTENT_TYPE" . $requestObject->requestHeaders["content-type"];
-				$body .= "\xe" . chr(strlen($requestObject->requestHeaders["content-length"])) . "CONTENT_LENGTH" . $requestObject->requestHeaders["content-length"];
+				$body .= "\xc" . /* .FCGI_ENCODE_LENGTH '$requestObject->requestHeaders["content-type"]' */ . "CONTENT_TYPE" . $requestObject->requestHeaders["content-type"];
+				$body .= "\xe" . /* .FCGI_ENCODE_LENGTH '$requestObject->requestHeaders["content-length"]' */ . "CONTENT_LENGTH" . $requestObject->requestHeaders["content-length"];
 			}
 
 			// HTTP header data
