@@ -1170,6 +1170,7 @@ static void PancakeSAPIReadHeaderSet(int fd, zval **headerArray TSRMLS_DC) {
 	array_init_size(*headerArray, numHeaders);
 
 	if(!numHeaders) {
+		efree(buf);
 		return;
 	}
 
