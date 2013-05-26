@@ -105,7 +105,7 @@
 
 		public function makeRequest(HTTPRequest $requestObject, $requestSocket) {
 			/* FCGI_BEGIN_REQUEST */
-			$requestIDInt = $this->requestID++;
+			$requestIDInt = ++$this->requestID;
 			$requestID = ($requestIDInt < 256 ? "\0" . chr($requestIDInt) : chr($requestIDInt >> 8) . chr($requestIDInt));
 
 			if(!$this->socket)
@@ -186,7 +186,7 @@
 			$this->requests[$requestIDInt] = $requestObject;
 			$this->requestSockets[$requestIDInt] = $requestSocket;
 
-			if($this->requestID == 65536)
+			if($this->requestID == 65535)
 				$this->requestID = 0;
 		}
 
