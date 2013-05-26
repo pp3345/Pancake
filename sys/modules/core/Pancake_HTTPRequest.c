@@ -480,14 +480,27 @@ PHP_METHOD(HTTPRequest, init) {
 			zend_hash_get_current_data(Z_ARRVAL_P(rewriteRules), (void**) &rewriteRule) == SUCCESS;
 			zend_hash_move_forward(Z_ARRVAL_P(rewriteRules))) {
 			zval **value, **value2;
+			char *matchPath;
+			int matchPath_len;
 
 			if(path != NULL) {
 				efree(path);
 			}
 
-			spprintf(&path, (((queryStringStart = strchr(firstLine[1], '?')) != NULL)
-									? strlen(documentRoot) + (queryStringStart - firstLine[1])
-									: 0), "%s%s", documentRoot, firstLine[1]);
+			if(zend_hash_quick_exists(Z_ARRVAL_PP(rewriteRule), "useclientpath", sizeof("useclientpath"), HASH_OF_useclientpath)) {
+				zval *clientPath;
+				FAST_READ_PROPERTY(clientPath, this_ptr, "originalRequestURI", sizeof("originalRequestURI") - 1, HASH_OF_originalRequestURI);
+
+				matchPath = Z_STRVAL_P(clientPath);
+				matchPath_len = Z_STRLEN_P(clientPath);
+			} else {
+				matchPath = firstLine[1];
+				matchPath_len = strlen(firstLine[1]);
+			}
+
+			spprintf(&path, (((queryStringStart = strchr(matchPath, '?')) != NULL)
+									? strlen(documentRoot) + (queryStringStart - matchPath)
+									: 0), "%s%s", documentRoot, matchPath);
 
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "if", sizeof("if"), HASH_OF_if, (void**) &value) == SUCCESS) {
 				pcre_cache_entry *pcre;
@@ -499,7 +512,7 @@ PHP_METHOD(HTTPRequest, init) {
 
 				MAKE_STD_ZVAL(pcre_retval);
 
-				php_pcre_match_impl(pcre, firstLine[1], strlen(firstLine[1]),  pcre_retval, NULL, 0, 0, 0, 0 TSRMLS_CC);
+				php_pcre_match_impl(pcre, matchPath, matchPath_len,  pcre_retval, NULL, 0, 0, 0, 0 TSRMLS_CC);
 
 				if(Z_LVAL_P(pcre_retval) == 0) {
 					zval_ptr_dtor(&pcre_retval);
@@ -519,7 +532,7 @@ PHP_METHOD(HTTPRequest, init) {
 
 				MAKE_STD_ZVAL(pcre_retval);
 
-				php_pcre_match_impl(pcre, firstLine[1], strlen(firstLine[1]),  pcre_retval, NULL, 0, 0, 0, 0 TSRMLS_CC);
+				php_pcre_match_impl(pcre, matchPath, matchPath_len,  pcre_retval, NULL, 0, 0, 0, 0 TSRMLS_CC);
 
 				if(Z_LVAL_P(pcre_retval)) {
 					zval_ptr_dtor(&pcre_retval);
@@ -558,7 +571,7 @@ PHP_METHOD(HTTPRequest, init) {
 			MethodAccepted:;
 
 			if(		(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "location", sizeof("location"), HASH_OF_location, (void**) &value) == SUCCESS
-					&& strncmp(Z_STRVAL_PP(value), firstLine[1], Z_STRLEN_PP(value)) != 0)
+					&& strncmp(Z_STRVAL_PP(value), matchPath, Z_STRLEN_PP(value)) != 0)
 			||		(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "precondition", sizeof("precondition"), HASH_OF_precondition, (void**) &value) == SUCCESS
 					&& (	Z_TYPE_PP(value) != IS_LONG
 						||	(	Z_LVAL_PP(value) == 404
@@ -574,7 +587,7 @@ PHP_METHOD(HTTPRequest, init) {
 				char *result = NULL;
 				int result_len = 0, replace_count = 0;
 
-				result = php_pcre_replace(Z_STRVAL_PP(value), Z_STRLEN_PP(value), firstLine[1], strlen(firstLine[1]), *value2, 0, &result_len, -1, &replace_count TSRMLS_CC);
+				result = php_pcre_replace(Z_STRVAL_PP(value), Z_STRLEN_PP(value), matchPath, matchPath_len, *value2, 0, &result_len, -1, &replace_count TSRMLS_CC);
 
 				if(result_len > 0 && replace_count > 0) {
 					if(fL1isMalloced) efree(firstLine[1]);
@@ -640,7 +653,7 @@ PHP_METHOD(HTTPRequest, init) {
 				MAKE_STD_ZVAL(matches);
 				Z_TYPE_P(matches) = IS_NULL;
 
-				php_pcre_match_impl(pcre, firstLine[1], strlen(firstLine[1]),  pcre_retval, matches, 0, 0, 0, 0 TSRMLS_CC);
+				php_pcre_match_impl(pcre, matchPath, matchPath_len,  pcre_retval, matches, 0, 0, 0, 0 TSRMLS_CC);
 
 				if(EXPECTED(zend_hash_index_find(Z_ARRVAL_P(matches), 2, (void**) &match) == SUCCESS)) {
 					PancakeQuickWriteProperty(this_ptr, *match, "pathInfo", sizeof("pathInfo"), HASH_OF_pathInfo TSRMLS_CC);
