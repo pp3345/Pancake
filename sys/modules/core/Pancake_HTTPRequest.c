@@ -539,6 +539,24 @@ PHP_METHOD(HTTPRequest, init) {
 				}
 			}
 
+			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "httpmethod", sizeof("httpmethod"), HASH_OF_httpmethod, (void**) &value) == SUCCESS) {
+				if(Z_TYPE_PP(value) == IS_STRING && strcmp(Z_STRVAL_PP(value), firstLine[0])) {
+					continue;
+				} else if(Z_TYPE_PP(value) == IS_ARRAY) {
+					zval **method;
+
+					PANCAKE_FOREACH(Z_ARRVAL_PP(value), method) {
+						if(!strcmp(Z_STRVAL_PP(method), firstLine[0])) {
+							goto MethodAccepted;
+						}
+					}
+
+					continue;
+				}
+			}
+
+			MethodAccepted:;
+
 			if(		(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "location", sizeof("location"), HASH_OF_location, (void**) &value) == SUCCESS
 					&& strncmp(Z_STRVAL_PP(value), firstLine[1], Z_STRLEN_PP(value)) != 0)
 			||		(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "precondition", sizeof("precondition"), HASH_OF_precondition, (void**) &value) == SUCCESS
