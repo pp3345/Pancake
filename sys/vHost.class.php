@@ -134,9 +134,12 @@
 
             // Load rewrite rules
             foreach((array) $config['rewrite'] as $rewriteRule) {
-                if(substr($rewriteRule['location'], 0, 1) != '/' && $rewriteRule['location'])
+                if(!is_array($rewriteRule))
+                    continue;
+                
+                if(isset($rewriteRule['location']) && substr($rewriteRule['location'], 0, 1) != '/')
                     $rewriteRule['location'] = '/' . $rewriteRule['location'];
-                //$rewriteRule['location'] = strtolower($rewriteRule['location']);
+
                 $this->rewriteRules[] = $rewriteRule;
             }
 
