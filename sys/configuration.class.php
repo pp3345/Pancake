@@ -19,6 +19,8 @@
         const PATH = '../conf/config.yml';                      // Path to main configuration file
         const SKELETON_PATH = '../conf/skeleton.yml';           // Path to skeleton configuration
         const EXAMPLE_PATH = '../conf/config.example.yml';      // Path to example configuration
+        const MIME_EXAMPLE_PATH = '../conf/mime.example.yml';
+        const MIME_DEFAULT_PATH = '../conf/mime.yml';
         const VHOST_EXAMPLE_PATH = '../conf/vhost.example.yml'; // Path to example vHost configuration
         const DEFAULT_VHOST_INCLUDE_DIR = '../conf/vhosts/';    // Path to default vHost include directory
         static private $configuration = array();
@@ -45,6 +47,12 @@
 
         			copy(self::VHOST_EXAMPLE_PATH, self::DEFAULT_VHOST_INCLUDE_DIR . 'default.yml');
         		}
+                
+                if(!file_exists(self::MIME_DEFAULT_PATH) && file_exists(self::MIME_EXAMPLE_PATH)) {
+                    out('Loading example MIME types', OUTPUT_SYSTEM);
+                    
+                    copy(self::MIME_EXAMPLE_PATH, self::MIME_DEFAULT_PATH);
+                }
 
         		$firstStart = true;
         	}
