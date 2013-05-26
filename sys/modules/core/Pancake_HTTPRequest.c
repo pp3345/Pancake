@@ -570,6 +570,26 @@ PHP_METHOD(HTTPRequest, init) {
 
 			MethodAccepted:;
 
+			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "mimetype", sizeof("mimetype"), HASH_OF_mimetype, (void**) &value) == SUCCESS) {
+				zval *MIME = PancakeMIMEType(matchPath, matchPath_len);
+
+				if(Z_TYPE_PP(value) == IS_STRING && strcmp(Z_STRVAL_PP(value), Z_STRVAL_P(MIME))) {
+					continue;
+				} else if(Z_TYPE_PP(value) == IS_ARRAY) {
+					zval **type;
+
+					PANCAKE_FOREACH(Z_ARRVAL_PP(value), type) {
+						if(!strcmp(Z_STRVAL_PP(type), Z_STRVAL_P(MIME))) {
+							goto MIMETypeAccepted;
+						}
+					}
+
+					continue;
+				}
+			}
+
+			MIMETypeAccepted:;
+
 			if(		(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "location", sizeof("location"), HASH_OF_location, (void**) &value) == SUCCESS
 					&& strncmp(Z_STRVAL_PP(value), matchPath, Z_STRLEN_PP(value)) != 0)
 			||		(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "precondition", sizeof("precondition"), HASH_OF_precondition, (void**) &value) == SUCCESS
