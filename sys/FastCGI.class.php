@@ -192,7 +192,7 @@
 				Write($this->socket, "\1\5" . $requestID . "\0\0\0\0");
 			}
 
-			$requestObject->fCGISocket = (int) $this->socket;
+			$requestObject->fCGISocket = $this->socket;
 
 			$this->requests[$this->socket][$requestIDInt] = $requestObject;
 			$this->requestSockets[$this->socket][$requestIDInt] = $requestSocket;
@@ -204,10 +204,7 @@
 		public function upstreamRecord($data, $socketID) {
 			if($data === "" || $data === false) {
 				/* Upstream server closed connection */
-				foreach($this->requests as $requestID => $requestObject) {
-					if($requestObject->fCGISocket != $socketID)
-						continue;
-
+				foreach($this->requests[$socketID] as $requestID => $requestObject) {
 					$requestObject->invalidRequest(new invalidHTTPRequestException("The FastCGI upstream server unexpectedly closed the network connection.", 502));
 
 					$retval = array($this->requestSockets[$socketID][$requestID], $requestObject, true);
@@ -215,7 +212,12 @@
 					return $retval;
 				}
 
-				$this->connect();
+                @Close($socketID);
+
+                if($this->multiplex) {
+				    $this->connect();
+                }
+                
 				return 0;
 			}
 			if(strlen($data) < 8)
