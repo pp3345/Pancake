@@ -71,30 +71,59 @@ PHP_METHOD(SAPIClient, __construct) {
 }
 
 static inline void PancakeSAPIClientWriteHeaderSet(int sock, HashTable *headers TSRMLS_DC) {
-	char *key;
-	int key_len, numElements = zend_hash_num_elements(headers);
+	char *key, *buf = emalloc(1024);
+	int key_len,
+		numElements = zend_hash_num_elements(headers),
+		offset = sizeof(int),
+		bufSize = 1024;
 	zval **value;
 
-	write(sock, &numElements, sizeof(int));
+	memcpy(buf, &numElements, sizeof(int));
+
 	PANCAKE_FOREACH_KEY(headers, key, key_len, value) {
-		key_len--;
-		write(sock, &key_len, sizeof(int));
-		write(sock, key, key_len);
+		if(bufSize < offset + key_len) {
+			bufSize += key_len + 100;
+			buf = erealloc(buf, bufSize);
+		}
+
+		memcpy(buf + offset, &key_len, sizeof(int));
+		offset += sizeof(int);
+		memcpy(buf + offset, key, key_len);
+		offset += key_len;
 
 		/* Content-Length is stored as long, however we should not convert the value itself to a string */
 		if(Z_TYPE_PP(value) == IS_LONG) {
 			char *strValue;
 			int length = spprintf(&strValue, 0, "%ld", Z_LVAL_PP(value));
 
-			write(sock, &length, sizeof(int));
-			write(sock, strValue, length);
+			if(bufSize < offset + length) {
+				bufSize += length + 100;
+				buf = erealloc(buf, bufSize);
+			}
+
+			memcpy(buf + offset, &length, sizeof(int));
+			offset += sizeof(int);
+			memcpy(buf + offset, strValue, length);
+			offset += length;
 
 			efree(strValue);
 		} else {
-			write(sock, &Z_STRLEN_PP(value), sizeof(int));
-			write(sock, Z_STRVAL_PP(value), Z_STRLEN_PP(value));
+			if(bufSize < offset + Z_STRLEN_PP(value)) {
+				bufSize += Z_STRLEN_PP(value) + 100;
+				buf = erealloc(buf, bufSize);
+			}
+
+			memcpy(buf + offset, &Z_STRLEN_PP(value), sizeof(int));
+			offset += sizeof(int);
+			memcpy(buf + offset, Z_STRVAL_PP(value), Z_STRLEN_PP(value));
+			offset += Z_STRLEN_PP(value);
 		}
 	}
+
+	write(sock, &offset, sizeof(int));
+	write(sock, buf, offset);
+
+	efree(buf);
 }
 
 static int PancakeSAPIClientReconnect(zval *this_ptr TSRMLS_DC) {

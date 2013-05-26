@@ -1156,9 +1156,14 @@ PHP_FUNCTION(SAPIFinishRequest) {
 }
 
 static void PancakeSAPIReadHeaderSet(int fd, zval **headerArray TSRMLS_DC) {
-	int numHeaders = 0, i;
+	int numHeaders = 0, i, bufSize, offset = sizeof(int);
+	char *buf;
 
-	read(fd, &numHeaders, sizeof(int));
+	read(fd, &bufSize, sizeof(int));
+	buf = emalloc(bufSize);
+	read(fd, buf, bufSize);
+
+	memcpy(&numHeaders, buf, sizeof(int));
 
 	zval_ptr_dtor(headerArray);
 	MAKE_STD_ZVAL(*headerArray);
@@ -1169,26 +1174,28 @@ static void PancakeSAPIReadHeaderSet(int fd, zval **headerArray TSRMLS_DC) {
 	}
 
 	for(i = 0;i < numHeaders;i++) {
-		char *key;
-		int key_len;
+		int key_len, keyOffset;
 		zval *value;
 
 		MAKE_STD_ZVAL(value);
 		Z_TYPE_P(value) = IS_STRING;
 
-		read(fd, &key_len, sizeof(int));
-		key = emalloc(key_len + 1);
-		read(fd, key, key_len);
-		key[key_len] = '\0';
+		memcpy(&key_len, buf + offset, sizeof(int));
+		keyOffset = (offset += sizeof(int));
+		offset += key_len;
 
-		read(fd, &Z_STRLEN_P(value), sizeof(int));
+		memcpy(&Z_STRLEN_P(value), buf + offset, sizeof(int));
 		Z_STRVAL_P(value) = emalloc(Z_STRLEN_P(value) + 1);
-		read(fd, Z_STRVAL_P(value), Z_STRLEN_P(value));
-		Z_STRVAL_P(value)[Z_STRLEN_P(value)] = '\0';
+		offset += sizeof(int);
 
-		zend_hash_add(Z_ARRVAL_PP(headerArray), key, key_len + 1, (void*) &value, sizeof(zval*), NULL);
-		efree(key);
+		memcpy(Z_STRVAL_P(value), buf + offset, Z_STRLEN_P(value));
+		Z_STRVAL_P(value)[Z_STRLEN_P(value)] = '\0';
+		offset += Z_STRLEN_P(value);
+
+		zend_hash_add(Z_ARRVAL_PP(headerArray), &buf[keyOffset], key_len, (void*) &value, sizeof(zval*), NULL);
 	}
+
+	efree(buf);
 }
 
 zend_bool PancakeSAPIFetchRequest(int fd, zval *return_value TSRMLS_DC) {
