@@ -297,6 +297,34 @@
     NaglesAlgorithm(/*.bool #.Pancake\Config::get("main.naglesalgorithm", 0)*/);
 #.endif
 
+    #.if Pancake\DEBUG_MODE === true
+        #.longDefine 'MACRO_CODE'
+            // Output debug information
+            if(strpos($requestObject->originalRequestURI, "pancakedebug") !== false) {
+                $requestObject->setHeader('Content-Type', 'text/plain');
+    
+                $body = 'Received Headers:' . "\r\n";
+                $body .= $requestObject->requestLine . "\r\n";
+                foreach($requestObject->requestHeaders as $name => $value)
+                    $body .= $name . ": " . $value . "\r\n";
+                $body .= 'Received POST content:' . "\r\n";
+                $body .= $postData[$socket] . "\r\n\r\n";
+                $body .= 'Dump of RequestObject:' . "\r\n";
+                $body .= print_r($requestObject, true);
+                $requestObject->answerBody = $body;
+    
+                unset($body);
+    
+                goto write;
+            }
+        #.endLongDefine
+        
+        #.macro 'PANCAKE_DEBUG_DUMP' MACRO_CODE
+    #.else
+        #.macro 'PANCAKE_DEBUG_DUMP' ' '
+    #.endif
+
+
     // Ready
     $Pancake_currentThread->parentSignal(/* .constant 'SIGUSR1' */);
 
@@ -613,6 +641,8 @@
 
                 unset($socketData[$socket]);
             } catch(invalidHTTPRequestException $exception) {
+                #.PANCAKE_DEBUG_DUMP
+                
                 $requestObject->invalidRequest($exception);
 
                 unset($socketData[$socket], $exception);
@@ -657,26 +687,7 @@
             $requestObject->setHeader('Allow', /* .eval EVAL_CODE false */);
 #.endif
 
-#.if Pancake\DEBUG_MODE === true
-        // Output debug information
-        if(isset($requestObject->getGETParams()['pancakedebug'])) {
-            $requestObject->setHeader('Content-Type', 'text/plain');
-
-            $body = 'Received Headers:' . "\r\n";
-            $body .= $requestObject->requestLine . "\r\n";
-            foreach($requestObject->requestHeaders as $name => $value)
-                $body .= $name . ": " . $value . "\r\n";
-            $body .= 'Received POST content:' . "\r\n";
-            $body .= $postData[$socket] . "\r\n\r\n";
-            $body .= 'Dump of RequestObject:' . "\r\n";
-            $body .= print_r($requestObject, true);
-            $requestObject->answerBody = $body;
-
-            unset($body);
-
-            goto write;
-        }
-#.endif
+        #.PANCAKE_DEBUG_DUMP
 
         load:
 
