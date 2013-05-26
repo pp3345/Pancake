@@ -57,7 +57,7 @@
 		}
 
 		private function __construct($name) {
-			$config = Config::get('fastcgi.' . $name);
+			$config = Config::get('fastcgi.' . strtolower($name));
 
 			if(!$config)
 				throw new \Exception('Undefined FastCGI configuration: ' . $name);
