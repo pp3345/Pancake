@@ -47,7 +47,7 @@
 		}
 
 		private function __construct($name) {
-			$config = Config::get('ajp13.' . $name);
+			$config = Config::get('ajp13.' . strtolower($name));
 
 			if(!$config)
 				throw new \Exception('Undefined AJP13 configuration: ' . $name);
