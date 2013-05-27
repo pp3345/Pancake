@@ -85,12 +85,6 @@
 	    // Clean
 	    cleanGlobals();
 
-        foreach(get_included_files() as $file) {
-            dt_remove_include($file);
-        }
-        
-        unset($file);
-
 	    // Predefine constants
 	    #.if #.eval 'global $Pancake_currentThread; return (bool) $Pancake_currentThread->vHost->predefinedConstants;' false
 		    foreach(vars::$Pancake_currentThread->vHost->predefinedConstants as $name => $value)

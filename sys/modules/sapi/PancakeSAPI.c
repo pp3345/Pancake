@@ -321,6 +321,9 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	PANCAKE_SAPI_GLOBALS(outputLength) = 0;
 	PANCAKE_SAPI_GLOBALS(output) = NULL;
 
+	// Clean included files table
+	zend_hash_clean(&EG(included_files));
+
 	// Implicit flush should default to 0
 	PG(implicit_flush) = 0;
 	php_output_set_implicit_flush(0 TSRMLS_CC);
