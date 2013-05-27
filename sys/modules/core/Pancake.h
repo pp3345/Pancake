@@ -65,7 +65,7 @@ extern zend_module_entry Pancake_module_entry;
 #endif
 
 #if defined(__i386__)
-#	define PANAKE_X86
+#	define PANCAKE_X86
 #elif defined(__x86_64__)
 #	define PANCAKE_X86_64
 #elif defined(__arm__)
