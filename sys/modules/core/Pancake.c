@@ -192,6 +192,31 @@ PHP_MINIT_FUNCTION(Pancake) {
 	/* Init module globals */
 	ZEND_INIT_MODULE_GLOBALS(Pancake, php_Pancake_init_globals, NULL);
 
+#ifndef PANCAKE_NO_SAPI_ALIGNMENT
+	zend_ini_entry *post_max_size;
+	zend_hash_find(EG(ini_directives), "post_max_size", sizeof("post_max_size"), (void**) &post_max_size);
+
+	PANCAKE_SAPI_GLOBALS_OFFSET(rfc1867_uploaded_files) = ((long) post_max_size->mh_arg1) - sizeof(HashTable*);
+
+	PANCAKE_SAPI_GLOBALS_OFFSET(callback_func) = ((long) post_max_size->mh_arg1)
+													+ sizeof(long)
+													+ sizeof(int)
+													+ sizeof(zend_bool)
+													+ (4 - sizeof(zend_bool)) /* 8-byte double value is 4-byte-aligned on 32 bit GCC, on 64 bit we have 8-byte-alignment but are already filled to 5 byte by int + zend_bool */
+													+ sizeof(double)
+													+ sizeof(HashTable);
+
+	PANCAKE_SAPI_GLOBALS_OFFSET(callback_run) = ((long) post_max_size->mh_arg1)
+													+ sizeof(long)
+													+ sizeof(int)
+													+ sizeof(zend_bool)
+													+ (4 - sizeof(zend_bool))
+													+ sizeof(double)
+													+ sizeof(HashTable)
+													+ sizeof(zval*)
+													+ sizeof(zend_fcall_info_cache);
+#endif
+
 	REGISTER_NS_LONG_CONSTANT("Pancake", "OUTPUT_SYSTEM", 1, 0);
 	REGISTER_NS_LONG_CONSTANT("Pancake", "OUTPUT_REQUEST", 2, 0);
 	REGISTER_NS_LONG_CONSTANT("Pancake", "OUTPUT_LOG", 4, 0);

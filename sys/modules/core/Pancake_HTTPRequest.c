@@ -1623,13 +1623,13 @@ PANCAKE_API zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 		MAKE_STD_ZVAL(files);
 		array_init(files);
 
-		if(SG(rfc1867_uploaded_files)) {
-			zend_hash_destroy(SG(rfc1867_uploaded_files));
-			FREE_HASHTABLE(SG(rfc1867_uploaded_files));
+		if(PSG(rfc1867_uploaded_files, HashTable*)) {
+			zend_hash_destroy(PSG(rfc1867_uploaded_files, HashTable*));
+			FREE_HASHTABLE(PSG(rfc1867_uploaded_files, HashTable*));
 		}
 
-		ALLOC_HASHTABLE(SG(rfc1867_uploaded_files));
-		zend_hash_init(SG(rfc1867_uploaded_files), 5, NULL, (dtor_func_t) free_estring, 0);
+		ALLOC_HASHTABLE(PSG(rfc1867_uploaded_files, HashTable*));
+		zend_hash_init(PSG(rfc1867_uploaded_files, HashTable*), 5, NULL, (dtor_func_t) free_estring, 0);
 
 		if(Z_STRLEN_P(rawPOSTData)) {
 			zval *requestHeaders, **contentType;
@@ -1767,7 +1767,7 @@ PANCAKE_API zval *PancakeFetchPOST(zval *this_ptr TSRMLS_DC) {
 								efree(buffer);
 								close(fd);
 								Z_LVAL_P(zError) = 0; // UPLOAD_ERR_OK
-								zend_hash_add(SG(rfc1867_uploaded_files), tempNam, tempNam_len + 1, &tempNam_dupe, sizeof(char*), NULL);
+								zend_hash_add(PSG(rfc1867_uploaded_files, HashTable*), tempNam, tempNam_len + 1, &tempNam_dupe, sizeof(char*), NULL);
 							}
 
 							Z_TYPE_P(zName) = IS_STRING;

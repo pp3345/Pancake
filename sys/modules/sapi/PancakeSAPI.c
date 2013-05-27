@@ -529,10 +529,10 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	PHP_list_entry_destructor = EG(regular_list).pDestructor;
 
 	// Destroy uploaded files array
-	if(SG(rfc1867_uploaded_files)) {
-		zend_hash_destroy(SG(rfc1867_uploaded_files));
-		FREE_HASHTABLE(SG(rfc1867_uploaded_files));
-		SG(rfc1867_uploaded_files) = NULL;
+	if(PSG(rfc1867_uploaded_files, HashTable*)) {
+		zend_hash_destroy(PSG(rfc1867_uploaded_files, HashTable*));
+		FREE_HASHTABLE(PSG(rfc1867_uploaded_files, HashTable*));
+		PSG(rfc1867_uploaded_files, HashTable*) = NULL;
 	}
 
 	// Reset error handler stack
@@ -973,11 +973,11 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	php_output_activate(TSRMLS_C);
 
 	// Free error information
-	if (PG(last_error_message)) {
+	if(PG(last_error_message)) {
 		free(PG(last_error_message));
 		PG(last_error_message) = NULL;
 	}
-	if (PG(last_error_file)) {
+	if(PG(last_error_file)) {
 		free(PG(last_error_file));
 		PG(last_error_file) = NULL;
 	}
@@ -1003,14 +1003,14 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	}
 
 	// PHP now calls zend_deactivate() - we will just do the necessary things
-	if (EG(user_error_handler)) {
+	if(EG(user_error_handler)) {
 		zeh = EG(user_error_handler);
 		EG(user_error_handler) = NULL;
 		zval_dtor(zeh);
 		FREE_ZVAL(zeh);
 	}
 
-	if (EG(user_exception_handler)) {
+	if(EG(user_exception_handler)) {
 		zeh = EG(user_exception_handler);
 		EG(user_exception_handler) = NULL;
 		zval_dtor(zeh);
@@ -1023,7 +1023,7 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	zend_ptr_stack_clean(&EG(user_exception_handlers), ZVAL_DESTRUCTOR, 1);
 
 	// Destroy autoload table
-	if (EG(in_autoload)) {
+	if(EG(in_autoload)) {
 		zend_hash_destroy(EG(in_autoload));
 		FREE_HASHTABLE(EG(in_autoload));
 		EG(in_autoload) = NULL;
@@ -1085,10 +1085,10 @@ PHP_FUNCTION(SAPIFinishRequest) {
     }
 
     // SAPI reset
-    SG(callback_run) = 0;
-	if (SG(callback_func)) {
-		zval_ptr_dtor(&SG(callback_func));
-		SG(callback_func) = NULL;
+    PSG(callback_run, zend_bool) = 0;
+    if(PSG(callback_func, zval*)) {
+		zval_ptr_dtor(&PSG(callback_func, zval*));
+		PSG(callback_func, zval*) = NULL;
 	}
 	zend_llist_destroy(&SG(sapi_headers).headers);
 	zend_llist_init(&SG(sapi_headers).headers, sizeof(sapi_header_struct), (void (*)(void *)) sapi_free_header, 0);
@@ -1106,11 +1106,11 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	}
 
 	// Destroy uploaded files array
-	if(SG(rfc1867_uploaded_files)) {
-		zend_hash_apply(SG(rfc1867_uploaded_files), (apply_func_t) PancakeSAPIUnlinkFile TSRMLS_CC);
-		zend_hash_destroy(SG(rfc1867_uploaded_files));
-		FREE_HASHTABLE(SG(rfc1867_uploaded_files));
-		SG(rfc1867_uploaded_files) = NULL;
+	if(PSG(rfc1867_uploaded_files, HashTable*)) {
+		zend_hash_apply(PSG(rfc1867_uploaded_files, HashTable*), (apply_func_t) PancakeSAPIUnlinkFile TSRMLS_CC);
+		zend_hash_destroy(PSG(rfc1867_uploaded_files, HashTable*));
+		FREE_HASHTABLE(PSG(rfc1867_uploaded_files, HashTable*));
+		PSG(rfc1867_uploaded_files, HashTable*) = NULL;
 	}
 
 	// Reset autoloading

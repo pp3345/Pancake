@@ -208,6 +208,15 @@ extern zend_class_entry *MIME_ce;
 
 typedef char* (*PancakeTLSCipherNameFunc)(int fd TSRMLS_DC);
 
+#ifdef PANCAKE_NO_SAPI_ALIGNMENT
+#	define PANCAKE_SAPI_GLOBALS_OFFSET_DEF(v)
+#	define PSG(v, t) SG(v)
+#else
+#	define PANCAKE_SAPI_GLOBALS_OFFSET_DEF(v) long SAPIGlobalsOffset_##v;
+#	define PANCAKE_SAPI_GLOBALS_OFFSET(v) PANCAKE_GLOBALS(SAPIGlobalsOffset_##v)
+#	define PSG(v, t) (*(t*) (((char*) &sapi_globals) + PANCAKE_SAPI_GLOBALS_OFFSET(v)))
+#endif
+
 ZEND_BEGIN_MODULE_GLOBALS(Pancake)
 	FILE *systemLogStream;
 	FILE *requestLogStream;
@@ -234,6 +243,10 @@ ZEND_BEGIN_MODULE_GLOBALS(Pancake)
 	long post_max_size;
 
 	PancakeTLSCipherNameFunc TLSCipherName;
+
+	PANCAKE_SAPI_GLOBALS_OFFSET_DEF(rfc1867_uploaded_files)
+	PANCAKE_SAPI_GLOBALS_OFFSET_DEF(callback_func)
+	PANCAKE_SAPI_GLOBALS_OFFSET_DEF(callback_run)
 ZEND_END_MODULE_GLOBALS(Pancake)
 extern ZEND_DECLARE_MODULE_GLOBALS(Pancake);
 
