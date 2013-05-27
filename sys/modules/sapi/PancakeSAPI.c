@@ -217,12 +217,47 @@ static int PancakeSAPIHeaderHandler(sapi_header_struct *sapi_header, sapi_header
 	return SUCCESS;
 }
 
+static void PancakeSAPIFlush(void *context) {
+	if(PANCAKE_SAPI_GLOBALS(output)) {
+		unsigned int offset = 0;
+
+		memcpy(PANCAKE_SAPI_GLOBALS(output) + 1, &PANCAKE_SAPI_GLOBALS(outputLength), sizeof(unsigned int));
+
+		while(offset < PANCAKE_SAPI_GLOBALS(outputLength) + 5) {
+			ssize_t result = write(PANCAKE_SAPI_GLOBALS(clientSocket), &PANCAKE_SAPI_GLOBALS(output)[offset], (PANCAKE_SAPI_GLOBALS(outputLength) + 5) - offset);
+			if(result == -1) {
+				return;
+			}
+
+			offset += result;
+		}
+
+		efree(PANCAKE_SAPI_GLOBALS(output));
+		PANCAKE_SAPI_GLOBALS(outputLength) = 0;
+		PANCAKE_SAPI_GLOBALS(output) = NULL;
+	}
+}
+
 static int PancakeSAPIOutputHandler(const char *str, unsigned int str_length TSRMLS_DC) {
 	unsigned int offset = 0;
 
 	if(!PANCAKE_SAPI_GLOBALS(inExecution) || !str_length) {
 		return SUCCESS;
 	}
+
+	if(PANCAKE_SAPI_GLOBALS(outputLength) + str_length < 4091) {
+		if(PANCAKE_SAPI_GLOBALS(output) == NULL) {
+			PANCAKE_SAPI_GLOBALS(output) = emalloc(4096);
+			PANCAKE_SAPI_GLOBALS(output)[0] = '\1';
+		}
+
+		memcpy(PANCAKE_SAPI_GLOBALS(output) + PANCAKE_SAPI_GLOBALS(outputLength) + 5, str, str_length);
+		PANCAKE_SAPI_GLOBALS(outputLength) += str_length;
+
+		return SUCCESS;
+	}
+
+	PancakeSAPIFlush(NULL);
 
 	/* Write packet type */
 	if(write(PANCAKE_SAPI_GLOBALS(clientSocket), "\1", sizeof(char)) == -1) {
@@ -285,6 +320,10 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	PANCAKE_SAPI_GLOBALS(inExecution) = 0;
 	PANCAKE_SAPI_GLOBALS(outputLength) = 0;
 	PANCAKE_SAPI_GLOBALS(output) = NULL;
+
+	// Implicit flush should default to 0
+	PG(implicit_flush) = 0;
+	php_output_set_implicit_flush(0 TSRMLS_CC);
 
 	// Fetch vHost
 	FAST_READ_PROPERTY(PANCAKE_SAPI_GLOBALS(vHost), PANCAKE_GLOBALS(currentThread), "vHost", sizeof("vHost") - 1, HASH_OF_vHost);
@@ -390,7 +429,7 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	sapi_module.header_handler = PancakeSAPIHeaderHandler;
 	sapi_module.ub_write = PancakeSAPIOutputHandler;
 	sapi_module.send_headers = PancakeSAPISendHeaders;
-	sapi_module.flush = NULL;
+	sapi_module.flush = PancakeSAPIFlush;
 	sapi_module.phpinfo_as_text = 0;
 
 	// Set PHP_SAPI constant
@@ -906,6 +945,9 @@ PHP_FUNCTION(SAPIFinishRequest) {
 
 	// Disable output layer
 	php_output_deactivate(TSRMLS_C);
+
+	// Flush buffers
+	PancakeSAPIFlush(NULL);
 
 	// End request
 	write(PANCAKE_SAPI_GLOBALS(clientSocket), "\2", sizeof(char));
