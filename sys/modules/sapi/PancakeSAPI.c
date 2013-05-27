@@ -307,7 +307,7 @@ static int PancakeSAPIUnlinkFile(char **file TSRMLS_DC) {
 PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zend_function *function;
 	zend_class_entry **vars;
-	zval *disabledFunctions, *autoDelete, *autoDeleteExcludes, *HTMLErrors, *documentRoot, *processingLimit, *timeout, *phpSocket,
+	zval *disabledFunctions, *autoDelete, *autoDeleteExcludes, *HTMLErrors, *processingLimit, *timeout, *phpSocket,
 		*controlSocket, *INISettings;
 	zend_constant *PHP_SAPI;
 	zend_module_entry *core, *module;
@@ -573,6 +573,9 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	PANCAKE_SAPI_GLOBALS(SAPIPHPVersionHeader) = emalloc(PANCAKE_SAPI_GLOBALS(SAPIPHPVersionHeader_len) + 1);
 	memcpy(PANCAKE_SAPI_GLOBALS(SAPIPHPVersionHeader), "X-Powered-By: PHP/", sizeof("X-Powered-By: PHP/") - 1);
 	memcpy(PANCAKE_SAPI_GLOBALS(SAPIPHPVersionHeader) + sizeof("X-Powered-By: PHP/") - 1, core->version, strlen(core->version) + 1);
+
+	// chdir() to document root
+	chdir(Z_STRVAL_P(PANCAKE_SAPI_GLOBALS(documentRoot)));
 
 	return SUCCESS;
 }

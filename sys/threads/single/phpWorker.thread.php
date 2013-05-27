@@ -108,8 +108,6 @@
         // Set exit handler so that Pancake won't die when a script calls exit() oder die()
         dt_exit_mode(/* .constant 'DT_EXIT_EXCEPTION' */, "Pancake\SAPIExitHandler", 'Pancake\ExitException');
 
-        chdir(/* .eval 'global $Pancake_currentThread; return $Pancake_currentThread->vHost->documentRoot;' false */);
-
 	    #.ifdef 'SUPPORT_CODECACHE'
 		    // Get a list of files to cache
 		    foreach(vars::$Pancake_currentThread->vHost->phpCodeCache as $cacheFile)
