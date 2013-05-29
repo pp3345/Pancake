@@ -1306,6 +1306,9 @@ zend_bool PancakeSAPIFetchRequest(int fd, zval *return_value TSRMLS_DC) {
 		php_output_deactivate(TSRMLS_C);
 		php_output_activate(TSRMLS_C);
 
+		// Flush SAPI buffer
+		PancakeSAPIFlush(NULL);
+
 		write(fd, "\2", sizeof(char));
 
 		SG(headers_sent) = 0;
