@@ -100,7 +100,7 @@ static int PancakeSAPISendHeaders(sapi_headers_struct *sapi_headers TSRMLS_DC) {
 	size_t offset = 0;
 	short responseCode = (short) sapi_headers->http_response_code;
 
-	if(!PANCAKE_SAPI_GLOBALS(inExecution)) {
+	if(!PANCAKE_SAPI_GLOBALS(inExecution) || !PANCAKE_SAPI_GLOBALS(haveChangedHeaders)) {
 		return SAPI_HEADER_SENT_SUCCESSFULLY;
 	}
 
@@ -168,6 +168,8 @@ static int PancakeSAPIHeaderHandler(sapi_header_struct *sapi_header, sapi_header
 	if(!PANCAKE_SAPI_GLOBALS(inExecution)) {
 		return SUCCESS;
 	}
+
+	PANCAKE_SAPI_GLOBALS(haveChangedHeaders) = 1;
 
 	switch(op) {
 		case SAPI_HEADER_DELETE_ALL:
@@ -320,6 +322,7 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	PANCAKE_SAPI_GLOBALS(inExecution) = 0;
 	PANCAKE_SAPI_GLOBALS(outputLength) = 0;
 	PANCAKE_SAPI_GLOBALS(output) = NULL;
+	PANCAKE_SAPI_GLOBALS(haveChangedHeaders) = 0;
 
 	// Clean included files table
 	zend_hash_clean(&EG(included_files));
@@ -961,6 +964,7 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	// We have finished executing the script
 	PANCAKE_SAPI_GLOBALS(inExecution) = 0;
 	SG(headers_sent) = 0;
+	PANCAKE_SAPI_GLOBALS(haveChangedHeaders) = 0;
 
 	// Reset error handling
 	EG(error_handling) = EH_NORMAL;

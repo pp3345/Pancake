@@ -78,6 +78,8 @@ ZEND_BEGIN_MODULE_GLOBALS(PancakeSAPI)
 	zend_bool cleanUserFunctionData;
 	zend_bool destroyObjects;
 
+	zend_bool haveChangedHeaders;
+
 	int JIT_GET;
 	int JIT_COOKIE;
 	int JIT_SERVER;
