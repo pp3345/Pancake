@@ -22,7 +22,7 @@
     #.endif
 
     #.if #.bool #.call 'Pancake\Config::get' 'fastcgi'
-        #.macro 'VHOST_FASTCGI' '(isset(/* .VHOST */->fastCGI[$requestObject->mimeType]) ? /* .VHOST */->fastCGI[$requestObject->mimeType] : null)'
+        #.macro 'VHOST_FASTCGI' '($requestObject->FastCGI ?: (isset(/* .VHOST */->fastCGI[$requestObject->mimeType]) ? /* .VHOST */->fastCGI[$requestObject->mimeType] : null))'
     	#.define 'SUPPORT_FASTCGI' true
     #.endif
 

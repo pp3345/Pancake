@@ -325,6 +325,7 @@ PHP_MINIT_FUNCTION(Pancake) {
 	zend_declare_property_null(HTTPRequest_ce, "acceptedCompressions", sizeof("acceptedCompressions") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_long(HTTPRequest_ce, "fCGISocket", sizeof("fCGISocket") - 1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_null(HTTPRequest_ce, "headerDataCompleted", sizeof("headerDataCompleted") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_null(HTTPRequest_ce, "FastCGI", sizeof("FastCGI") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
 
 	INIT_NS_CLASS_ENTRY(exception, "Pancake", "invalidHTTPRequestException", invalidHTTPRequestException_methods);
 	exception.create_object = PancakeCreateObject;

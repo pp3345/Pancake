@@ -166,6 +166,13 @@
 	   		foreach($this->fastCGI as $fastCGI) {
 	   			$fCGIs[] = FastCGI::getInstance($fastCGI);
 	   		}
+            
+            // Link FastCGI rewrite settings to FastCGI instances
+            foreach($this->rewriteRules as &$rule) {
+                if(isset($rule['fastcgi'])) {
+                    $rule['fastcgi'] = FastCGI::getInstance($rule['fastcgi']);
+                }
+            }
 
 	   		$this->fastCGI = array();
 

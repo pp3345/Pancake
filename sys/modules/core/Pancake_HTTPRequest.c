@@ -689,6 +689,10 @@ PHP_METHOD(HTTPRequest, init) {
 				zval_ptr_dtor(&matches);
 				zval_ptr_dtor(&pcre_retval);
 			}
+
+			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "fastcgi", sizeof("fastcgi"), HASH_OF_fastcgi, (void**) &value) == SUCCESS) {
+				PancakeQuickWriteProperty(this_ptr, *value, "FastCGI", sizeof("FastCGI"), HASH_OF_FastCGI);
+			}
 		}
 
 		if(path != NULL) {
