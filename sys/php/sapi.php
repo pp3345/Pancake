@@ -20,8 +20,10 @@
         if(is_array($options)) {
         	$flags = 0;
 
-            foreach((array) $options['flags'] as $option)
-                $flags |= $option;
+            if(isset($options['flags'])) {
+                foreach($options['flags'] as $option)
+                    $flags |= $option;
+            }
         } else
             $flags = $options;
 
