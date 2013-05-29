@@ -340,6 +340,9 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	PANCAKE_SAPI_GLOBALS(listenSocket) = Z_LVAL_P(phpSocket);
 	PANCAKE_SAPI_GLOBALS(controlSocket) = Z_LVAL_P(controlSocket);
 
+	// Hide sockets from userspace
+	Z_LVAL_P(phpSocket) = Z_LVAL_P(controlSocket) = -1;
+
 	// Set error handling constants
 	REGISTER_NS_LONG_CONSTANT("Pancake", "EH_THROW", EH_THROW, CONST_PERSISTENT);
 	REGISTER_NS_LONG_CONSTANT("Pancake", "EH_NORMAL", EH_NORMAL, CONST_PERSISTENT);
