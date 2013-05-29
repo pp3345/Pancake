@@ -29,33 +29,30 @@
         switch($type) {
             case /* .constant 'INPUT_GET' */:
                 $GET = Pancake\vars::$Pancake_request->getGETParams();
-                if(!array_key_exists($variable_name, $GET))
+                if(!isset($GET[$variable_name]))
                     return $flags & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
                 $var = $GET[$variable_name];
                 break;
             case /* .constant 'INPUT_POST' */:
                 $POST = Pancake\vars::$Pancake_request->getPOSTParams();
-                if(!array_key_exists($variable_name, $POST))
+                if(!isset($POST[$variable_name]))
                     return $flags & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
                 $var = $POST[$variable_name];
                 break;
             case /* .constant 'INPUT_COOKIE' */:
                 $COOKIE = Pancake\vars::$Pancake_request->getCookies();
-                if(!array_key_exists($variable_name, $COOKIE))
+                if(!isset($COOKIE[$variable_name]))
                     return $flags & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
                 $var = $COOKIE[$variable_name];
                 break;
             case /* .constant 'INPUT_SERVER' */:
                 $SERVER = Pancake\SAPIFetchSERVER();
-                if(!array_key_exists($variable_name, $SERVER))
+                if(!isset($SERVER[$variable_name]))
                     return $flags & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
                 $var = $SERVER[$variable_name];
                 break;
             case /* .constant 'INPUT_ENV' */:
-                if(!array_key_exists($variable_name, $_ENV))
-                    return $flags & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
-                $var = $_ENV[$variable_name];
-                break;
+                return $flags & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null;
         }
 
         return filter_var($var, $filter, $options);
@@ -73,7 +70,7 @@
             switch($type) {
                 case /* .constant 'INPUT_GET' */:
                     $GET = Pancake\vars::$Pancake_request->getGETParams();
-                    if(!array_key_exists($key, $GET)) {
+                    if(!isset($GET[$key])) {
                         $endArray[$key] = ($options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null);
                         continue 2;
                     }
@@ -81,7 +78,7 @@
                     break;
                 case /* .constant 'INPUT_POST' */:
                     $POST = Pancake\vars::$Pancake_request->getPOSTParams();
-                    if(!array_key_exists($key, $POST)) {
+                    if(!isset($POST[$key])) {
                         $endArray[$key] = ($options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null);
                         continue 2;
                     }
@@ -89,7 +86,7 @@
                     break;
                 case /* .constant 'INPUT_COOKIE' */:
                     $COOKIE = Pancake\vars::$Pancake_request->getCookies();
-                    if(!array_key_exists($key, $COOKIE)) {
+                    if(!isset($COOKIE[$key])) {
                         $endArray[$key] = ($options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null);
                         continue 2;
                     }
@@ -97,19 +94,15 @@
                     break;
                 case /* .constant 'INPUT_SERVER' */:
                     $SERVER = Pancake\SAPIFetchSERVER();
-                    if(!array_key_exists($key, $SERVER)) {
+                    if(!isset($SERVER[$key])) {
                         $endArray[$key] = ($options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null);
                         continue 2;
                     }
                     $var = $SERVER[$key];
                     break;
                 case /* .constant 'INPUT_ENV' */:
-                    if(!array_key_exists($key, $_ENV)) {
-                        $endArray[$key] = ($options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null);
-                        continue 2;
-                    }
-                    $var = $_ENV[$key];
-                    break;
+                    $endArray[$key] = ($options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null);
+                    continue 2;
             }
 
             $data[$key] = $var;
