@@ -43,6 +43,11 @@ void Pancake_debug_backtrace(INTERNAL_FUNCTION_PARAMETERS) {
 void Pancake_debug_print_backtrace(INTERNAL_FUNCTION_PARAMETERS) {
 	char *offset;
 	zval *output;
+	long options = 0, limit = 0;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|ll", &options, &limit) == FAILURE) {
+		return;
+	}
 
 	MAKE_STD_ZVAL(output);
 
