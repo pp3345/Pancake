@@ -28,18 +28,6 @@
 	
 	#.if #.eval EVAL_CODE false
 	   #.HAVE_PHP_MODULES = true
-	   
-	   #.longDefine 'EVAL_CODE'
-	   global $Pancake_currentThread;
-       
-       if(in_array("filter", $Pancake_currentThread->vHost->phpModules))
-            return true;
-       return false;
-	   #.endLongDefine
-	   
-	   #.if #.eval EVAL_CODE false
-	       #.HAVE_FILTER_EXTENSION = true
-	   #.endif
 	#.endif
 
     namespace {
