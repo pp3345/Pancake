@@ -1284,7 +1284,7 @@ zend_bool PancakeSAPIFetchRequest(int fd, zval *return_value TSRMLS_DC) {
 		property->refcount__gc = 1;
 
 		/* Fetch string value */
-		if(Z_TYPE_P(property) == IS_STRING) {
+		if(i >= PANCAKE_HTTP_REQUEST_FIRST_STRING_OFFSET) {
 			Z_STRVAL_P(property) = emalloc(Z_STRLEN_P(property) + 1);
 			memcpy(Z_STRVAL_P(property), &buf[offset], Z_STRLEN_P(property));
 			offset += Z_STRLEN_P(property);
