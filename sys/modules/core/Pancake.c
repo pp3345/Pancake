@@ -117,7 +117,6 @@ const zend_function_entry Pancake_functions[] = {
 	ZEND_NS_FE("Pancake", getPeerName, arginfo_getnName)
 	ZEND_NS_FE("Pancake", getSockName, arginfo_getnName)
 	ZEND_NS_FE("Pancake", select, arginfo_select)
-	ZEND_NS_FE("Pancake", adjustSendBufferSize, NULL)
 	ZEND_NS_FE("Pancake", nonBlockingAccept, NULL)
 	ZEND_NS_FE("Pancake", naglesAlgorithm, NULL)
 	ZEND_FE_END

@@ -129,7 +129,6 @@ PHP_FUNCTION(close);
 PHP_FUNCTION(getSockName);
 PHP_FUNCTION(getPeerName);
 PHP_FUNCTION(select);
-PHP_FUNCTION(adjustSendBufferSize);
 PHP_FUNCTION(nonBlockingAccept);
 PHP_FUNCTION(naglesAlgorithm);
 
