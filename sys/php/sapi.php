@@ -122,15 +122,14 @@
     function filter_has_var($type, $variable_name) {
         switch($type) {
             case /* .INPUT_GET */:
-                return array_key_exists($variable_name, Pancake\vars::$Pancake_request->getGETParams());
+                return isset(Pancake\vars::$Pancake_request->getGETParams()[$variable_name]);
             case /* .INPUT_POST */:
-                return array_key_exists($variable_name, Pancake\vars::$Pancake_request->getPOSTParams());
+                return isset(Pancake\vars::$Pancake_request->getPOSTParams()[$variable_name]);
             case /* .INPUT_COOKIE */:
-                return array_key_exists($variable_name, Pancake\vars::$Pancake_request->getCookies());
+                return isset(Pancake\vars::$Pancake_request->getCookies()[$variable_name]);
             case /* .INPUT_SERVER */:
-                return array_key_exists($variable_name, Pancake\SAPIFetchSERVER());
+                return isset(Pancake\SAPIFetchSERVER()[$variable_name]);
             case /* .INPUT_ENV */:
-                return array_key_exists($variable_name, $_ENV);
             default:
                 return false;
         }
