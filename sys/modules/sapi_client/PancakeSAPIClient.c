@@ -250,81 +250,70 @@ PHP_METHOD(SAPIClient, SAPIData) {
 
 	switch(packetType) {
 		case PANCAKE_SAPI_HEADER_DATA: {
-			size_t headerLength = 0, offset = 0;
-			char *headerBuf, *statusLine, *headerBufP;
-			zval *headerData;
-			php_unserialize_data_t varHash;
-			short statusCode = 0, statusLineLength = 0;
+			zval *answerHeaders;
+			size_t bufSize, offset = 3 * sizeof(short), readData = 0;
+			char *buf;
+			unsigned short numHeaders, responseCode, statusLineLength, headersRead = 0;
 
-			read(fd, &headerLength, sizeof(size_t));
+			read(fd, &bufSize, sizeof(size_t));
+			buf = emalloc(bufSize);
 
-			headerBuf = emalloc(headerLength + 1);
-			headerBuf[headerLength] = '\0';
-
-			while(offset < headerLength) {
-				size_t readLength = read(fd, &headerBuf[offset], headerLength - offset);
-				if(readLength == -1) {
-					efree(headerBuf);
+			while(readData < bufSize) {
+				size_t result = read(fd, buf, bufSize);
+				if(result == -1) {
+					efree(buf);
 					close(fd);
+					zend_error(E_WARNING, "%s", strerror(errno));
 
 					PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("PHP SAPI unexpectedly closed network connection",
-						sizeof("PHP SAPI unexpectedly closed network connection") - 1, 500);
+							sizeof("PHP SAPI unexpectedly closed network connection") - 1, 500);
 					return;
 				}
 
-				offset += readLength;
+				readData += result;
 			}
 
-			MAKE_STD_ZVAL(headerData);
+			memcpy(&numHeaders, buf, sizeof(short));
+			memcpy(&responseCode, buf + sizeof(short), sizeof(short));
+			memcpy(&statusLineLength, buf + 2 * sizeof(short), sizeof(short));
 
-			headerBufP = headerBuf;
+			PancakeQuickWritePropertyString(HTTPRequest, "answerCodeString", sizeof("answerCodeString"), HASH_OF_answerCodeString, buf + 3 * sizeof(short), statusLineLength, 1);
+			PancakeQuickWritePropertyLong(HTTPRequest, "answerCode", sizeof("answerCode"), HASH_OF_answerCode, (long) responseCode);
 
-			PHP_VAR_UNSERIALIZE_INIT(varHash);
-			if (!php_var_unserialize(&headerData, (const unsigned char**) &headerBuf, headerBuf + headerLength, &varHash TSRMLS_CC)
-			|| Z_TYPE_P(headerData) != IS_ARRAY) {
-				/* Malformed value */
-				PHP_VAR_UNSERIALIZE_DESTROY(varHash);
-				zval_ptr_dtor(&headerData);
-				close(fd);
-				efree(headerBuf);
+			offset += statusLineLength;
 
-				PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("PHP SAPI returned malformed value",
-					sizeof("PHP SAPI returned malformed value") - 1, 500);
+			FAST_READ_PROPERTY(answerHeaders, HTTPRequest, "answerHeaders", sizeof("answerHeaders") - 1, HASH_OF_answerHeaders);
+			zend_hash_clean(Z_ARRVAL_P(answerHeaders));
 
-				return;
+			while(headersRead < numHeaders) {
+				zval *headerValue;
+				char *headerName;
+				int headerName_len;
+
+				memcpy(&headerName_len, buf + offset, sizeof(int));
+				offset += sizeof(int);
+				headerName = emalloc(headerName_len);
+				memcpy(headerName, buf + offset, headerName_len);
+				offset += headerName_len;
+
+				MAKE_STD_ZVAL(headerValue);
+				Z_TYPE_P(headerValue) = IS_STRING;
+
+				memcpy(&Z_STRLEN_P(headerValue), buf + offset, sizeof(int));
+				offset += sizeof(int);
+				Z_STRVAL_P(headerValue) = emalloc(Z_STRLEN_P(headerValue) + 1);
+				memcpy(Z_STRVAL_P(headerValue), buf + offset, Z_STRLEN_P(headerValue));
+				Z_STRVAL_P(headerValue)[Z_STRLEN_P(headerValue)] = '\0';
+				offset += Z_STRLEN_P(headerValue);
+
+				PancakeSetAnswerHeader(answerHeaders, headerName, headerName_len, headerValue, 0, zend_inline_hash_func(headerName, headerName_len) TSRMLS_CC);
+
+				efree(headerName);
+
+				headersRead++;
 			}
-			PHP_VAR_UNSERIALIZE_DESTROY(varHash);
 
-			efree(headerBufP);
-
-			PancakeQuickWriteProperty(HTTPRequest, headerData, "answerHeaders", sizeof("answerHeaders"), HASH_OF_answerHeaders TSRMLS_CC);
-			Z_DELREF_P(headerData);
-
-			read(fd, &statusCode, sizeof(short));
-			PancakeQuickWritePropertyLong(HTTPRequest, "answerCode", sizeof("answerCode"), HASH_OF_answerCode, (long) statusCode);
-
-			read(fd, &statusLineLength, sizeof(short));
-			if(statusLineLength) {
-				offset = 0;
-				statusLine = emalloc(statusLineLength + 1);
-				statusLine[statusLineLength] = '\0';
-
-				while(offset < statusLineLength) {
-					size_t readLength = read(fd, &statusLine[offset], statusLineLength - offset);
-					if(readLength == -1) {
-						efree(statusLine);
-						close(fd);
-
-						PANCAKE_THROW_INVALID_HTTP_REQUEST_EXCEPTION_NO_HEADER("PHP SAPI unexpectedly closed network connection",
-							sizeof("PHP SAPI unexpectedly closed network connection") - 1, 500);
-						return;
-					}
-
-					offset += readLength;
-				}
-
-				PancakeQuickWritePropertyString(HTTPRequest, "answerCodeString", sizeof("answerCodeString"), HASH_OF_answerCodeString, statusLine, statusLineLength, 0);
-			}
+			efree(buf);
 
 			RETURN_TRUE;
 		} break;

@@ -94,70 +94,100 @@ static int PancakeSAPICleanNonPersistentConstant(const zend_constant *c TSRMLS_D
 }
 
 static int PancakeSAPISendHeaders(sapi_headers_struct *sapi_headers TSRMLS_DC) {
-	zval *answerHeaders;
-	php_serialize_data_t varHash;
-	smart_str buf = {0};
-	size_t offset = 0;
-	short responseCode = (short) sapi_headers->http_response_code;
+	zval *answerHeaders, **headerValue;
+	size_t offset = sizeof(char) + sizeof(size_t) + sizeof(short) + sizeof(short) + sizeof(short),
+			bufLength,
+			offset2 = 0;
+	unsigned short responseCode = (unsigned short) sapi_headers->http_response_code,
+		statusLineLength = 0, num = 0;
+	char *headerName, *buf, *answerCodeString = NULL;
+	int headerName_len, bufSize;
 
+	// We don't need to send anything if the headers didn't change
+	// Also, PHP will call this function when Pancake shuts down
 	if(!PANCAKE_SAPI_GLOBALS(inExecution) || !PANCAKE_SAPI_GLOBALS(haveChangedHeaders)) {
 		return SAPI_HEADER_SENT_SUCCESSFULLY;
 	}
 
-	FAST_READ_PROPERTY(answerHeaders, PANCAKE_SAPI_GLOBALS(request), "answerHeaders", sizeof("answerHeaders") - 1, HASH_OF_answerHeaders);
-
-	PHP_VAR_SERIALIZE_INIT(varHash);
-	php_var_serialize(&buf, &answerHeaders, &varHash TSRMLS_CC);
-	PHP_VAR_SERIALIZE_DESTROY(varHash);
-
-	/* Write packet type */
-	if(write(PANCAKE_SAPI_GLOBALS(clientSocket), "\0", sizeof(char)) == -1) {
-		/* What do we do here? */
-		smart_str_free(&buf);
-		return SAPI_HEADER_SEND_FAILED;
+	// Check for custom answer string
+	if(sapi_headers->http_status_line && strlen(sapi_headers->http_status_line) >= sizeof("HTTP/1.0 200 ") && sapi_headers->http_status_line[12] == ' ') {
+		answerCodeString = &(sapi_headers->http_status_line[13]);
+		statusLineLength = (short) strlen(answerCodeString) + 1;
 	}
 
-	/* Write header length */
-	write(PANCAKE_SAPI_GLOBALS(clientSocket), &buf.len, sizeof(size_t));
+	// Write answer headers
+	FAST_READ_PROPERTY(answerHeaders, PANCAKE_SAPI_GLOBALS(request), "answerHeaders", sizeof("answerHeaders") - 1, HASH_OF_answerHeaders);
 
-	/* Write headers */
-	while(offset < buf.len) {
-		ssize_t result = write(PANCAKE_SAPI_GLOBALS(clientSocket), &buf.c[offset], buf.len - offset);
+	bufSize = 512 + statusLineLength;
+	buf = emalloc(bufSize);
+	buf[0] = '\0';
+
+	memcpy(buf + sizeof(char) + sizeof(short) + sizeof(size_t), &responseCode, sizeof(short));
+	memcpy(buf + sizeof(char) + sizeof(short) + sizeof(size_t) + sizeof(short), &statusLineLength, sizeof(short));
+	memcpy(buf + sizeof(char) + sizeof(short) + sizeof(size_t) + sizeof(short) + sizeof(short), answerCodeString, statusLineLength);
+	offset += statusLineLength;
+
+	PANCAKE_FOREACH_KEY(Z_ARRVAL_P(answerHeaders), headerName, headerName_len, headerValue) {
+		if(Z_TYPE_PP(headerValue) == IS_ARRAY) {
+			zval **singleValue;
+
+			PANCAKE_FOREACH(Z_ARRVAL_PP(headerValue), singleValue) {
+				if(bufSize < offset + headerName_len + Z_STRLEN_PP(singleValue)) {
+					bufSize += headerName_len + Z_STRLEN_PP(singleValue) + 256;
+					buf = erealloc(buf, bufSize);
+				}
+
+				memcpy(buf + offset, &headerName_len, sizeof(int));
+				offset += sizeof(int);
+				memcpy(buf + offset, headerName, headerName_len);
+				offset += headerName_len;
+
+				memcpy(buf + offset, &Z_STRLEN_PP(singleValue), sizeof(int));
+				offset += sizeof(int);
+				memcpy(buf + offset, Z_STRVAL_PP(singleValue), Z_STRLEN_PP(singleValue));
+				offset += Z_STRLEN_PP(singleValue);
+
+				num++;
+			}
+		} else {
+			if(bufSize < offset + headerName_len + Z_STRLEN_PP(headerValue)) {
+				bufSize += headerName_len + Z_STRLEN_PP(headerValue) + 256;
+				buf = erealloc(buf, bufSize);
+			}
+
+			memcpy(buf + offset, &headerName_len, sizeof(int));
+			offset += sizeof(int);
+			memcpy(buf + offset, headerName, headerName_len);
+			offset += headerName_len;
+
+			memcpy(buf + offset, &Z_STRLEN_PP(headerValue), sizeof(int));
+			offset += sizeof(int);
+			memcpy(buf + offset, Z_STRVAL_PP(headerValue), Z_STRLEN_PP(headerValue));
+			offset += Z_STRLEN_PP(headerValue);
+
+			num++;
+		}
+	}
+
+	// Set the number of headers
+	memcpy(buf + sizeof(char) + sizeof(size_t), &num, sizeof(short));
+
+	// Set the total buffer size
+	bufLength = offset - sizeof(char) - sizeof(size_t);
+	memcpy(buf + sizeof(char), &bufLength, sizeof(size_t));
+
+	// Write buffer to socket
+	while(offset2 < offset) {
+		ssize_t result = write(PANCAKE_SAPI_GLOBALS(clientSocket), &buf[offset2], offset - offset2);
 		if(result == -1) {
-			/* What do we do here? */
-			smart_str_free(&buf);
+			efree(buf);
 			return SAPI_HEADER_SEND_FAILED;
 		}
 
-		offset += result;
+		offset2 += result;
 	}
 
-	/* Free buffer */
-	smart_str_free(&buf);
-
-	/* Write status code */
-	write(PANCAKE_SAPI_GLOBALS(clientSocket), &responseCode, sizeof(short));
-
-	if(sapi_headers->http_status_line && strlen(sapi_headers->http_status_line) >= sizeof("HTTP/1.0 200 ") && sapi_headers->http_status_line[12] == ' ') {
-		char *answerCodeString = &(sapi_headers->http_status_line[13]);
-		short statusLineLength = (short) strlen(answerCodeString);
-		offset = 0;
-
-		write(PANCAKE_SAPI_GLOBALS(clientSocket), &statusLineLength, sizeof(short));
-
-		while(offset < statusLineLength) {
-			ssize_t result = write(PANCAKE_SAPI_GLOBALS(clientSocket), &answerCodeString[offset], statusLineLength - offset);
-			if(result == -1) {
-				/* What do we do here? */
-				return SAPI_HEADER_SEND_FAILED;
-			}
-
-			offset += result;
-		}
-	} else {
-		/* Write 0 length */
-		write(PANCAKE_SAPI_GLOBALS(clientSocket), "\0", sizeof(short));
-	}
+	efree(buf);
 
 	return SAPI_HEADER_SENT_SUCCESSFULLY;
 }
