@@ -600,5 +600,6 @@ static int PancakeFastHasProperty(zval *object, zval *member, int has_set_exists
 #define HASH_OF_mimetype 249898115907533775U
 #define HASH_OF_FastCGI 7570997978780742U
 #define HASH_OF_fastcgi 7572361770141894U
+#define HASH_OF_disableaccesschecks 17177348003138717916U
 
 #endif	/* PANCAKE_H */

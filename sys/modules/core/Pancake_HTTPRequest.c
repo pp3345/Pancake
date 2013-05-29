@@ -151,7 +151,7 @@ PHP_METHOD(HTTPRequest, init) {
 		 *filePath, *filePath_tmp;
 	int requestHeader_len, i, requestLine_len, haveContentLength = 0, contentLength = 0,
 		acceptGZIP = 0, host_len, fL1isMalloced = 0, requestFilePath_len, filePath_len,
-		authorization_len;
+		authorization_len, disableAccessChecks = 0;
 	zval *headerArray, **vHost, **newvHost, *documentRootz, *rewriteRules, *mimeType = NULL, *AJP13,
 		*answerHeaderArray;
 	struct timeval tp = {0};
@@ -692,6 +692,10 @@ PHP_METHOD(HTTPRequest, init) {
 
 			if(zend_hash_quick_find(Z_ARRVAL_PP(rewriteRule), "fastcgi", sizeof("fastcgi"), HASH_OF_fastcgi, (void**) &value) == SUCCESS) {
 				PancakeQuickWriteProperty(this_ptr, *value, "FastCGI", sizeof("FastCGI"), HASH_OF_FastCGI);
+
+				if(zend_hash_quick_exists(Z_ARRVAL_PP(rewriteRule), "disableaccesschecks", sizeof("disableaccesschecks"), HASH_OF_disableaccesschecks)) {
+					disableAccessChecks = 1;
+				}
 			}
 		}
 
@@ -740,7 +744,7 @@ PHP_METHOD(HTTPRequest, init) {
 
 	FAST_READ_PROPERTY(AJP13, *vHost, "AJP13", 5, HASH_OF_AJP13);
 
-	if(EXPECTED(Z_TYPE_P(AJP13) != IS_OBJECT)) {
+	if(EXPECTED(Z_TYPE_P(AJP13) != IS_OBJECT) && EXPECTED(!disableAccessChecks)) {
 		struct stat st;
 
 		filePath = emalloc(Z_STRLEN_P(documentRootz) + requestFilePath_len + 1);
