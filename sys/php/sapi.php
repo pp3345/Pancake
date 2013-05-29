@@ -21,8 +21,12 @@
         	$flags = 0;
 
             if(isset($options['flags'])) {
-                foreach($options['flags'] as $option)
-                    $flags |= $option;
+                if(is_array($options['flags'])) {
+                    foreach($options['flags'] as $option)
+                        $flags |= $option;
+                } else {
+                    $flags = $options['flags'];
+                }
             }
         } else
             $flags = $options;
@@ -60,58 +64,51 @@
         return filter_var($var, $filter, $options);
     }
 
-    function filter_input_array($type, $definition = null) {
-    	$endArray = $data = $filterOptions = array();
+    function filter_input_array($type, $definition = null, $add_empty = true) {
+    	$endArray = $data = array();
 
-        foreach((array) $definition as $key => $options) {
-        	if(is_int($options))
-        		$options = array('filter' => $options, 'flags' => 0);
-        	if(!isset($options['flags']))
-        		$options['flags'] = 0;
+        if(is_array($definition)) {
+            foreach($definition as $key => $options) {                    
+                switch($type) {
+                    case /* .constant 'INPUT_GET' */:
+                        $GET = Pancake\vars::$Pancake_request->getGETParams();
+                        if(!isset($GET[$key])) {
+                            continue 2;
+                        }
+                        
+                        $data[$key] = $GET[$key];
+                        break;
+                    case /* .constant 'INPUT_POST' */:
+                        $POST = Pancake\vars::$Pancake_request->getPOSTParams();
+                        if(!isset($POST[$key])) {
+                            continue 2;
+                        }
 
-            switch($type) {
-                case /* .constant 'INPUT_GET' */:
-                    $GET = Pancake\vars::$Pancake_request->getGETParams();
-                    if(!isset($GET[$key])) {
-                        $endArray[$key] = ($options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null);
+                        $data[$key] = $POST[$key];
+                        break;
+                    case /* .constant 'INPUT_COOKIE' */:
+                        $COOKIE = Pancake\vars::$Pancake_request->getCookies();
+                        if(!isset($COOKIE[$key])) {
+                            continue 2;
+                        }
+                        
+                        $data[$key] = $COOKIE[$key];
+                        break;
+                    case /* .constant 'INPUT_SERVER' */:
+                        $SERVER = Pancake\SAPIFetchSERVER();
+                        if(!isset($SERVER[$key])) {
+                            continue 2;
+                        }
+                        
+                        $data[$key] = $SERVER[$key];
+                        break;
+                    case /* .constant 'INPUT_ENV' */:
                         continue 2;
-                    }
-                    $var = $GET[$key];
-                    break;
-                case /* .constant 'INPUT_POST' */:
-                    $POST = Pancake\vars::$Pancake_request->getPOSTParams();
-                    if(!isset($POST[$key])) {
-                        $endArray[$key] = ($options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null);
-                        continue 2;
-                    }
-                    $var = $POST[$key];
-                    break;
-                case /* .constant 'INPUT_COOKIE' */:
-                    $COOKIE = Pancake\vars::$Pancake_request->getCookies();
-                    if(!isset($COOKIE[$key])) {
-                        $endArray[$key] = ($options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null);
-                        continue 2;
-                    }
-                    $var = $COOKIE[$key];
-                    break;
-                case /* .constant 'INPUT_SERVER' */:
-                    $SERVER = Pancake\SAPIFetchSERVER();
-                    if(!isset($SERVER[$key])) {
-                        $endArray[$key] = ($options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null);
-                        continue 2;
-                    }
-                    $var = $SERVER[$key];
-                    break;
-                case /* .constant 'INPUT_ENV' */:
-                    $endArray[$key] = ($options['flags'] & /* .constant 'FILTER_NULL_ON_FAILURE' */ ? false : null);
-                    continue 2;
+                }
             }
-
-            $data[$key] = $var;
-            $filterOptions[$key] = $options;
         }
 
-        return array_merge(filter_var_array($data, $filterOptions), $endArray);
+        return filter_var_array($data, $definition, $add_empty);
     }
 
     function filter_has_var($type, $variable_name) {
