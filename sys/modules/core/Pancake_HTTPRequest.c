@@ -62,7 +62,7 @@ PHP_METHOD(HTTPRequest, setHeader) {
 	PancakeSetAnswerHeader(this_ptr, name, name_len, nvalue, replace, zend_inline_hash_func(name, name_len) TSRMLS_CC);
 }
 
-char *PancakeBuildAnswerHeaders(zval *answerHeaderArray, uint *answerHeader_len) {
+static char *PancakeBuildAnswerHeaders(zval *answerHeaderArray, uint *answerHeader_len) {
 	zval **data;
 	char *index;
 	int index_len;

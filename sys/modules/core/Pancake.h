@@ -455,7 +455,6 @@ extern ZEND_DECLARE_MODULE_GLOBALS(Pancake);
 PANCAKE_API int PancakeOutput(char **string, int string_len, long flags TSRMLS_DC);
 PANCAKE_API void PancakeSetAnswerHeader(zval *answerHeaderArray, char *name, uint name_len, zval *value, uint replace, ulong h TSRMLS_DC);
 PANCAKE_API zval *PancakeMIMEType(char *filePath, int filePath_len TSRMLS_DC);
-char *PancakeBuildAnswerHeaders(zval *answerHeaderArray, uint *answerHeader_len);
 zval *PancakeFastReadProperty(zval *object, zval *member, ulong hashValue, const zend_literal *key TSRMLS_DC);
 void PancakeFastWriteProperty(zval *object, zval *member, zval *value, const zend_literal *key TSRMLS_DC);
 void PancakeQuickWriteProperty(zval *object, zval *value, char *name, int name_len, ulong h TSRMLS_DC);
