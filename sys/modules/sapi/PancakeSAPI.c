@@ -939,15 +939,18 @@ PHP_FUNCTION(SAPIFinishRequest) {
 		for(i = 1; i < EG(objects_store).top; i++) {
 			if (EG(objects_store).object_buckets[i].valid) {
 				struct _store_object *obj = &EG(objects_store).object_buckets[i].bucket.obj;
-				zend_object *object = (zend_object*) obj->object;
 
-				if(object->ce->name[0] == 'P' && !strncmp(object->ce->name, "Pancake\\", sizeof("Pancake\\") - 1)) {
-					continue;
-				}
 
 				if (!EG(objects_store).object_buckets[i].destructor_called) {
-					EG(objects_store).object_buckets[i].destructor_called = 1;
 					if (obj->dtor && obj->object) {
+						zend_object *object = (zend_object*) obj->object;
+
+						if(object->ce->name[0] == 'P' && !strncmp(object->ce->name, "Pancake\\", sizeof("Pancake\\") - 1)) {
+							continue;
+						}
+
+						EG(objects_store).object_buckets[i].destructor_called = 1;
+
 						obj->refcount++;
 						obj->dtor(obj->object, i TSRMLS_CC);
 						obj = &EG(objects_store).object_buckets[i].bucket.obj;
@@ -968,6 +971,8 @@ PHP_FUNCTION(SAPIFinishRequest) {
 							zval_ptr_dtor(&PANCAKE_SAPI_GLOBALS(errorHandler));
 							return;
 						}
+					} else {
+						EG(objects_store).object_buckets[i].destructor_called = 1;
 					}
 				}
 			}
