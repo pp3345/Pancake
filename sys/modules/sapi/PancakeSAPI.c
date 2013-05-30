@@ -628,6 +628,9 @@ PHP_RSHUTDOWN_FUNCTION(PancakeSAPI) {
 		/* We are executing a PHP script which bailed out */
 		PANCAKE_SAPI_GLOBALS(inExecution) = 0;
 
+		/* Flush SAPI buffer */
+		PancakeSAPIFlush(NULL);
+
 		/* End request */
 		write(PANCAKE_SAPI_GLOBALS(clientSocket), "\2", sizeof(char));
 
