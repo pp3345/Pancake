@@ -264,7 +264,7 @@ static void PancakeSAPIFlush(void *context) {
 			offset += result;
 		}
 
-		efree(PANCAKE_SAPI_GLOBALS(output));
+		free(PANCAKE_SAPI_GLOBALS(output));
 		PANCAKE_SAPI_GLOBALS(outputLength) = 0;
 		PANCAKE_SAPI_GLOBALS(output) = NULL;
 	}
@@ -279,7 +279,7 @@ static int PancakeSAPIOutputHandler(const char *str, unsigned int str_length TSR
 
 	if(PANCAKE_SAPI_GLOBALS(outputLength) + str_length < 4091) {
 		if(PANCAKE_SAPI_GLOBALS(output) == NULL) {
-			PANCAKE_SAPI_GLOBALS(output) = emalloc(4096);
+			PANCAKE_SAPI_GLOBALS(output) = malloc(4096);
 			PANCAKE_SAPI_GLOBALS(output)[0] = '\1';
 		}
 
