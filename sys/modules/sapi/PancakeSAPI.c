@@ -1244,14 +1244,21 @@ static void PancakeSAPIReadHeaderSet(int fd, zval **headerArray TSRMLS_DC) {
 	int numHeaders = 0, i, bufSize, offset = sizeof(int);
 	char *buf;
 
+	zval_ptr_dtor(headerArray);
+	MAKE_STD_ZVAL(*headerArray);
+
 	read(fd, &bufSize, sizeof(int));
+
+	if(!bufSize) {
+		array_init_size(*headerArray, 2);
+		return;
+	}
+
 	buf = emalloc(bufSize);
 	read(fd, buf, bufSize);
 
 	memcpy(&numHeaders, buf, sizeof(int));
 
-	zval_ptr_dtor(headerArray);
-	MAKE_STD_ZVAL(*headerArray);
 	array_init_size(*headerArray, numHeaders);
 
 	if(!numHeaders) {

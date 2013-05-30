@@ -70,14 +70,22 @@ PHP_METHOD(SAPIClient, __construct) {
 	PancakeQuickWritePropertyLong(this_ptr, "freeSocket", sizeof("freeSocket"), HASH_OF_freeSocket, 0);
 }
 
-static inline void PancakeSAPIClientWriteHeaderSet(int sock, HashTable *headers TSRMLS_DC) {
-	char *key, *buf = emalloc(1024);
+static void PancakeSAPIClientWriteHeaderSet(int sock, HashTable *headers TSRMLS_DC) {
+	char *key, *buf;
 	int key_len,
 		numElements = zend_hash_num_elements(headers),
-		offset = sizeof(int),
-		bufSize = 1024;
+		offset,
+		bufSize;
 	zval **value;
 
+	if(!numElements) {
+		write(sock, "\0\0\0\0", 4);
+		return;
+	}
+
+	bufSize = 1024;
+	offset = sizeof(int);
+	buf = emalloc(1024);
 	memcpy(buf, &numElements, sizeof(int));
 
 	PANCAKE_FOREACH_KEY(headers, key, key_len, value) {
