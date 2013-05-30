@@ -258,6 +258,10 @@ static void PancakeSAPIFlush(void *context) {
 		while(offset < PANCAKE_SAPI_GLOBALS(outputLength) + 5) {
 			ssize_t result = write(PANCAKE_SAPI_GLOBALS(clientSocket), &PANCAKE_SAPI_GLOBALS(output)[offset], (PANCAKE_SAPI_GLOBALS(outputLength) + 5) - offset);
 			if(result == -1) {
+				free(PANCAKE_SAPI_GLOBALS(output));
+				PANCAKE_SAPI_GLOBALS(outputLength) = 0;
+				PANCAKE_SAPI_GLOBALS(output) = NULL;
+
 				return;
 			}
 
