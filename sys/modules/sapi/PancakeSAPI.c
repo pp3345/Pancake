@@ -389,6 +389,19 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zend_hash_del(EG(zend_constants), "STDERR", sizeof("STDERR"));
 	zend_hash_del(EG(zend_constants), "STDIN", sizeof("STDIN"));
 
+	// Open fake fds (disallow access to Pancake sockets via php:// streams)
+	if(fcntl(0, F_GETFD) == -1) {
+		open("/dev/null", 0);
+	}
+
+	if(fcntl(1, F_GETFD) == -1) {
+		open("/dev/null", 0);
+	}
+
+	if(fcntl(2, F_SETFD) == -1) {
+		open("/dev/null", 0);
+	}
+
 	// Fetch vHost php.ini settings
 	INISettings = zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "phpINISettings", sizeof("phpINISettings") - 1, 0 TSRMLS_CC);
 	if(Z_TYPE_P(INISettings) == IS_ARRAY && zend_hash_num_elements(Z_ARRVAL_P(INISettings))) {
@@ -1097,11 +1110,26 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	}
 	zend_cleanup_internal_classes(TSRMLS_C);
 
-	// Destroy resource list
-	zend_hash_graceful_reverse_destroy(&EG(regular_list));
-	// See zend_init_rsrc_list()
-	zend_hash_init(&EG(regular_list), 0, NULL, PHP_list_entry_destructor, 0);
-	EG(regular_list).nNextFreeElement = 1;
+	if(EG(regular_list).nNumOfElements) {
+		// Destroy resource list
+		zend_hash_graceful_reverse_destroy(&EG(regular_list));
+		// See zend_init_rsrc_list()
+		zend_hash_init(&EG(regular_list), 0, NULL, PHP_list_entry_destructor, 0);
+		EG(regular_list).nNextFreeElement = 1;
+
+		// Open fake fds
+		if(fcntl(0, F_GETFD) == -1) {
+			open("/dev/null", 0);
+		}
+
+		if(fcntl(1, F_GETFD) == -1) {
+			open("/dev/null", 0);
+		}
+
+		if(fcntl(2, F_SETFD) == -1) {
+			open("/dev/null", 0);
+		}
+	}
 
 	// Restore ini entries
 	zend_try {
