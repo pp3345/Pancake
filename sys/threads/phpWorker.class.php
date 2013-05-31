@@ -92,8 +92,10 @@
         }
 
         public function __destruct() {
-            Close($this->localSocket);
-            Close($this->socket);
+            if(!class_exists('Pancake\vars') || vars::$Pancake_currentThread != $this) {
+                Close($this->localSocket);
+                Close($this->socket);
+            }
         }
     }
 ?>
