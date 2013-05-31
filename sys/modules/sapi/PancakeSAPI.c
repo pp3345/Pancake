@@ -402,6 +402,30 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 		open("/dev/null", 0);
 	}
 
+	// Delete Pancake direct I/O functions from userspace
+	zend_hash_del(EG(function_table), "pancake\\socket", sizeof("pancake\\socket"));
+	zend_hash_del(EG(function_table), "pancake\\reuseaddress", sizeof("pancake\\reuseaddress"));
+	zend_hash_del(EG(function_table), "pancake\\bind", sizeof("pancake\\bind"));
+	zend_hash_del(EG(function_table), "pancake\\listen", sizeof("pancake\\listen"));
+	zend_hash_del(EG(function_table), "pancake\\setblocking", sizeof("pancake\\setblocking"));
+	zend_hash_del(EG(function_table), "pancake\\write", sizeof("pancake\\write"));
+	zend_hash_del(EG(function_table), "pancake\\writebuffer", sizeof("pancake\\writebuffer"));
+	zend_hash_del(EG(function_table), "pancake\\read", sizeof("pancake\\read"));
+	zend_hash_del(EG(function_table), "pancake\\accept", sizeof("pancake\\accept"));
+	zend_hash_del(EG(function_table), "pancake\\keepalive", sizeof("pancake\\keepalive"));
+	zend_hash_del(EG(function_table), "pancake\\connect", sizeof("pancake\\connect"));
+	zend_hash_del(EG(function_table), "pancake\\close", sizeof("pancake\\close"));
+	zend_hash_del(EG(function_table), "pancake\\getsockname", sizeof("pancake\\getsockname"));
+	zend_hash_del(EG(function_table), "pancake\\getpeername", sizeof("pancake\\getpeername"));
+	zend_hash_del(EG(function_table), "pancake\\select", sizeof("pancake\\select"));
+	zend_hash_del(EG(function_table), "pancake\\nonblockingaccept", sizeof("pancake\\nonblockingaccept"));
+	zend_hash_del(EG(function_table), "pancake\\naglesalgorithm", sizeof("pancake\\naglesalgorithm"));
+
+	// Fork() is also a bad idea, SetThread() too and scripts shouldn't output anything via Pancake
+	zend_hash_del(EG(function_table), "pancake\\fork", sizeof("pancake\\fork"));
+	zend_hash_del(EG(function_table), "pancake\\setthread", sizeof("pancake\\setthread"));
+	zend_hash_del(EG(function_table), "pancake\\out", sizeof("pancake\\out"));
+
 	// Fetch vHost php.ini settings
 	INISettings = zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "phpINISettings", sizeof("phpINISettings") - 1, 0 TSRMLS_CC);
 	if(Z_TYPE_P(INISettings) == IS_ARRAY && zend_hash_num_elements(Z_ARRVAL_P(INISettings))) {
