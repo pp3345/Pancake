@@ -1138,7 +1138,7 @@ PHP_FUNCTION(SAPIFinishRequest) {
 		// Destroy resource list
 		zend_hash_graceful_reverse_destroy(&EG(regular_list));
 		// See zend_init_rsrc_list()
-		zend_hash_init(&EG(regular_list), 0, NULL, PHP_list_entry_destructor, 0);
+		zend_hash_init(&EG(regular_list), 5, NULL, PHP_list_entry_destructor, 0);
 		EG(regular_list).nNextFreeElement = 1;
 
 		// Open fake fds
