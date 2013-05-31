@@ -344,7 +344,7 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 	zend_function *function;
 	zend_class_entry **vars;
 	zval *disabledFunctions, *autoDelete, *autoDeleteExcludes, *HTMLErrors, *processingLimit, *timeout, *phpSocket,
-		*controlSocket, *INISettings;
+		*controlSocket, *INISettings, **value;
 	zend_constant *PHP_SAPI;
 	zend_module_entry *core, *module;
 	int count = 0;
@@ -500,10 +500,10 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 
 	// Read auto deletes
 	autoDelete = zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "autoDelete", sizeof("autoDelete") - 1, 0 TSRMLS_CC);
-	PANCAKE_SAPI_GLOBALS(autoDeleteFunctions) = Z_TYPE_P(autoDelete) == IS_ARRAY && zend_hash_exists(Z_ARRVAL_P(autoDelete), "functions", sizeof("functions"));
-	PANCAKE_SAPI_GLOBALS(autoDeleteClasses) = Z_TYPE_P(autoDelete) == IS_ARRAY && zend_hash_exists(Z_ARRVAL_P(autoDelete), "classes", sizeof("classes"));
-	PANCAKE_SAPI_GLOBALS(autoDeleteIncludes) = Z_TYPE_P(autoDelete) == IS_ARRAY && zend_hash_exists(Z_ARRVAL_P(autoDelete), "includes", sizeof("includes"));
-	PANCAKE_SAPI_GLOBALS(autoDeleteConstants) = Z_TYPE_P(autoDelete) == IS_ARRAY && zend_hash_exists(Z_ARRVAL_P(autoDelete), "constants", sizeof("constants"));
+	PANCAKE_SAPI_GLOBALS(autoDeleteFunctions) = Z_TYPE_P(autoDelete) == IS_ARRAY && zend_hash_find(Z_ARRVAL_P(autoDelete), "functions", sizeof("functions"), (void**) &value) == SUCCESS && zend_is_true(*value);
+	PANCAKE_SAPI_GLOBALS(autoDeleteClasses) = Z_TYPE_P(autoDelete) == IS_ARRAY && zend_hash_find(Z_ARRVAL_P(autoDelete), "classes", sizeof("classes"), (void**) &value) == SUCCESS && zend_is_true(*value);
+	PANCAKE_SAPI_GLOBALS(autoDeleteIncludes) = Z_TYPE_P(autoDelete) == IS_ARRAY && zend_hash_find(Z_ARRVAL_P(autoDelete), "includes", sizeof("includes"), (void**) &value) == SUCCESS && zend_is_true(*value);
+	PANCAKE_SAPI_GLOBALS(autoDeleteConstants) = Z_TYPE_P(autoDelete) == IS_ARRAY && zend_hash_find(Z_ARRVAL_P(autoDelete), "constants", sizeof("constants"), (void**) &value) == SUCCESS && zend_is_true(*value);
 
 	autoDeleteExcludes = zend_read_property(NULL, PANCAKE_SAPI_GLOBALS(vHost), "autoDeleteExcludes", sizeof("autoDeleteExcludes") - 1, 0 TSRMLS_CC);
 	if(Z_TYPE_P(autoDeleteExcludes) == IS_ARRAY) {
