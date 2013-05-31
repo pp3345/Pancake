@@ -1199,6 +1199,7 @@ PHP_FUNCTION(SAPIFinishRequest) {
 	}
 	zend_llist_destroy(&SG(sapi_headers).headers);
 	zend_llist_init(&SG(sapi_headers).headers, sizeof(sapi_header_struct), (void (*)(void *)) sapi_free_header, 0);
+	SG(sapi_headers).http_response_code = 0;
 
 	// Reset executor
 	EG(ticks_count) = 0;
