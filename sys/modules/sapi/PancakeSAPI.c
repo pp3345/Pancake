@@ -398,7 +398,7 @@ PHP_RINIT_FUNCTION(PancakeSAPI) {
 		open("/dev/null", 0);
 	}
 
-	if(fcntl(2, F_SETFD) == -1) {
+	if(fcntl(2, F_GETFD) == -1) {
 		open("/dev/null", 0);
 	}
 
@@ -1150,7 +1150,7 @@ PHP_FUNCTION(SAPIFinishRequest) {
 			open("/dev/null", 0);
 		}
 
-		if(fcntl(2, F_SETFD) == -1) {
+		if(fcntl(2, F_GETFD) == -1) {
 			open("/dev/null", 0);
 		}
 	}
