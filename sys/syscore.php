@@ -165,9 +165,9 @@
 		if(is_resource(\STDIN))  fclose(\STDIN);
         if(is_resource(\STDOUT)) fclose(\STDOUT);
         if(is_resource(\STDERR)) fclose(\STDERR);
-        define('Pancake\STDIN_FAKE', fopen('/dev/null', 'r'));
-        define('Pancake\STDOUT_FAKE', fopen('/dev/null', 'r'));
-        define('Pancake\STDERR_FAKE', fopen('/dev/null', 'r'));
+        fopen('/dev/null', 'r');
+        fopen('/dev/null', 'r');
+        fopen('/dev/null', 'r');
 
         define('Pancake\DAEMONIZED', true);
     } else
