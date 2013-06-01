@@ -1,3 +1,57 @@
+1.5
+
+- PHP SAPI completely rewritten in C, large PHP performance improvements
+- General HTTP parser performance improvements
+- Experimental PHP feature: Pancake\SetErrorHandling($mode[, $class]) now allows throwing exceptions instead of E_WARNING, E_USER_WARNING and E_RECOVERABLE_ERROR
+- New TLS rewrite condition, allowing to apply a rewrite rule only when client connection is (un)secure
+- New IfNot rewrite condition, applying a rewrite rule only if supplied RegEx pattern does not match request path
+- New HTTPMethod rewrite condition, allowing to apply a rewrite rule only when a specific HTTP request method is used
+- New MIMEType rewrite condition, allowing to apply a rewrite rule only when the requested file has a specific MIME type
+- New FastCGI rewrite action, allowing to force the usage of a specific FastCGI configuration on a request
+- Added DisableAccessChecks rewrite setting, disabling all Pancake file access checks (only works together with FastCGI rewrite setting)
+- Added UseClientPath rewrite setting, causing Pancake to apply all rewrite settings on the path sent by the client instead of the already rewritten one
+- Added support for non-multiplexing FastCGI servers (Multiplex: false in FastCGI configuration)
+- Improved FastCGI protocol-level error handling
+- New vHost PHP shutdown settings: PHPDestroyObjects, PHPCleanUserFunctionData, PHPCleanUserClassData (all default to true when not set)
+- Updated Debian init script (thanks to Jan-Erik Petersen)
+- Pancake will now honor custom HTTP response code descriptions set via header()
+- Logging is now disabled when log file configuration directives are not set
+- post_max_size of 0 now allows unlimited POST payload size
+- dl() is now always disabled in Pancake SAPI
+- ?pancakedebug now also works on HTTP exceptions
+- vHost setting PHPINISettings now acts like configuration directives are set in php.ini, allowing full configuration
+- vHost settings PHPResetClassStaticObjects, PHPResetClassStaticNonObjects, PHPResetFunctionStaticObjects, PHPResetFunctionStaticNonObjects, PHPResetObjectsDestroyDestructors, PHPInfoPancake, PHPInfoPancakevHosts removed
+- Main configuration settings WaitSlotTime and WaitSlotWaitTime removed
+- Removed dependency on PHP session extension
+- Removed Pancake configuration information from phpinfo()
+- Removed ?pancakephpdebug
+- Removed HTTPRequest::setCookie()
+- Fixed -h start option not working
+- Fixed debug_print_backtrace() with limit parameter not working correctly in some cases
+- Fixed crash when trying to create UNIX sockets with paths longer than 108 bytes
+- Fixed missing error message when OpenSSL library is missing on PancakeTLS build
+- Fixed PancakeTLS not working on 32-bit i686 processors
+- Fixed FastCGI and AJP13 configuration names being treated case-sensitive
+- Fixed 0 being used as request ID sometimes in FastCGI
+- Fixed customized mime.yml being overwritten when updating Pancake
+- Fixed crash when rewrite rule is not an array
+- Fixed bad encoding of long CGI parameters in FastCGI
+- Fixed post_max_size not working with some specific PHP binaries
+- Fixed E_NOTICE error sometimes occuring in filter_input()
+
+1.4.3
+
+- Fixed critical use after scope error in HTTPRequest::buildAnswerHeaders()
+
+1.4.2
+
+- Fixed spl_autoload_register() not working correctly when no arguments are passed
+
+1.4.1
+
+- Fixed $_SESSION and $GLOBALS not working correctly when using CodeCache under certain circumstances
+- Improved behavior of set_error_handler()
+
 1.4
 
 - SSL/TLS is now supported (OpenSSL 0.9.8 or newer required)
