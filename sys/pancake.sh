@@ -4,7 +4,7 @@
 #   /* Pancake                                                      */
 #   /* pancake.sh                                                   */
 #   /* 2012 - 2013 Yussuf Khalil                                    */
-#   /* License: http://pancakehttp.net/license/                     */
+#   /* See LICENSE file for license information                     */
 #   /****************************************************************/
 
 FILENAME=`readlink -f $0`

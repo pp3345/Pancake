@@ -3,7 +3,7 @@
     /* Pancake                                                      */
     /* Pancake_coreFunctions.c                                      */
     /* 2012 - 2013 Yussuf Khalil                                    */
-    /* License: http://pancakehttp.net/license/                     */
+    /* See LICENSE file for license information                     */
     /****************************************************************/
 
 #include "Pancake.h"

@@ -5,7 +5,7 @@
 	/* sfYamlParser.class.php                                       */
 	/* Fabien Potencier                                             */
 	/* 2012 - 2013 Yussuf Khalil                                    */
-	/* License: http://pancakehttp.net/license/                     */
+	/* See LICENSE file for license information                     */
 	/****************************************************************/
 
 	// YAML-Parser from Symfony project

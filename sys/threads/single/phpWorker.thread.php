@@ -4,7 +4,7 @@
     /* Pancake                                                      */
     /* phpWorker.thread.php                                         */
     /* 2012 - 2013 Yussuf Khalil                                    */
-    /* License: http://pancakehttp.net/license/                     */
+    /* See LICENSE file for license information                     */
     /****************************************************************/
 
 	#.define 'PHPWORKER' true
