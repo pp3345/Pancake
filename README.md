@@ -11,19 +11,19 @@ Pancake can also handle very high concurrency loads. Try it out!
 
 ## System requirements
 
-* Linux
-* PHP 5.4.0 or newer (PHP 5.4.10 or newer recommended)
+* Linux >= 2.6.9
+* PHP >= 5.4.0 (PHP >= 5.4.10 recommended, PHP 5.5 not supported yet)
 * i686 or x86_64 processor or Raspberry Pi (no *official* support for other ARM architectures)
-* OpenSSL 0.9.8 or newer required for HTTPS
+* OpenSSL >= 0.9.8 for HTTPS (optional)
 
 ## Installation
 
 Installing Pancake is quite easy. Simply download the current version and extract it anywhere on the target computer.
 Then add the executable flag to the Pancake/sys/pancake.sh file and run it. On most systems the following commands should do the job:
 
-    wget http://github.com/pp3345/Pancake/tarball/<version>
-    tar -zxvf <version>
-    mv pp3345-Pancake-* Pancake
+    wget -O pancake.tar.gz http://pancakehttp.net/latest
+    tar -zxvf pancake.tar.gz
+    mv Pancake-* Pancake
     cd Pancake/sys
     chmod +x pancake.sh
     sudo ./pancake.sh
@@ -42,7 +42,7 @@ Documentation and information about the configuration of Pancake can be found at
 
 ## Bundled init script
 
-Pancake now has an official init script for Debian GNU/Linux (and Debian-derived distributions like Ubuntu or Raspbian) bundled.
+Pancake has an official init script for Debian GNU/Linux (and Debian-derived distributions like Ubuntu or Raspbian) bundled.
 The script is located in the main directory of Pancake. Run the following commands to use it:
 
     cd <PancakeDirectory>
@@ -75,5 +75,5 @@ If you love your tasty Pancake and my work, how about donating a few bucks via P
 
 ## License
 
-Pancake is currently licensed under its own [license](http://pancakehttp.net/license/).
-However, the license will probably change soon. In case you have any questions about the license, please contact [support@pancakehttp.net](mailto:support@pancakehttp.net).
+All Pancake source files are subject to the GNU Lesser General Public License v3. See LICENSE and LICENSE.GPL for copies of GNU LGPL v3 and GNU GPL v3.
+In case you have any questions about the license, please contact [support@pancakehttp.net](mailto:support@pancakehttp.net).
