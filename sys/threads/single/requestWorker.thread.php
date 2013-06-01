@@ -93,12 +93,6 @@
     
     #.LISTEN_SOCKET_COUNT = #.eval EVAL_CODE false
 
-    #.if #.call 'Pancake\Config::get' 'main.waitslotwaitlimit'
-    	#.ifdef 'SUPPORT_PHP'
-    		#.define 'SUPPORT_WAITSLOTS' true
-    	#.endif
-    #.endif
-
     #.config 'compressvariables' false
     #.config 'compressproperties' false
     #.config 'autosubstitutesymbols' false
@@ -286,11 +280,6 @@
 #.ifdef 'SUPPORT_PHP'
     $phpSockets = array();
 #.endif
-#.ifdef 'SUPPORT_WAITSLOTS'
-    $waitSlots = array();
-    $waitSlotsOrig = array();
-    $waits = array();
-#.endif
         
 #.if #.Pancake\Config::get("main.naglesalgorithm", 0)
     // Disable Nagle's algorithm if requested
@@ -337,11 +326,7 @@
     setUser();
 
     // Wait for incoming requests
-    while(Select($listenSockets, $liveWriteSockets
-#.ifdef 'SUPPORT_WAITSLOTS'
-    , $waitSlots ? /* .call 'Pancake\Config::get' 'main.waitslottime' */ : null
-#.endif
-    )) {
+    while(Select($listenSockets, $liveWriteSockets)) {
     	// If there are jobs left in the queue at the end of the job-run, we're going to jump back to this point to execute the jobs that are left
     	cycle:
 
@@ -359,16 +344,7 @@
 #.endif
             goto liveWrite;
         }
-        
-#.ifdef 'SUPPORT_WAITSLOTS'
-        // Check if there are requests waiting for a PHPWorker
-        foreach($waitSlots as $socket) {
-            unset($waitSlots[$socket]);
-            $requestObject = $requests[$socket];
-            goto load;
-        }
-#.endif
-        
+                
         // New connection, data from client, AJP13 or FastCGI or PHP SAPI data or command from Pancake master process
         foreach($listenSockets as $socket) {
         	unset($listenSockets[$socket]);
@@ -945,12 +921,6 @@
 #.endif
         }
 
-
-#.ifdef 'SUPPORT_WAITSLOTS'
-        unset($waitSlotsOrig[$socket]);
-        unset($waits[$socket]);
-#.endif
-
         unset($socketData[$socket]);
         unset($postData[$socket]);
         unset($liveReadSockets[$socket]);
@@ -995,11 +965,7 @@
         unset($requestObject);
 
         // If jobs are waiting, execute them before select()ing again
-        if($listenSockets || $liveWriteSockets
-#.ifdef 'SUPPORT_WAITSLOTS'
-        || $waitSlots
-#.endif
-        )
+        if($listenSockets || $liveWriteSockets)
         	goto cycle;
 
         // Check if we are ready to shutdown if we should
@@ -1010,9 +976,6 @@
 
         $listenSockets = $listenSocketsOrig;
         $liveWriteSockets = $liveWriteSocketsOrig;
-#.ifdef 'SUPPORT_WAITSLOTS'
-        $waitSlots = $waitSlotsOrig;
-#.endif
 
         // Reset PHP statcache
         clearstatcache();
