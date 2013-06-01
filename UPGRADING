@@ -1,3 +1,46 @@
+Upgrading to Pancake 1.5
+
+This release of Pancake contains an updated init script for Debian GNU/Linux. It can be used and installed just like the old one, updating
+is recommended. See README.md for instructions.
+
+Pancake 1.5 introduces a completely rewritten PHP SAPI. Performance has largely increased and compatibility with native PHP SAPIs is much higher
+now. The new SAPI also requires some changes in the Pancake vHost PHP settings. The old settings
+ 
+	- PHPResetClassStaticObjects
+	- PHPResetClassStaticNonObjects 
+	- PHPResetFunctionStaticObjects 
+	- PHPResetFunctionStaticNonObjects
+	- PHPResetObjectsDestroyDestructors
+	- PHPInfoPancake 
+	- PHPInfoPancakevHosts
+
+have been completely removed. Instead, Pancake 1.5 introduces the following new PHP cleanup settings, all default to true when not set:
+
+	- PHPDestroyObjects
+	- PHPCleanUserFunctionData
+	- PHPCleanUserClassData
+
+In case you didn't touch the old settings and kept them at their default values, you probably won't need to change anything now in your vHost
+configuration. However, if you were using CodeCache you should take a look at them. In case you were using CodeCache not only for keeping source
+code loaded, but also for storing data in memory across requests you probably want to set these three settings to false.
+
+Please note that it is not possible to define excludes from constant autodeletion anymore and that instead of different settings for classes, 
+interfaces and traits there is only one setting for autodeletion of classes, which will apply to traits and interfaces too.
+
+The Pancake\HTTPRequest::setCookie() method has been removed.
+
+Pancake 1.5 contains a new (still experimental) feature for PHP developers, allowing to let PHP automatically throw exceptions when an E_WARNING,
+E_USER_WARNING or E_RECOVERABLE_ERROR is about to be emitted.
+
+Pancake\SetErrorHandling($mode[, $class = "Exception"])
+
+$mode
+must either be Pancake\EH_NORMAL to disable exception error handling or Pancake\EH_THROW to enable error handling via exceptions.
+
+$class
+can be set to a custom class for the thrown exceptions, which must be derived from the \Exception class. The $severity property of the thrown
+exception will always be set, so \ErrorException can be used.
+
 Upgrading to Pancake 1.4
 
 Some default configuration values have changed in Pancake 1.4. Please look at the changelog for further information. It is especially 
