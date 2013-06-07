@@ -1,3 +1,8 @@
+1.5.1
+
+- Fixed segmentation faults occuring in garbage collection in some cases
+- Content-Type headers are now discarded on HTTP 304 when using AJP13 (see IETF RFC 2616 section 10.3.5)
+
 1.5
 
 - PHP SAPI completely rewritten in C, large PHP performance improvements
