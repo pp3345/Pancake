@@ -284,7 +284,8 @@
 							$value = substr($data, $pos + 4, $valueLength);
 							switch($data[$pos + 1]) {
 								case "\x01":
-									$requestObject->setHeader('Content-Type', $value);
+                                    if($requestObject->answerCode != 304) // Jenkins loves to send illegal and wrong Content-Type headers on 304 - RFC states that it should be discarded
+									   $requestObject->setHeader('Content-Type', $value);
 									break;
 								case "\x02":
 									$requestObject->setHeader('Content-Language', $value);
