@@ -1155,6 +1155,9 @@ PHP_FUNCTION(SAPIFinishRequest) {
 		}
 	}
 
+	// Call garbage collection
+	gc_collect_cycles(TSRMLS_C);
+
 	// Restore ini entries
 	zend_try {
 		zend_ini_deactivate(TSRMLS_C);
