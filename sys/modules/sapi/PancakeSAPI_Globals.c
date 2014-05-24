@@ -99,7 +99,7 @@ static zend_bool PancakeSAPIJITFetchGLOBALS(const char *name, uint name_len TSRM
 
 static zval *PancakeSAPIFetchSERVER(TSRMLS_D) {
 	zval *server, *requestTime, *requestMicrotime, *requestMethod, *protocolVersion, *requestFilePath,
-		*originalRequestURI, *requestURI, *vHost, *remoteIP, *remotePort, *queryString,
+		*originalRequestURI, *requestURI, *remoteIP, *remotePort, *queryString,
 		*localIP, *localPort, *requestHeaderArray, **data, *pathInfo, *TLS;
 
 	MAKE_STD_ZVAL(server);
@@ -227,7 +227,7 @@ static zval *PancakeSAPIFetchSERVER(TSRMLS_D) {
 	if(UNEXPECTED(!haveServerName)) {
 		zval *listen;
 
-		FAST_READ_PROPERTY(listen, vHost, "listen", sizeof("listen") - 1, HASH_OF_listen);
+		FAST_READ_PROPERTY(listen, PANCAKE_SAPI_GLOBALS(vHost), "listen", sizeof("listen") - 1, HASH_OF_listen);
 		zend_hash_index_find(Z_ARRVAL_P(listen), 0, (void**) &data);
 		Z_ADDREF_PP(data);
 		add_assoc_zval_ex(server, "SERVER_NAME", sizeof("SERVER_NAME"), *data);
