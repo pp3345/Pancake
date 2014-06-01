@@ -1,3 +1,8 @@
+1.5.2
+
+- Fixed two crashes
+- Added support for DHE and ECDHE cipher suites
+
 1.5.1
 
 - Fixed segmentation faults occuring in garbage collection in some cases
