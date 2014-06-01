@@ -79,8 +79,33 @@ PHP_RSHUTDOWN_FUNCTION(PancakeTLS) {
 
 PHP_FUNCTION(TLSCreateContext) {
 	char *certificateChainFile, *privateKeyFile, *cipherList;
-	int certificateChainFile_len, privateKeyFile_len, cipherList_len;
+	int certificateChainFile_len, privateKeyFile_len, cipherList_len, nid;
 	long options;
+	EC_KEY *ecdh;
+    DH *dh;
+
+    /*
+-----BEGIN DH PARAMETERS-----
+MIGHAoGBANQS3u9Zf6RfcfPKEXmuAkf39udOrXcvMhPB681Cg5lAFTspVYC5IRg8
+e/b2bInYVayxdEUFCMKKtDd3Lv/12+8OpfdH2bvpWJ/a5wIPrXyeSNzM0/N/3dLh
+ONUZGFlagaoWprGVzNwEpJTrTOfmzxzzJrGmv7Fr8X9z8+nv+fOrAgEC
+-----END DH PARAMETERS-----
+     */
+
+    static unsigned char dh1024_p[] = {
+            0xD4,0x12,0xDE,0xEF,0x59,0x7F,0xA4,0x5F,0x71,0xF3,0xCA,0x11,
+            0x79,0xAE,0x02,0x47,0xF7,0xF6,0xE7,0x4E,0xAD,0x77,0x2F,0x32,
+            0x13,0xC1,0xEB,0xCD,0x42,0x83,0x99,0x40,0x15,0x3B,0x29,0x55,
+            0x80,0xB9,0x21,0x18,0x3C,0x7B,0xF6,0xF6,0x6C,0x89,0xD8,0x55,
+            0xAC,0xB1,0x74,0x45,0x05,0x08,0xC2,0x8A,0xB4,0x37,0x77,0x2E,
+            0xFF,0xF5,0xDB,0xEF,0x0E,0xA5,0xF7,0x47,0xD9,0xBB,0xE9,0x58,
+            0x9F,0xDA,0xE7,0x02,0x0F,0xAD,0x7C,0x9E,0x48,0xDC,0xCC,0xD3,
+            0xF3,0x7F,0xDD,0xD2,0xE1,0x38,0xD5,0x19,0x18,0x59,0x5A,0x81,
+            0xAA,0x16,0xA6,0xB1,0x95,0xCC,0xDC,0x04,0xA4,0x94,0xEB,0x4C,
+            0xE7,0xE6,0xCF,0x1C,0xF3,0x26,0xB1,0xA6,0xBF,0xB1,0x6B,0xF1,
+            0x7F,0x73,0xF3,0xE9,0xEF,0xF9,0xF3,0xAB
+	};
+    static unsigned char dh1024_g[] = {0x02};
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sssl", &certificateChainFile, &certificateChainFile_len, &privateKeyFile, &privateKeyFile_len, &cipherList, &cipherList_len, &options) == FAILURE) {
 		RETURN_FALSE;
@@ -114,6 +139,35 @@ PHP_FUNCTION(TLSCreateContext) {
 			zend_error(E_WARNING, "Failed setting custom TLS cipher list");
 		}
 	}
+
+	// Diffie-Hellmann
+	dh = DH_new();
+	dh->p = BN_bin2bn(dh1024_p, sizeof(dh1024_p), NULL);
+	dh->g = BN_bin2bn(dh1024_g, sizeof(dh1024_g), NULL);
+
+	if(!dh->p || !dh->g) {
+		zend_error(E_WARNING, "Failed to convert DHE parameters");
+		DH_free(dh);
+		RETURN_TRUE;
+	}
+
+	SSL_CTX_set_tmp_dh(PANCAKE_TLS_GLOBALS(context), dh);
+	DH_free(dh);
+
+	// Elliptic-Curve Diffie-Hellman
+	if((nid = OBJ_sn2nid("prime256v1")) == 0) {
+		zend_error(E_WARNING, "Could not find elliptic curve prime256v1 for ECDHE");
+		RETURN_TRUE;
+	}
+
+	ecdh = EC_KEY_new_by_curve_name(nid);
+	if(ecdh == NULL) {
+		zend_error(E_WARNING, "Could not fetch elliptic curve prime256v1 for ECDHE");
+		RETURN_TRUE;
+	}
+
+	SSL_CTX_set_options(PANCAKE_TLS_GLOBALS(context), SSL_OP_SINGLE_ECDH_USE);
+	SSL_CTX_set_tmp_ecdh(PANCAKE_TLS_GLOBALS(context), ecdh);
 
 	RETURN_TRUE;
 }

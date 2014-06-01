@@ -18,8 +18,8 @@
         public $id = 0;
         public $name = "";
         public $documentRoot = "";
+		public $listen = array();
 		#.ifndef 'PHPWORKER'
-	        public $listen = array();
 	        public $phpWorkers = 0;
 	        public $indexFiles = array();
 			public $allowDirectoryListings = false;

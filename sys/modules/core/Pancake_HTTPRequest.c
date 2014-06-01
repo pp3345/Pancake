@@ -163,6 +163,12 @@ PHP_METHOD(HTTPRequest, init) {
 
 	Z_DELREF_P(answerHeaderArray);
 
+	/* 05/24/2014 Fix crash when requestHeaders == NULL */
+	MAKE_STD_ZVAL(headerArray);
+	array_init_size(headerArray, 8);
+	PancakeQuickWriteProperty(this_ptr, headerArray, "requestHeaders", sizeof("requestHeaders"), HASH_OF_requestHeaders TSRMLS_CC);
+	Z_DELREF_P(headerArray);
+
 	if(UNEXPECTED(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &requestHeader, &requestHeader_len) == FAILURE)) {
 		RETURN_FALSE;
 	}
@@ -234,9 +240,6 @@ PHP_METHOD(HTTPRequest, init) {
 		efree(requestLine);
 		return;
 	}
-
-	MAKE_STD_ZVAL(headerArray);
-	array_init_size(headerArray, 8);
 
 	while((header = strtok_r(NULL, "\r\n", &ptr1)) != NULL) {
 		int headerName_len;
@@ -388,8 +391,6 @@ PHP_METHOD(HTTPRequest, init) {
 		}
 	}
 
-	PancakeQuickWriteProperty(this_ptr, headerArray, "requestHeaders", sizeof("requestHeaders"), HASH_OF_requestHeaders TSRMLS_CC);
-	Z_DELREF_P(headerArray);
 
 	efree(requestHeader_dupe);
 

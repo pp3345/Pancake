@@ -15,6 +15,7 @@
 
 #include "../core/Pancake.h"
 #include "openssl/ssl.h"
+#include "openssl/dh.h"
 #include "Zend/zend_list.h"
 
 extern zend_module_entry PancakeTLS_module_entry;
